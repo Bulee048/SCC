@@ -40,6 +40,15 @@ const userSchema = new mongoose.Schema({
     min: 1,
     max: 5
   },
+  phone: {
+    type: String,
+    trim: true
+  },
+  bio: {
+    type: String,
+    trim: true,
+    maxlength: 500
+  },
   profilePicture: {
     type: String,
     default: ""

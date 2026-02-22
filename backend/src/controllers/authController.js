@@ -7,7 +7,7 @@ import { generateAccessToken, generateRefreshToken, verifyToken } from "../utils
  */
 export const register = async (req, res) => {
   try {
-    const { name, email, password, role, studentId, department, year } = req.body;
+    const { name, email, password, role, studentId, department, year, phone, bio } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -29,8 +29,8 @@ export const register = async (req, res) => {
       }
     }
 
-    // Create new user
-    const user = new User({
+    // Create new user with all fields
+    const userData = {
       name,
       email,
       password,
@@ -38,8 +38,13 @@ export const register = async (req, res) => {
       studentId,
       department,
       year
-    });
+    };
 
+    // Add optional fields if provided
+    if (phone) userData.phone = phone;
+    if (bio) userData.bio = bio;
+
+    const user = new User(userData);
     await user.save();
 
     // Generate tokens
@@ -50,17 +55,30 @@ export const register = async (req, res) => {
     user.refreshTokens.push({ token: refreshToken });
     await user.save();
 
+    // Return user without password
+    const userResponse = user.toJSON();
+
     res.status(201).json({
       success: true,
       message: "User registered successfully",
       data: {
-        user: user.toJSON(),
+        user: userResponse,
         accessToken,
         refreshToken
       }
     });
   } catch (error) {
     console.error("Register error:", error);
+    
+    // Handle validation errors
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ 
+        success: false,
+        message: messages.join(", ")
+      });
+    }
+    
     res.status(500).json({ 
       success: false,
       message: "Error registering user",
@@ -239,12 +257,14 @@ export const getMe = async (req, res) => {
  */
 export const updateProfile = async (req, res) => {
   try {
-    const { name, department, year, profilePicture, preferences } = req.body;
+    const { name, department, year, phone, bio, profilePicture, preferences } = req.body;
 
     const updateData = {};
     if (name) updateData.name = name;
     if (department) updateData.department = department;
     if (year) updateData.year = year;
+    if (phone) updateData.phone = phone;
+    if (bio) updateData.bio = bio;
     if (profilePicture) updateData.profilePicture = profilePicture;
     if (preferences) updateData.preferences = preferences;
 
@@ -253,6 +273,13 @@ export const updateProfile = async (req, res) => {
       updateData,
       { new: true, runValidators: true }
     );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
 
     res.status(200).json({
       success: true,
@@ -263,6 +290,16 @@ export const updateProfile = async (req, res) => {
     });
   } catch (error) {
     console.error("Update profile error:", error);
+    
+    // Handle validation errors
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ 
+        success: false,
+        message: messages.join(", ")
+      });
+    }
+    
     res.status(500).json({ 
       success: false,
       message: "Error updating profile",
