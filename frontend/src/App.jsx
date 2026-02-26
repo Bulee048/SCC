@@ -22,6 +22,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 
 // Styles
 import "./App.css";
+import "./styles/Uiverse.css";
 
 function App() {
   return (

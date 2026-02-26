@@ -267,7 +267,7 @@ const Kuppi = () => {
       {/* Create Modal */}
       {showCreateModal && (
         <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content uiverse-glass" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Create Kuppi Session</h2>
               <button className="modal-close" onClick={() => setShowCreateModal(false)}>
@@ -345,7 +345,7 @@ const Kuppi = () => {
       {/* Add Meeting Link Modal */}
       {showLinkModal && (
         <div className="modal-overlay" onClick={() => setShowLinkModal(null)}>
-          <div className="modal-content modal-sm" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content uiverse-glass modal-sm" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Add Meeting Link</h2>
               <button className="modal-close" onClick={() => setShowLinkModal(null)}>
@@ -424,7 +424,7 @@ const KuppiCard = ({
   });
 
   return (
-    <div className={`kuppi-card fade-in ${isPast ? "past" : ""}`}>
+    <div className={`kuppi-card card-shine hover-glow fade-in ${isPast ? "past" : ""}`}>
       <div className="kuppi-card-top">
         <div className="kuppi-card-info">
           <div className="kuppi-author">
@@ -525,7 +525,7 @@ const ApplicantsModal = ({ postId, posts, onClose, onExport }) => {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content modal-lg" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content uiverse-glass modal-lg" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div>
             <h2>Applicants</h2>

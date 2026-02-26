@@ -33,6 +33,43 @@ const steps = [
   { n: "04", title: "Ace your semester", desc: "Stay organized, study smarter, and achieve the grades you deserve." },
 ];
 
+const testimonials = [
+  {
+    quote: "Before SCC, I was juggling WhatsApp, Google Drive, and random docs. Now everything is in one place and my weekly planning takes half the time.",
+    name: "Nadeesha Perera",
+    role: "2nd Year • Computer Science",
+  },
+  {
+    quote: "The notes and Kuppi flow is super clean. I can quickly find who explained a topic best and revise without wasting hours searching.",
+    name: "Tharushi Jayasinghe",
+    role: "3rd Year • Engineering",
+  },
+  {
+    quote: "Group coordination improved a lot. We assign tasks, share resources, and stay on track before exams without constant confusion.",
+    name: "Mihiran Fernando",
+    role: "1st Year • Information Systems",
+  },
+];
+
+const faqs = [
+  {
+    q: "Is Smart Campus Companion free for students?",
+    a: "Yes. Core features like notes, study groups, timetable planning, and collaboration are free to start.",
+  },
+  {
+    q: "Can I use SCC for multiple courses and groups?",
+    a: "Absolutely. You can create separate study groups, organize notes by module, and manage different class schedules in one account.",
+  },
+  {
+    q: "How quickly can I get started?",
+    a: "Most students are fully set up in under 10 minutes—create your account, join groups, and start sharing notes right away.",
+  },
+  {
+    q: "Does SCC work well for exam preparation?",
+    a: "Yes. Students use SCC to centralize revision notes, track deadlines, schedule focused sessions, and reduce last-minute stress.",
+  },
+];
+
 export default function Home() {
   const [scrolled, setScrolled] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -215,7 +252,7 @@ export default function Home() {
         }
 
         :root {
-          --bg-dark: #0a0c14;
+          --bg-dark: #101828;
           --bg-card: rgba(18, 22, 36, 0.8);
           --bg-surface: #121624;
           --border: rgba(255, 255, 255, 0.08);
@@ -249,7 +286,8 @@ export default function Home() {
           inset: 0;
           z-index: 0;
           pointer-events: none;
-          opacity: 0.7;
+          opacity: 0.9;
+          filter: contrast(1.14) saturate(1.14) brightness(1.08);
         }
 
         .overlay {
@@ -257,9 +295,9 @@ export default function Home() {
           inset: 0;
           z-index: 1;
           pointer-events: none;
-          background: radial-gradient(circle at 30% 30%, rgba(16, 185, 129, 0.05) 0%, transparent 60%),
-                      radial-gradient(circle at 70% 80%, rgba(45, 212, 191, 0.05) 0%, transparent 60%),
-                      linear-gradient(180deg, rgba(10, 12, 20, 0) 0%, rgba(10, 12, 20, 0.8) 100%);
+          background: radial-gradient(circle at 30% 30%, rgba(16, 185, 129, 0.1) 0%, transparent 58%),
+                      radial-gradient(circle at 70% 80%, rgba(45, 212, 191, 0.1) 0%, transparent 58%),
+                      linear-gradient(180deg, rgba(10, 12, 20, 0.03) 0%, rgba(10, 12, 20, 0.46) 100%);
         }
 
         .content {
@@ -657,6 +695,72 @@ export default function Home() {
           line-height: 1.6;
         }
 
+        .extra-content-section {
+          padding: 2rem clamp(1.5rem, 5vw, 4rem) 6rem;
+        }
+
+        .read-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          gap: 1.2rem;
+          margin-bottom: 3rem;
+        }
+
+        .read-card {
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 20px;
+          padding: 1.5rem;
+          backdrop-filter: blur(10px);
+        }
+
+        .read-quote {
+          color: var(--text-secondary);
+          font-size: 0.95rem;
+          line-height: 1.7;
+          margin-bottom: 1rem;
+        }
+
+        .read-name {
+          color: var(--text-primary);
+          font-size: 0.95rem;
+          font-weight: 600;
+        }
+
+        .read-role {
+          color: var(--text-muted);
+          font-size: 0.82rem;
+          margin-top: 0.2rem;
+        }
+
+        .faq-list {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1rem;
+        }
+
+        .faq-item {
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 18px;
+          padding: 1.25rem 1.3rem;
+          backdrop-filter: blur(10px);
+        }
+
+        .faq-q {
+          color: var(--text-primary);
+          font-size: 0.98rem;
+          font-weight: 600;
+          margin-bottom: 0.5rem;
+          line-height: 1.4;
+        }
+
+        .faq-a {
+          color: var(--text-secondary);
+          font-size: 0.9rem;
+          line-height: 1.65;
+        }
+
         /* Steps */
         .steps-section {
           padding: 5rem clamp(1.5rem, 5vw, 4rem) 7rem;
@@ -900,7 +1004,11 @@ export default function Home() {
 
         [data-theme="light"] .feat-card,
         [data-theme="light"] .mini-stat,
-        [data-theme="light"] .profile-dropdown {
+        [data-theme="light"] .profile-dropdown,
+        [data-theme="light"] .read-card,
+        [data-theme="light"] .faq-item,
+        [data-theme="light"] .milestone-item,
+        [data-theme="light"] .milestone-end {
           background: rgba(255, 255, 255, 0.9);
           border: 1px solid rgba(15, 23, 42, 0.14);
           box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
@@ -932,6 +1040,28 @@ export default function Home() {
           border-color: rgba(15, 118, 110, 0.3);
         }
 
+        [data-theme="light"] .faq-a,
+        [data-theme="light"] .read-quote,
+        [data-theme="light"] .milestone-desc,
+        [data-theme="light"] .milestone-end p {
+          color: #334155;
+        }
+
+        [data-theme="light"] .faq-q,
+        [data-theme="light"] .read-name,
+        [data-theme="light"] .milestone-title,
+        [data-theme="light"] .milestone-end h3 {
+          color: #0f172a;
+        }
+
+        [data-theme="light"] .read-role {
+          color: #475569;
+        }
+
+        [data-theme="light"] .milestone-period {
+          color: #0f766e;
+        }
+
         [data-theme="light"] .btn-hero-ghost:hover,
         [data-theme="light"] .home-signin-btn:hover,
         [data-theme="light"] .nav-links button:hover,
@@ -955,6 +1085,7 @@ export default function Home() {
         @media (max-width: 900px) {
           .steps-grid { grid-template-columns: 1fr; }
           .mini-stats { grid-template-columns: 1fr 1fr; }
+          .faq-list { grid-template-columns: 1fr; }
           .nav-links, .nav-actions .home-signin-btn { display: none; }
         }
         @media (max-width: 600px) {
@@ -1044,7 +1175,7 @@ export default function Home() {
                 <h2 className="section-title" data-section-title>Built for students who refuse to settle for average.</h2>
                 <div className="features-grid">
                   {features.map((f) => (
-                    <article className="feat-card" data-feat-card key={f.title}>
+                    <article className="feat-card card-shine hover-glow" data-feat-card key={f.title}>
                       <div className="feat-top">
                         <div className="feat-icon">{f.icon}</div>
                         <span className="feat-tag">{f.tag}</span>
@@ -1096,6 +1227,34 @@ export default function Home() {
                     ))}
                   </div>
                   <Link to="/register" className="glow-card-btn">Create Free Account →</Link>
+                </div>
+              </div>
+            </section>
+
+            {/* More to read */}
+            <section className="extra-content-section">
+              <div className="section-inner">
+                <p className="section-label" data-section-title>Student voices</p>
+                <h2 className="section-title" data-section-title>Real outcomes from real campus life.</h2>
+                <div className="read-grid">
+                  {testimonials.map((t) => (
+                    <article className="read-card" key={t.name}>
+                      <p className="read-quote">“{t.quote}”</p>
+                      <div className="read-name">{t.name}</div>
+                      <div className="read-role">{t.role}</div>
+                    </article>
+                  ))}
+                </div>
+
+                <p className="section-label" data-section-title>FAQs</p>
+                <h2 className="section-title" data-section-title>Quick answers before you dive in.</h2>
+                <div className="faq-list">
+                  {faqs.map((item) => (
+                    <article className="faq-item" key={item.q}>
+                      <h3 className="faq-q">{item.q}</h3>
+                      <p className="faq-a">{item.a}</p>
+                    </article>
+                  ))}
                 </div>
               </div>
             </section>

@@ -302,7 +302,7 @@ const Notes = () => {
       {/* Create Note Modal */}
       {showCreateModal && (
         <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content uiverse-glass" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Share a Note</h2>
               <button
@@ -429,7 +429,7 @@ const NoteCard = ({ note, currentUserId, onReaction, onViewComments }) => {
   });
 
   return (
-    <div className="note-card fade-in">
+    <div className="note-card card-shine hover-glow fade-in">
       <div className="note-card-header">
         <div className="note-author">
           <div className="note-avatar">

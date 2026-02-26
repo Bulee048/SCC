@@ -41,15 +41,15 @@ const NotificationBell = () => {
 
   return (
     <div className="notification-bell-wrapper" ref={ref}>
-      <button className="notification-bell-btn" onClick={handleToggle}>
+      <button className="uiverse-bell-btn" onClick={handleToggle}>
         <Bell size={20} />
         {unreadCount > 0 && (
-          <span className="notification-badge">{unreadCount > 9 ? "9+" : unreadCount}</span>
+          <span className="uiverse-badge">{unreadCount > 9 ? "9+" : unreadCount}</span>
         )}
       </button>
 
       {open && (
-        <div className="notification-dropdown fade-in">
+        <div className="notification-dropdown uiverse-glass fade-in">
           <div className="notification-dropdown-header">
             <span>Notifications</span>
             {unreadCount > 0 && (

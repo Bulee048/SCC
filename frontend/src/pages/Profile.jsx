@@ -3,32 +3,11 @@ import { useSelector, useDispatch } from "react-redux";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { logout, fetchUserProfile, updateUserProfile } from "../features/auth/authSlice";
 import {
-  Brain,
-  BookMarked,
-  Users,
-  Calendar,
-  GraduationCap,
-  LogOut,
-  Settings,
-  User as UserIcon,
-  Home as HomeIcon,
-  Video,
-  Activity,
-  Shield,
-  LayoutDashboard,
-  Mail,
-  MapPin,
-  Github,
-  Twitter,
-  Linkedin,
-  Edit3,
-  Clock,
-  Globe,
-  Trash2,
-  CheckCircle2,
-  Archive,
-  Sparkles,
-  X,
+  Brain, BookMarked, Users, Calendar, GraduationCap, LogOut,
+  Settings, User as UserIcon, Home as HomeIcon, Video, Activity,
+  Shield, LayoutDashboard, Mail, MapPin, Github, Twitter, Linkedin,
+  Edit3, Clock, Globe, Trash2, CheckCircle2, Archive, Sparkles, X,
+  ChevronRight, Dot,
 } from "lucide-react";
 import NotificationBell from "../components/NotificationBell";
 import { useProfileAuroraBackground } from "../hooks/useProfileAuroraBackground";
@@ -40,615 +19,478 @@ import { confirmAction, notifyError, notifySuccess } from "../utils/toast";
 
 const TABS = ["overview", "activity", "settings"];
 
+/* ── Animated number counter ─────────────────────────────────────────── */
+const Counter = ({ value }) => {
+  const [display, setDisplay] = useState(0);
+  useEffect(() => {
+    if (value === 0) return;
+    let current = 0;
+    const step = Math.max(1, Math.floor(value / 30));
+    const timer = setInterval(() => {
+      current = Math.min(current + step, value);
+      setDisplay(current);
+      if (current >= value) clearInterval(timer);
+    }, 30);
+    return () => clearInterval(timer);
+  }, [value]);
+  return <span>{display}</span>;
+};
+
 const Profile = () => {
-  const { user, isAuthenticated, isLoading } = useSelector((state) => state.auth);
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
+  const { user, isAuthenticated, isLoading } = useSelector((s) => s.auth);
+  const dispatch   = useDispatch();
+  const navigate   = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [canvasReady, setCanvasReady] = useState(false);
   const canvasWrapRef = useRef(null);
+  const [canvasReady, setCanvasReady] = useState(false);
   useProfileAuroraBackground(canvasWrapRef, canvasReady);
 
-  const [activeTab, setActiveTab] = useState("overview");
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [profileSaveError, setProfileSaveError] = useState("");
-  const [profileForm, setProfileForm] = useState({
-    name: "",
-    bio: "",
-    location: "",
-    website: "",
-    github: "",
-    twitter: "",
-    linkedin: "",
-  });
+  const [activeTab, setActiveTab]         = useState("overview");
+  const [isEditOpen, setIsEditOpen]       = useState(false);
+  const [isSaving, setIsSaving]           = useState(false);
+  const [saveError, setSaveError]         = useState("");
+  const [form, setForm] = useState({ name: "", bio: "", location: "", website: "", github: "", twitter: "", linkedin: "", department: "", year: "", phone: "" });
 
-  const [kuppiLogs, setKuppiLogs] = useState([]);
-  const [kuppiLogsLoading, setKuppiLogsLoading] = useState(false);
-  const [kuppiLogsError, setKuppiLogsError] = useState("");
+  const [kuppiLogs, setKuppiLogs]           = useState([]);
+  const [logsLoading, setLogsLoading]       = useState(false);
+  const [logsError, setLogsError]           = useState("");
 
   const navLinks = [
-    { icon: <HomeIcon size={15} />, label: "Home", path: "/" },
-    { icon: <LayoutDashboard size={15} />, label: "Dashboard", path: "/dashboard" },
-    { icon: <BookMarked size={15} />, label: "Notes", path: "/notes" },
-    { icon: <Video size={15} />, label: "Kuppi", path: "/kuppi" },
-    { icon: <Users size={15} />, label: "Groups", path: "/groups" },
-    { icon: <UserIcon size={15} />, label: "Profile", path: "/profile" },
+    { icon: <HomeIcon size={16} />,       label: "Home",      path: "/" },
+    { icon: <LayoutDashboard size={16} />, label: "Dashboard", path: "/dashboard" },
+    { icon: <BookMarked size={16} />,      label: "Notes",     path: "/notes" },
+    { icon: <Video size={16} />,           label: "Kuppi",     path: "/kuppi" },
+    { icon: <Users size={16} />,           label: "Groups",    path: "/groups" },
+    { icon: <UserIcon size={16} />,        label: "Profile",   path: "/profile" },
   ];
 
-  useEffect(() => {
-    if (!isAuthenticated) navigate("/login");
-  }, [isAuthenticated, navigate]);
+  useEffect(() => { if (!isAuthenticated) navigate("/login"); }, [isAuthenticated, navigate]);
+  useEffect(() => { if (isAuthenticated) dispatch(fetchUserProfile()); }, [dispatch, isAuthenticated]);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      dispatch(fetchUserProfile());
-    }
-  }, [dispatch, isAuthenticated]);
-
-  useEffect(() => {
-    const tabFromQuery = searchParams.get("tab");
-    if (tabFromQuery && TABS.includes(tabFromQuery) && tabFromQuery !== activeTab) {
-      setActiveTab(tabFromQuery);
-    }
-  }, [searchParams, activeTab]);
+    const t = searchParams.get("tab");
+    if (t && TABS.includes(t) && t !== activeTab) setActiveTab(t);
+  }, [searchParams]);
 
   useEffect(() => {
     const next = new URLSearchParams(searchParams);
     next.set("tab", activeTab);
     setSearchParams(next, { replace: true });
-  }, [activeTab, searchParams, setSearchParams]);
+  }, [activeTab]);
 
   useEffect(() => {
-    const loadKuppiLogs = async () => {
-      if (!isAuthenticated) return;
-
-      setKuppiLogsLoading(true);
-      setKuppiLogsError("");
-
-      try {
-        const response = await getMyKuppiLogs();
-        setKuppiLogs(response.data || []);
-      } catch (error) {
-        setKuppiLogsError(error?.response?.data?.message || "Failed to load Kuppi logs");
-      } finally {
-        setKuppiLogsLoading(false);
-      }
-    };
-
-    loadKuppiLogs();
+    if (!isAuthenticated) return;
+    setLogsLoading(true);
+    getMyKuppiLogs()
+      .then((r) => setKuppiLogs(r.data || []))
+      .catch((e) => setLogsError(e?.response?.data?.message || "Failed to load"))
+      .finally(() => setLogsLoading(false));
   }, [isAuthenticated]);
 
   const summary = useMemo(() => {
-    const total = kuppiLogs.length;
-    const active = kuppiLogs.filter((log) => !log.isArchived).length;
-    const archived = kuppiLogs.filter((log) => log.isArchived).length;
-    const upcoming = kuppiLogs.filter((log) => {
-      const eventDate = new Date(log.eventDate);
-      return !Number.isNaN(eventDate.getTime()) && eventDate > new Date();
+    const total    = kuppiLogs.length;
+    const active   = kuppiLogs.filter((l) => !l.isArchived).length;
+    const archived = kuppiLogs.filter((l) => l.isArchived).length;
+    const upcoming = kuppiLogs.filter((l) => {
+      const d = new Date(l.eventDate);
+      return !isNaN(d.getTime()) && d > new Date();
     }).length;
-
     return { total, active, archived, upcoming };
   }, [kuppiLogs]);
 
-  const recentLogs = useMemo(() => {
-    return [...kuppiLogs]
-      .sort((first, second) => new Date(second.createdAt) - new Date(first.createdAt))
-      .slice(0, 3);
-  }, [kuppiLogs]);
+  const recentLogs = useMemo(() =>
+    [...kuppiLogs].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 3),
+    [kuppiLogs]
+  );
 
-  const handleDeleteKuppiLog = async (postId) => {
-    const confirmed = await confirmAction(
-      "Delete this Kuppi log? This will permanently remove it from the database.",
-      { confirmText: "Delete" }
-    );
-    if (!confirmed) return;
-
+  const handleDelete = async (id) => {
+    const ok = await confirmAction("Permanently delete this Kuppi log?", { confirmText: "Delete" });
+    if (!ok) return;
     try {
-      await deleteKuppiPost(postId);
-      setKuppiLogs((prevLogs) => prevLogs.filter((log) => log._id !== postId));
-      notifySuccess("Kuppi log deleted");
-    } catch (error) {
-      notifyError(error?.response?.data?.message || "Failed to delete Kuppi log");
+      await deleteKuppiPost(id);
+      setKuppiLogs((prev) => prev.filter((l) => l._id !== id));
+      notifySuccess("Deleted");
+    } catch (e) {
+      notifyError(e?.response?.data?.message || "Delete failed");
     }
   };
 
-  const openEditModal = () => {
+  const openEdit = () => {
     if (!user) return;
-
-    setProfileSaveError("");
-    setProfileForm({
-      name: user.name || "",
-      bio: user.bio || "",
-      location: user.location || "",
-      website: user.website || "",
-      github: user.github || "",
-      twitter: user.twitter || "",
-      linkedin: user.linkedin || "",
-    });
-    setIsEditModalOpen(true);
+    setSaveError("");
+    setForm({ name: user.name || "", bio: user.bio || "", location: user.location || "", website: user.website || "", github: user.github || "", twitter: user.twitter || "", linkedin: user.linkedin || "", department: user.department || "", year: user.year || "", phone: user.phone || "" });
+    setIsEditOpen(true);
   };
 
-  const closeEditModal = () => {
-    if (isSavingProfile) return;
-    setIsEditModalOpen(false);
-    setProfileSaveError("");
-  };
+  const closeEdit = () => { if (!isSaving) { setIsEditOpen(false); setSaveError(""); } };
 
-  const handleProfileSave = async (event) => {
-    event.preventDefault();
-
+  const handleSave = async (e) => {
+    e.preventDefault();
     try {
-      setIsSavingProfile(true);
-      setProfileSaveError("");
-
-      await dispatch(updateUserProfile(profileForm)).unwrap();
+      setIsSaving(true); setSaveError("");
+      await dispatch(updateUserProfile(form)).unwrap();
       await dispatch(fetchUserProfile()).unwrap();
-
-      setIsEditModalOpen(false);
-      notifySuccess("Profile updated successfully");
-    } catch (error) {
-      setProfileSaveError(
-        typeof error === "string" ? error : "Failed to save profile details"
-      );
-      notifyError(typeof error === "string" ? error : "Failed to save profile details");
+      setIsEditOpen(false);
+      notifySuccess("Profile updated");
+    } catch (err) {
+      const msg = typeof err === "string" ? err : "Save failed";
+      setSaveError(msg); notifyError(msg);
     } finally {
-      setIsSavingProfile(false);
+      setIsSaving(false);
     }
   };
 
   const handleLogout = async () => {
-    const confirmed = await confirmAction("Sign out of Smart Campus?", {
-      confirmText: "Sign out",
-    });
-    if (!confirmed) return;
-
+    const ok = await confirmAction("Sign out of Smart Campus?", { confirmText: "Sign out" });
+    if (!ok) return;
     dispatch(logout());
     navigate("/login");
   };
 
-  const formatTimelineDate = (date) => {
-    const value = new Date(date);
-    if (Number.isNaN(value.getTime())) return "Unknown date";
-
-    return value.toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
+  const fmtDate = (d) => {
+    const v = new Date(d);
+    if (isNaN(v.getTime())) return "—";
+    return v.toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true });
   };
 
-  const normalizeUrl = (value) => {
-    if (!value) return "";
-    if (value.startsWith("http://") || value.startsWith("https://")) return value;
-    return `https://${value}`;
-  };
+  const fmtUrl = (v) => (!v ? "" : v.startsWith("http") ? v : `https://${v}`);
 
-  const setCanvasWrapRef = (node) => {
-    canvasWrapRef.current = node;
-    setCanvasReady(Boolean(node));
-  };
+  const setCanvasRef = (node) => { canvasWrapRef.current = node; setCanvasReady(Boolean(node)); };
 
   if (!user || isLoading) {
     return (
-      <div className="db-root profile-page">
-        <div className="profile-loading">Loading profile...</div>
+      <div className="pr-root">
+        <div className="pr-splash">
+          <div className="pr-splash__ring" />
+          <span>Loading profile…</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="db-root profile-page">
-      <div className="db-canvas-wrap" ref={setCanvasWrapRef} />
-      <div className="db-overlay-vignette" />
+    <div className="pr-root">
+      {/* Canvas background */}
+      <div className="pr-canvas" ref={setCanvasRef} />
 
-      <div className="db-layout">
-        <nav className="db-nav">
-          <div className="db-nav__inner">
-            <Link to="/dashboard" className="db-brand">
-              <div className="db-brand__mark">
-                <GraduationCap size={18} color="#2a9d8f" />
-              </div>
-              <div>
-                <div className="db-brand__name">Smart Campus</div>
-                <div className="db-brand__sub">Companion</div>
-              </div>
+      {/* ── SIDEBAR ────────────────────────────────────────────────────── */}
+      <nav className="pr-nav">
+        <Link to="/dashboard" className="pr-nav__brand">
+          <GraduationCap size={20} />
+        </Link>
+
+        <div className="pr-nav__links">
+          {navLinks.map((lnk) => (
+            <Link
+              key={lnk.path}
+              to={lnk.path}
+              className={`pr-nav__link${lnk.path === "/profile" ? " pr-nav__link--on" : ""}`}
+              title={lnk.label}
+            >
+              {lnk.icon}
             </Link>
+          ))}
+        </div>
 
-            <div className="db-nav__links">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  className={`db-nav__link${link.path === "/profile" ? " db-nav__link--active" : ""}`}
-                >
-                  {link.icon}
-                  <span>{link.label}</span>
-                </Link>
-              ))}
+        <div className="pr-nav__foot">
+          <NotificationBell />
+          <button className="pr-nav__out" onClick={handleLogout} title="Sign out">
+            <LogOut size={15} />
+          </button>
+        </div>
+      </nav>
+
+      {/* ── MAIN ───────────────────────────────────────────────────────── */}
+      <main className="pr-main">
+
+        {/* HEADER BAR */}
+        <header className="pr-topbar">
+          <div className="pr-topbar__breadcrumb">
+            <span>Smart Campus</span>
+            <ChevronRight size={14} />
+            <span className="pr-topbar__page">Profile</span>
+          </div>
+          <div className="pr-topbar__meta">
+            <span className="pr-online-dot" />
+            <span>{user.email}</span>
+          </div>
+        </header>
+
+        {/* PROFILE HERO */}
+        <section className="pr-hero">
+          {/* Avatar + name */}
+          <div className="pr-hero__id">
+            <div className="pr-avatar">
+              {user.profilePicture
+                ? <img src={user.profilePicture} alt={user.name} />
+                : <span>{user.name?.charAt(0).toUpperCase()}</span>}
+              <div className="pr-avatar__ring" />
             </div>
 
-            <div className="db-nav__right">
-              <NotificationBell />
+            <div className="pr-hero__text">
+              <p className="pr-hero__role">{user.role || "Student"} · {user.department || "No department"}</p>
+              <h1 className="pr-hero__name">{user.name}</h1>
+
+              {user.bio && <p className="pr-hero__bio">{user.bio}</p>}
+
+              <div className="pr-hero__chips">
+                <span className="pr-chip"><Mail size={12} />{user.email}</span>
+                {user.location && <span className="pr-chip"><MapPin size={12} />{user.location}</span>}
+                {user.studentId && <span className="pr-chip"><Shield size={12} />#{user.studentId}</span>}
+                <span className="pr-chip"><Calendar size={12} />Since {new Date(user.createdAt || Date.now()).getFullYear()}</span>
+              </div>
             </div>
           </div>
-        </nav>
 
-        <main className="db-main profile-main">
-          <section className="profile-hero card-surface">
-            <div className="profile-hero__identity">
-              <div className="profile-avatar-large">
-                {user.profilePicture ? (
-                  <img src={user.profilePicture} alt={user.name} />
+          {/* Actions + socials */}
+          <div className="pr-hero__actions">
+            <div className="pr-socials">
+              {user.website  && <a href={fmtUrl(user.website)}  target="_blank" rel="noopener noreferrer" className="pr-social" title="Website"><Globe size={15} /></a>}
+              {user.github   && <a href={fmtUrl(user.github)}   target="_blank" rel="noopener noreferrer" className="pr-social" title="GitHub"><Github size={15} /></a>}
+              {user.twitter  && <a href={fmtUrl(user.twitter)}  target="_blank" rel="noopener noreferrer" className="pr-social" title="Twitter"><Twitter size={15} /></a>}
+              {user.linkedin && <a href={fmtUrl(user.linkedin)} target="_blank" rel="noopener noreferrer" className="pr-social" title="LinkedIn"><Linkedin size={15} /></a>}
+            </div>
+            <button className="pr-btn-edit" onClick={openEdit}>
+              <Edit3 size={14} /> Edit Profile
+            </button>
+          </div>
+        </section>
+
+        {/* STAT ROW */}
+        <div className="pr-stats">
+          {[
+            { icon: <Video size={16} />,        label: "Published",  value: summary.total,    c: "teal"  },
+            { icon: <CheckCircle2 size={16} />,  label: "Active",     value: summary.active,   c: "green" },
+            { icon: <Archive size={16} />,       label: "Archived",   value: summary.archived, c: "amber" },
+            { icon: <Sparkles size={16} />,      label: "Upcoming",   value: summary.upcoming, c: "indigo" },
+          ].map(({ icon, label, value, c }) => (
+            <div key={label} className={`pr-stat pr-stat--${c}`}>
+              <div className="pr-stat__icon">{icon}</div>
+              <div className="pr-stat__val"><Counter value={value} /></div>
+              <div className="pr-stat__lbl">{label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* TABS */}
+        <div className="pr-tabs">
+          {[
+            { id: "overview",  label: "Overview",  icon: <UserIcon size={14} /> },
+            { id: "activity",  label: "Activity",  icon: <Activity size={14} /> },
+            { id: "settings",  label: "Settings",  icon: <Settings size={14} /> },
+          ].map((t) => (
+            <button
+              key={t.id}
+              className={`pr-tab${activeTab === t.id ? " pr-tab--on" : ""}`}
+              onClick={() => setActiveTab(t.id)}
+            >
+              {t.icon}{t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* CONTENT PANEL */}
+        <div className="pr-panel">
+
+          {/* ── OVERVIEW ── */}
+          {activeTab === "overview" && (
+            <div className="pr-overview">
+              {/* About card */}
+              <div className="pr-card pr-card--about">
+                <h3 className="pr-card__title">About</h3>
+                <p className="pr-card__text">{user.bio || "No bio added yet. Click Edit Profile to add one."}</p>
+                <div className="pr-card__facts">
+                  <div className="pr-fact"><Video size={13} />{summary.total} total sessions</div>
+                  <div className="pr-fact"><Activity size={13} />{summary.active} currently active</div>
+                  <div className="pr-fact"><Calendar size={13} />Member since {new Date(user.createdAt || Date.now()).getFullYear()}</div>
+                </div>
+                <div className="pr-focus-tags">
+                  <span className="pr-tag"><Brain size={12} />Smart Learning</span>
+                  <span className="pr-tag"><Users size={12} />Collaboration</span>
+                  <span className="pr-tag"><BookMarked size={12} />Knowledge Sharing</span>
+                </div>
+              </div>
+
+              {/* Recent logs card */}
+              <div className="pr-card pr-card--logs">
+                <div className="pr-card__row">
+                  <h3 className="pr-card__title">Recent Kuppi Logs</h3>
+                  <button className="pr-view-all" onClick={() => setActiveTab("activity")}>View all →</button>
+                </div>
+
+                {recentLogs.length === 0 ? (
+                  <p className="pr-empty-sm">No sessions published yet.</p>
                 ) : (
-                  <span>{user.name?.charAt(0).toUpperCase()}</span>
-                )}
-              </div>
-
-              <div className="profile-hero__text">
-                <p className="profile-kicker">My Profile</p>
-                <h1 className="profile-name">{user.name}</h1>
-                <p className="profile-headline">
-                  {user.role || "Student"} • {user.department || "Department not set"}
-                </p>
-
-                <div className="profile-meta">
-                  <span>
-                    <Mail size={13} /> {user.email}
-                  </span>
-                  <span>
-                    <MapPin size={13} /> {user.location || "Location not set"}
-                  </span>
-                  {user.studentId && (
-                    <span>
-                      <Shield size={13} /> ID: {user.studentId}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="profile-hero__actions">
-              <button className="profile-edit-btn" onClick={openEditModal}>
-                <Edit3 size={14} />
-                <span>Edit Profile</span>
-              </button>
-
-              <div className="profile-social">
-                {user.website && (
-                  <a href={normalizeUrl(user.website)} target="_blank" rel="noopener noreferrer" className="social-link" title="Website">
-                    <Globe size={16} />
-                  </a>
-                )}
-                {user.github && (
-                  <a href={normalizeUrl(user.github)} target="_blank" rel="noopener noreferrer" className="social-link" title="GitHub">
-                    <Github size={16} />
-                  </a>
-                )}
-                {user.twitter && (
-                  <a href={normalizeUrl(user.twitter)} target="_blank" rel="noopener noreferrer" className="social-link" title="Twitter">
-                    <Twitter size={16} />
-                  </a>
-                )}
-                {user.linkedin && (
-                  <a href={normalizeUrl(user.linkedin)} target="_blank" rel="noopener noreferrer" className="social-link" title="LinkedIn">
-                    <Linkedin size={16} />
-                  </a>
+                  <div className="pr-log-list">
+                    {recentLogs.map((log, i) => (
+                      <div key={log._id} className="pr-log" style={{ animationDelay: `${i * 70}ms` }}>
+                        <span className="pr-log__num">{String(i + 1).padStart(2, "0")}</span>
+                        <div className="pr-log__body">
+                          <p className="pr-log__title">{log.title}</p>
+                          <span className="pr-log__time"><Clock size={11} />{fmtDate(log.createdAt)}</span>
+                        </div>
+                        <span className={`pr-log__dot ${log.isArchived ? "pr-log__dot--off" : "pr-log__dot--on"}`} />
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
-          </section>
+          )}
 
-          <section className="profile-stats">
-            <article className="profile-stat-card card-surface">
-              <div className="profile-stat-icon profile-stat-icon--teal">
-                <Video size={18} />
+          {/* ── ACTIVITY ── */}
+          {activeTab === "activity" && (
+            <div className="pr-activity">
+              <div className="pr-activity__header">
+                <h3>Published Kuppi Sessions</h3>
+                <span className="pr-count-badge">{kuppiLogs.length}</span>
               </div>
-              <div className="profile-stat-content">
-                <span className="profile-stat-value">{summary.total}</span>
-                <span className="profile-stat-label">Published Kuppi</span>
-              </div>
-            </article>
 
-            <article className="profile-stat-card card-surface">
-              <div className="profile-stat-icon profile-stat-icon--green">
-                <CheckCircle2 size={18} />
-              </div>
-              <div className="profile-stat-content">
-                <span className="profile-stat-value">{summary.active}</span>
-                <span className="profile-stat-label">Active Sessions</span>
-              </div>
-            </article>
-
-            <article className="profile-stat-card card-surface">
-              <div className="profile-stat-icon profile-stat-icon--amber">
-                <Archive size={18} />
-              </div>
-              <div className="profile-stat-content">
-                <span className="profile-stat-value">{summary.archived}</span>
-                <span className="profile-stat-label">Expired Sessions</span>
-              </div>
-            </article>
-
-            <article className="profile-stat-card card-surface">
-              <div className="profile-stat-icon profile-stat-icon--blue">
-                <Sparkles size={18} />
-              </div>
-              <div className="profile-stat-content">
-                <span className="profile-stat-value">{summary.upcoming}</span>
-                <span className="profile-stat-label">Upcoming Events</span>
-              </div>
-            </article>
-          </section>
-
-          <section className="profile-tabs card-surface">
-            <button
-              className={`profile-tab ${activeTab === "overview" ? "active" : ""}`}
-              onClick={() => setActiveTab("overview")}
-            >
-              <UserIcon size={14} /> Overview
-            </button>
-            <button
-              className={`profile-tab ${activeTab === "activity" ? "active" : ""}`}
-              onClick={() => setActiveTab("activity")}
-            >
-              <Activity size={14} /> Activity
-            </button>
-            <button
-              className={`profile-tab ${activeTab === "settings" ? "active" : ""}`}
-              onClick={() => setActiveTab("settings")}
-            >
-              <Settings size={14} /> Settings
-            </button>
-          </section>
-
-          <section className="profile-panel card-surface">
-            {activeTab === "overview" && (
-              <div className="panel-grid">
-                <article className="panel-card">
-                  <h3>About</h3>
-                  <p>{user.bio || "No bio added yet."}</p>
-                  <div className="about-details">
-                    <div>
-                      <Calendar size={14} /> Member since {new Date(user.createdAt || Date.now()).getFullYear()}
-                    </div>
-                    <div>
-                      <Video size={14} /> {summary.total} total sessions published
-                    </div>
-                    <div>
-                      <Activity size={14} /> {summary.active} currently active
-                    </div>
-                  </div>
-                </article>
-
-                <article className="panel-card links-card">
-                  <h3>Quick Access</h3>
-                  <ul>
-                    <li>
-                      <Link to="/dashboard">
-                        <LayoutDashboard size={14} /> Dashboard
-                      </Link>
-                    </li>
-                    <li>
-                      <Link to="/notes">
-                        <BookMarked size={14} /> Notes
-                      </Link>
-                    </li>
-                    <li>
-                      <Link to="/kuppi">
-                        <Video size={14} /> Kuppi Sessions
-                      </Link>
-                    </li>
-                    <li>
-                      <Link to="/groups">
-                        <Users size={14} /> Study Groups
-                      </Link>
-                    </li>
-                  </ul>
-                </article>
-
-                <article className="panel-card">
-                  <div className="card-header">
-                    <h3>Recent Kuppi Logs</h3>
-                    <button className="view-all" onClick={() => setActiveTab("activity")}>View all</button>
-                  </div>
-
-                  <ul className="activity-list">
-                    {recentLogs.length === 0 && <li className="activity-empty">No recent Kuppi logs.</li>}
-                    {recentLogs.map((log) => (
-                      <li key={log._id} className="activity-item">
-                        <span className="activity-icon">
-                          <Video size={12} />
-                        </span>
-                        <div>
-                          <div className="activity-desc">{log.title}</div>
-                          <div className="activity-time">
-                            <Clock size={10} /> {formatTimelineDate(log.createdAt)}
-                          </div>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </article>
-
-                <article className="panel-card">
-                  <h3>Focus Areas</h3>
-                  <div className="badge-grid">
-                    <span className="badge">
-                      <Brain size={14} /> Smart Learning
-                    </span>
-                    <span className="badge">
-                      <Users size={14} /> Team Collaboration
-                    </span>
-                    <span className="badge">
-                      <BookMarked size={14} /> Knowledge Sharing
-                    </span>
-                  </div>
-                </article>
-              </div>
-            )}
-
-            {activeTab === "activity" && (
-              <div className="activity-panel">
-                <h3>Published Kuppi Logs</h3>
-                <div className="activity-timeline">
-                  {kuppiLogsLoading && <p className="timeline-empty">Loading Kuppi logs...</p>}
-                  {!kuppiLogsLoading && kuppiLogsError && <p className="timeline-empty">{kuppiLogsError}</p>}
-                  {!kuppiLogsLoading && !kuppiLogsError && kuppiLogs.length === 0 && (
-                    <p className="timeline-empty">No Kuppi logs yet.</p>
-                  )}
-
-                  {!kuppiLogsLoading &&
-                    !kuppiLogsError &&
-                    kuppiLogs.map((log) => (
-                      <article key={log._id} className="timeline-item">
-                        <div className="timeline-icon">
-                          <Video size={14} />
-                        </div>
-
-                        <div className="timeline-content">
-                          <p className="timeline-title">{log.title}</p>
-                          <span className="timeline-time">
-                            <Clock size={10} /> Published {formatTimelineDate(log.createdAt)}
-                          </span>
-                          <span className="timeline-time">
-                            <Calendar size={10} /> Event {formatTimelineDate(log.eventDate)}
-                          </span>
-                          <span className={`timeline-status ${log.isArchived ? "archived" : "active"}`}>
-                            {log.isArchived ? "Expired (auto-archived)" : "Active"}
-                          </span>
-                        </div>
-
-                        <button
-                          className="timeline-delete-btn"
-                          onClick={() => handleDeleteKuppiLog(log._id)}
-                          title="Delete log"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </article>
-                    ))}
+              {logsLoading && (
+                <div className="pr-loader">
+                  <div className="pr-loader__ring" />
+                  <span>Loading sessions…</span>
                 </div>
-              </div>
-            )}
+              )}
+              {!logsLoading && logsError && <p className="pr-error">{logsError}</p>}
+              {!logsLoading && !logsError && kuppiLogs.length === 0 && (
+                <div className="pr-empty"><Video size={32} /><p>No sessions published yet.</p></div>
+              )}
 
-            {activeTab === "settings" && (
-              <div className="settings-panel">
-                <h3>Profile Settings</h3>
-                <div className="settings-summary">
-                  <p><strong>Name:</strong> {user.name || "Not set"}</p>
-                  <p><strong>Location:</strong> {user.location || "Not set"}</p>
-                  <p><strong>Bio:</strong> {user.bio || "Not set"}</p>
-                  <p><strong>Website:</strong> {user.website || "Not set"}</p>
-                  <p><strong>GitHub:</strong> {user.github || "Not set"}</p>
-                  <p><strong>Twitter:</strong> {user.twitter || "Not set"}</p>
-                  <p><strong>LinkedIn:</strong> {user.linkedin || "Not set"}</p>
+              {!logsLoading && !logsError && (
+                <div className="pr-timeline">
+                  {kuppiLogs.map((log, i) => (
+                    <article key={log._id} className="pr-titem" style={{ animationDelay: `${i * 40}ms` }}>
+                      <div className="pr-titem__track">
+                        <div className="pr-titem__dot" />
+                        {i < kuppiLogs.length - 1 && <div className="pr-titem__line" />}
+                      </div>
+                      <div className="pr-titem__body">
+                        <div className="pr-titem__top">
+                          <p className="pr-titem__title">{log.title}</p>
+                          <span className={`pr-badge ${log.isArchived ? "pr-badge--dim" : "pr-badge--teal"}`}>
+                            {log.isArchived ? "Archived" : "Active"}
+                          </span>
+                          <button className="pr-del" onClick={() => handleDelete(log._id)} title="Delete">
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                        <div className="pr-titem__meta">
+                          <span><Clock size={11} /> Published {fmtDate(log.createdAt)}</span>
+                          <span><Calendar size={11} /> Event {fmtDate(log.eventDate)}</span>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
                 </div>
-                <div className="settings-actions">
-                  <button className="profile-edit-btn" onClick={openEditModal}>
-                    <Edit3 size={14} /> Edit Details
-                  </button>
-                  <button className="profile-logout-btn" onClick={handleLogout}>
-                    <LogOut size={14} /> Sign Out
-                  </button>
-                </div>
-              </div>
-            )}
-          </section>
-        </main>
-      </div>
+              )}
+            </div>
+          )}
 
-      {isEditModalOpen && (
-        <div className="profile-modal-overlay" onClick={closeEditModal}>
-          <div className="profile-modal" onClick={(event) => event.stopPropagation()}>
-            <div className="profile-modal__header">
+          {/* ── SETTINGS ── */}
+          {activeTab === "settings" && (
+            <div className="pr-settings">
+              <h3 className="pr-settings__title">Profile Information</h3>
+              <div className="pr-settings__table">
+                {[
+                  { label: "Name",       value: user.name },
+                  { label: "Department", value: user.department },
+                  { label: "Year",       value: user.year },
+                  { label: "Phone",      value: user.phone },
+                  { label: "Location",   value: user.location },
+                  { label: "Bio",        value: user.bio },
+                  { label: "Website",    value: user.website },
+                  { label: "GitHub",     value: user.github },
+                  { label: "Twitter",    value: user.twitter },
+                  { label: "LinkedIn",   value: user.linkedin },
+                ].map(({ label, value }) => (
+                  <div key={label} className="pr-settings__row">
+                    <span className="pr-settings__key">{label}</span>
+                    <span className="pr-settings__val">{value || <em className="pr-nil">Not set</em>}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="pr-settings__actions">
+                <button className="pr-btn-edit" onClick={openEdit}><Edit3 size={14} /> Edit Details</button>
+                <button className="pr-btn-logout" onClick={handleLogout}><LogOut size={14} /> Sign Out</button>
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* ── EDIT MODAL ─────────────────────────────────────────────────────── */}
+      {isEditOpen && (
+        <div className="pr-overlay" onClick={closeEdit}>
+          <div className="pr-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="pr-modal__head">
               <h3>Edit Profile</h3>
-              <button className="profile-modal__close" onClick={closeEditModal}>
-                <X size={16} />
-              </button>
+              <button className="pr-modal__x" onClick={closeEdit}><X size={16} /></button>
             </div>
 
-            <form className="profile-modal__form" onSubmit={handleProfileSave}>
-              <div className="form-group">
-                <label>Display Name</label>
-                <input
-                  type="text"
-                  value={profileForm.name}
-                  onChange={(event) => setProfileForm({ ...profileForm, name: event.target.value })}
-                  required
-                />
+            <form className="pr-modal__form" onSubmit={handleSave}>
+              <div className="pr-field">
+                <label>Display Name *</label>
+                <input className="pr-input" type="text" required
+                  value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
               </div>
-
-              <div className="form-group">
+              <div className="pr-field-row">
+                <div className="pr-field">
+                  <label>Department</label>
+                  <input className="pr-input" type="text" placeholder="e.g. Computer Science"
+                    value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} />
+                </div>
+                <div className="pr-field">
+                  <label>Year</label>
+                  <input className="pr-input" type="text" placeholder="e.g. 2nd Year"
+                    value={form.year} onChange={(e) => setForm({ ...form, year: e.target.value })} />
+                </div>
+              </div>
+              <div className="pr-field">
                 <label>Bio</label>
-                <textarea
-                  rows="3"
-                  value={profileForm.bio}
-                  onChange={(event) => setProfileForm({ ...profileForm, bio: event.target.value })}
-                />
+                <textarea className="pr-input pr-textarea" rows={3}
+                  value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} />
               </div>
-
-              <div className="form-row">
-                <div className="form-group">
+              <div className="pr-field-row">
+                <div className="pr-field">
                   <label>Location</label>
-                  <input
-                    type="text"
-                    value={profileForm.location}
-                    onChange={(event) => setProfileForm({ ...profileForm, location: event.target.value })}
-                  />
+                  <input className="pr-input" type="text"
+                    value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
                 </div>
-
-                <div className="form-group">
-                  <label>Website</label>
-                  <input
-                    type="text"
-                    value={profileForm.website}
-                    onChange={(event) => setProfileForm({ ...profileForm, website: event.target.value })}
-                  />
+                <div className="pr-field">
+                  <label>Phone</label>
+                  <input className="pr-input" type="text" placeholder="e.g. +94 77 123 4567"
+                    value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
                 </div>
               </div>
-
-              <div className="form-row">
-                <div className="form-group">
+              <div className="pr-field">
+                <label>Website</label>
+                <input className="pr-input" type="text"
+                  value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} />
+              </div>
+              <div className="pr-field-row">
+                <div className="pr-field">
                   <label>GitHub</label>
-                  <input
-                    type="text"
-                    value={profileForm.github}
-                    onChange={(event) => setProfileForm({ ...profileForm, github: event.target.value })}
-                  />
+                  <input className="pr-input" type="text"
+                    value={form.github} onChange={(e) => setForm({ ...form, github: e.target.value })} />
                 </div>
-
-                <div className="form-group">
+                <div className="pr-field">
                   <label>Twitter</label>
-                  <input
-                    type="text"
-                    value={profileForm.twitter}
-                    onChange={(event) => setProfileForm({ ...profileForm, twitter: event.target.value })}
-                  />
+                  <input className="pr-input" type="text"
+                    value={form.twitter} onChange={(e) => setForm({ ...form, twitter: e.target.value })} />
                 </div>
               </div>
-
-              <div className="form-group">
+              <div className="pr-field">
                 <label>LinkedIn</label>
-                <input
-                  type="text"
-                  value={profileForm.linkedin}
-                  onChange={(event) => setProfileForm({ ...profileForm, linkedin: event.target.value })}
-                />
+                <input className="pr-input" type="text"
+                  value={form.linkedin} onChange={(e) => setForm({ ...form, linkedin: e.target.value })} />
               </div>
-
-              {profileSaveError && <p className="profile-modal__error">{profileSaveError}</p>}
-
-              <div className="profile-modal__actions">
-                <button type="button" className="btn-cancel" onClick={closeEditModal}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn-save" disabled={isSavingProfile}>
-                  {isSavingProfile ? "Saving..." : "Save Changes"}
+              {saveError && <p className="pr-form-err">{saveError}</p>}
+              <div className="pr-modal__foot">
+                <button type="button" className="pr-btn-cancel" onClick={closeEdit}>Cancel</button>
+                <button type="submit" className="pr-btn-save" disabled={isSaving}>
+                  {isSaving ? "Saving…" : "Save Changes"}
                 </button>
               </div>
             </form>

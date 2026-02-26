@@ -386,7 +386,7 @@ a:focus-visible {
 
 .theme-toggle-btn:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-xl);
+  box-shadow: var(--shadow-xl), 0 0 20px rgba(16, 185, 129, 0.3);
 }
 
 .theme-toggle-btn:focus-visible {

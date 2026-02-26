@@ -1,14 +1,18 @@
 const LoadingSpinner = ({ size = 'md', text = 'Loading...' }) => {
-  const sizeClasses = {
-    sm: 'w-4 h-4 border-2',
-    md: 'w-12 h-12 border-3',
-    lg: 'w-16 h-16 border-4',
+  const sizeMap = {
+    sm: 'spinner-sm',
+    md: '',
+    lg: 'spinner-lg',
   };
 
   return (
-    <div className="loading-container fade-in">
-      <div className={`loading-spinner ${sizeClasses[size] || sizeClasses.md}`} role="status" aria-label="Loading"></div>
-      {text && <p className="loading-text">{text}</p>}
+    <div className="uiverse-loader fade-in" role="status" aria-label="Loading">
+      <div className={`uiverse-spinner ${sizeMap[size] || ''}`}>
+        <div className="orbit" />
+        <div className="orbit" />
+        <div className="orbit" />
+      </div>
+      {text && <p className="uiverse-loader-text">{text}</p>}
     </div>
   );
 };

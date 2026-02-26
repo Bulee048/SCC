@@ -524,7 +524,7 @@ export default function Dashboard() {
           {/* Stats */}
           <section className="db-stats">
             {stats.map((s, i) => (
-              <div key={i} className="db-stat" style={{ "--ac": s.ac }}>
+              <div key={i} className="db-stat hover-glow" style={{ "--ac": s.ac }}>
                 <div className="db-stat__icon">{s.icon}</div>
                 <div>
                   <div className="db-stat__val">{s.val}</div>
@@ -545,7 +545,7 @@ export default function Dashboard() {
               </div>
               <div className="db-cards-p">
                 {primaryModules.map((m, i) => (
-                  <Link key={i} to={m.path} className="db-card-p">
+                  <Link key={i} to={m.path} className="db-card-p card-shine hover-glow">
                     <div className="db-card-p__head">
                       <div className="db-card-p__icon" style={{ background: m.gradient }}>
                         {m.icon}
@@ -579,7 +579,7 @@ export default function Dashboard() {
               </div>
               <div className="db-cards-s db-cards-s--modern">
                 {secondaryModules.map((m, i) => (
-                  <Link key={i} to={m.path} className="db-card-row">
+                  <Link key={i} to={m.path} className="db-card-row card-shine hover-glow">
                     <div className="db-card-row__icon" style={{ background: m.gradient }}>{m.icon}</div>
                     <div style={{ flex: 1 }}>
                       <div className="db-card-row__title">
@@ -603,7 +603,7 @@ export default function Dashboard() {
 
             {/* Sidebar */}
             <aside className="db-sidebar db-sidebar--modern">
-              <div className="db-side-card">
+              <div className="db-side-card uiverse-glass">
                 <div className="db-side-title">Quick Actions</div>
                 <div className="db-qa-list">
                   {quickActions.map((a, i) => (
@@ -616,7 +616,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="db-side-card">
+              <div className="db-side-card uiverse-glass">
                 <div className="db-side-title">Upcoming Events</div>
                 <div className="db-empty">
                   <Calendar size={24} strokeWidth={1.2} className="db-empty__icon" />
@@ -625,7 +625,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="db-side-card">
+              <div className="db-side-card uiverse-glass">
                 <div className="db-side-head-row">
                   <div className="db-side-title" style={{ marginBottom: 0 }}>Recent Activity</div>
                   <Link to="/notifications" className="db-side-link">View All <ChevronRight size={10} /></Link>

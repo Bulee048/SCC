@@ -111,7 +111,7 @@ const Notifications = () => {
           {notifications.map((notif) => (
             <div
               key={notif._id}
-              className={`notification-item ${!notif.isRead ? "unread" : ""} ${getNotifColor(notif.type)} fade-in`}
+              className={`notification-item hover-glow ${!notif.isRead ? "unread" : ""} ${getNotifColor(notif.type)} fade-in`}
             >
               <div className={`notif-icon-wrapper ${getNotifColor(notif.type)}`}>
                 {getNotifIcon(notif.type)}

@@ -632,7 +632,8 @@ const AuthToggle = () => {
             {/* Submit Button */}
             <button
               type="submit"
-              className="submit-btn-modern"
+              className="submit-btn-modern btn-glitch"
+              data-text={isLogin ? "Sign In" : "Create Account"}
               disabled={isLoading}
             >
               {isLoading ? (

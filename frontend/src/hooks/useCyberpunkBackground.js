@@ -67,22 +67,27 @@ export const useCyberpunkBackground = (canvasRef, canvasReady = true) => {
       opacity: isLightMode() ? 0.5 : 0.3,
       side: THREE.DoubleSide,
     });
-    const ring1 = new THREE.Mesh(new THREE.TorusGeometry(3, 0.1, 16, 64), ringMat(0x2dd4bf));
+    const ringMaterialCyan = ringMat(0x2dd4bf);
+    const ring1 = new THREE.Mesh(new THREE.TorusGeometry(3, 0.1, 16, 64), ringMaterialCyan);
     ring1.rotation.x = Math.PI / 2;
     ring1.position.y = 2;
     mainGroup.add(ring1);
 
-    const ring2 = new THREE.Mesh(new THREE.TorusGeometry(5, 0.15, 16, 64), ringMat(0x10b981));
+    const ringMaterialGreen = ringMat(0x10b981);
+    const ring2 = new THREE.Mesh(new THREE.TorusGeometry(5, 0.15, 16, 64), ringMaterialGreen);
     ring2.rotation.z = Math.PI / 3;
     ring2.rotation.x = Math.PI / 2;
     ring2.position.y = -1;
     mainGroup.add(ring2);
 
-    const ring3 = new THREE.Mesh(new THREE.TorusGeometry(2, 0.08, 16, 64), ringMat(0xa78bfa));
+    const ringMaterialPurple = ringMat(0xa78bfa);
+    const ring3 = new THREE.Mesh(new THREE.TorusGeometry(2, 0.08, 16, 64), ringMaterialPurple);
     ring3.rotation.x = Math.PI / 2;
     ring3.rotation.y = Math.PI / 4;
     ring3.position.y = 4;
     mainGroup.add(ring3);
+
+    const ringMaterials = [ringMaterialCyan, ringMaterialGreen, ringMaterialPurple];
 
     // Cubes
     const cubeMat = new THREE.MeshStandardMaterial({
@@ -137,21 +142,42 @@ export const useCyberpunkBackground = (canvasRef, canvasReady = true) => {
 
     const applyTheme = () => {
       const light = isLightMode();
+
       scene.background.set(light ? 0xeaf2ff : 0x111827);
+
       ambientLight.intensity = light ? 1.25 : 1;
       lightCyan.intensity = light ? 1.35 : 1.1;
       lightGreen.intensity = light ? 1.45 : 1.25;
       lightPurple.intensity = light ? 1.1 : 0.92;
+
+      ringMaterials.forEach((material) => {
+        material.emissiveIntensity = light ? 1.05 : 0.8;
+        material.opacity = light ? 0.5 : 0.3;
+        material.needsUpdate = true;
+      });
+
+      cubeMat.color.set(light ? 0x059669 : 0x10b981);
+      cubeMat.emissive.set(light ? 0x065f46 : 0x004400);
+      cubeMat.opacity = light ? 0.42 : 0.3;
+      cubeMat.needsUpdate = true;
+
       gridHelper.material.opacity = light ? 0.34 : 0.22;
+      if (Array.isArray(gridHelper.material) && gridHelper.material.length >= 2) {
+        gridHelper.material[0].color.set(light ? 0x1d4ed8 : 0x2dd4bf);
+        gridHelper.material[1].color.set(light ? 0x115e59 : 0x10b981);
+      }
+
       particleMat.size = light ? 0.12 : 0.1;
       particleMat.opacity = light ? 0.95 : 0.82;
       particleMat.blending = light ? THREE.NormalBlending : THREE.AdditiveBlending;
       particleMat.needsUpdate = true;
+
       renderer.render(scene, camera);
     };
 
     const themeObserver = new MutationObserver(applyTheme);
     themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    applyTheme();
 
     // Mouse interaction
     let mouseX = 0, mouseY = 0;
