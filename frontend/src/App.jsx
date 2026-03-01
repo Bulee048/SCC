@@ -1,21 +1,24 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Provider } from "react-redux";
+import { Toaster } from "react-hot-toast";
 import store from "./store/store";
+import { ThemeProvider } from "./context/ThemeContext";
+import ThemeToggle from "./components/ThemeToggle";
 
 // Pages
 import Home from "./pages/Home";
 import AuthPage from "./pages/AuthPage";
 import Dashboard from "./pages/Dashboard";
+import Profile from "./pages/Profile";
 import Groups from "./pages/Groups";
 import GroupDetail from "./pages/GroupDetail";
-import Timetable from "./pages/Timetable";
-import AiChat from "./pages/AiChat";
 
 // Components
 import ProtectedRoute from "./components/ProtectedRoute";
 
 // Styles
 import "./App.css";
+import "./styles/Uiverse.css";
 
 function App() {
   return (
@@ -48,22 +51,6 @@ function App() {
               element={
                 <ProtectedRoute>
                   <GroupDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/timetable"
-              element={
-                <ProtectedRoute>
-                  <Timetable />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/ai-chat"
-              element={
-                <ProtectedRoute>
-                  <AiChat />
                 </ProtectedRoute>
               }
             />

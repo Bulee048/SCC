@@ -55,16 +55,22 @@ const AuthToggle = () => {
   const navigate = useNavigate();
   const { isLoading, error, isAuthenticated } = useSelector((state) => state.auth);
 
+  const [justLoggedIn, setJustLoggedIn] = useState(false);
+
   useEffect(() => {
     if (isAuthenticated) {
-      // Add a small delay to show success message before redirect
-      const timer = setTimeout(() => {
-        navigate("/dashboard");
-      }, 1500);
-      
-      return () => clearTimeout(timer);
+      if (justLoggedIn) {
+        // Show success message briefly after fresh login/register
+        const timer = setTimeout(() => {
+          navigate("/dashboard", { replace: true });
+        }, 1200);
+        return () => clearTimeout(timer);
+      } else {
+        // Already had a valid session — go straight to dashboard
+        navigate("/dashboard", { replace: true });
+      }
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, justLoggedIn, navigate]);
 
   useEffect(() => {
     return () => {
@@ -171,6 +177,7 @@ const AuthToggle = () => {
         }));
         
         if (login.fulfilled.match(result)) {
+          setJustLoggedIn(true);
           setSuccessMessage("Login successful! Redirecting to dashboard...");
           // Navigation will be handled by the useEffect watching isAuthenticated
         } else if (login.rejected.match(result)) {
@@ -195,6 +202,7 @@ const AuthToggle = () => {
         const result = await dispatch(register(userData));
         
         if (register.fulfilled.match(result)) {
+          setJustLoggedIn(true);
           setSuccessMessage("Registration successful! Redirecting to dashboard...");
           // Navigation will be handled by the useEffect watching isAuthenticated
         } else if (register.rejected.match(result)) {
@@ -624,7 +632,8 @@ const AuthToggle = () => {
             {/* Submit Button */}
             <button
               type="submit"
-              className="submit-btn-modern"
+              className="submit-btn-modern btn-glitch"
+              data-text={isLogin ? "Sign In" : "Create Account"}
               disabled={isLoading}
             >
               {isLoading ? (

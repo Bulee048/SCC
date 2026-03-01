@@ -1,66 +1,56 @@
 import mongoose from "mongoose";
 
-const eventSchema = new mongoose.Schema(
-  {
-    title: {
-      type: String,
-      required: true,
-      trim: true
+const timetableSchema = new mongoose.Schema({
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: [true, "User ID is required"]
     },
-    subjectCode: {
-      type: String,
-      trim: true
+    subject: {
+        type: String,
+        required: [true, "Subject is required"],
+        trim: true
     },
-    type: {
-      type: String,
-      enum: ["lecture", "lab", "tutorial", "exam", "study", "other"],
-      default: "lecture"
+    dayOfWeek: {
+        type: String,
+        enum: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+        required: [true, "Day of week is required"]
     },
-    start: {
-      type: Date,
-      required: true
+    startTime: {
+        type: String,
+        required: [true, "Start time is required"],
+        match: [/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (HH:MM)"]
     },
-    end: {
-      type: Date,
-      required: true
+    endTime: {
+        type: String,
+        required: [true, "End time is required"],
+        match: [/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (HH:MM)"]
     },
     location: {
-      type: String,
-      trim: true
+        type: String,
+        trim: true,
+        default: ""
     },
-    metadata: {
-      type: mongoose.Schema.Types.Mixed
+    lecturer: {
+        type: String,
+        trim: true,
+        default: ""
+    },
+    type: {
+        type: String,
+        enum: ["lecture", "lab", "tutorial", "other"],
+        default: "lecture"
+    },
+    color: {
+        type: String,
+        default: "#4F46E5"
     }
-  },
-  { _id: false }
-);
+}, {
+    timestamps: true
+});
 
-const timetableSchema = new mongoose.Schema(
-  {
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-      index: true
-    },
-    universitySchedule: {
-      type: [eventSchema],
-      default: []
-    },
-    optimizedSchedule: {
-      type: [eventSchema],
-      default: []
-    }
-  },
-  {
-    timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" }
-  }
-);
-
-// Always keep one latest timetable per user for simplicity
-timetableSchema.index({ user: 1, createdAt: -1 });
+timetableSchema.index({ userId: 1, dayOfWeek: 1 });
 
 const Timetable = mongoose.model("Timetable", timetableSchema);
 
 export default Timetable;
-

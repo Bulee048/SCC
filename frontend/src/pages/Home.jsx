@@ -1,881 +1,1285 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-} from 'recharts';
-import Select from 'react-select';
-import "../styles/Home.css";
+import { useSelector, useDispatch } from "react-redux";
+import { logout } from "../features/auth/authSlice";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import Lenis from "@studio-freight/lenis";
+import { useCyberpunkBackground } from "../hooks/useCyberpunkBackground";
 
-// ----------------------------------------------------------------------
-// API endpoints – replace with your real URLs when ready
-// ----------------------------------------------------------------------
-const API = {
-  weather: {
-    current: (city) => `https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&appid=YOUR_API_KEY`,
-    forecast: (city) => `https://api.openweathermap.org/data/2.5/forecast?q=${city}&units=metric&appid=YOUR_API_KEY`,
-  },
-  news: 'https://campus-api.example.com/news',
-  events: 'https://campus-api.example.com/events',
-  rooms: 'https://campus-api.example.com/rooms',
-  analytics: 'https://campus-api.example.com/analytics',
-  userActivity: 'wss://campus-api.example.com/activity',
-};
+gsap.registerPlugin(ScrollTrigger);
 
-// ----------------------------------------------------------------------
-// Rich mock data (ensures no empty sections)
-// ----------------------------------------------------------------------
-const mockWeather = {
-  current: { temp: 22, condition: 'Sunny', icon: '☀️' },
-  forecast: [
-    { day: 'Mon', temp: 23, icon: '☀️' },
-    { day: 'Tue', temp: 21, icon: '⛅' },
-    { day: 'Wed', temp: 19, icon: '🌧️' },
-    { day: 'Thu', temp: 20, icon: '☁️' },
-    { day: 'Fri', temp: 22, icon: '☀️' },
-  ],
-};
-
-const mockNews = [
-  { id: 1, title: 'New Library Hours', date: '2025-03-20', excerpt: 'Extended study hours during finals.' },
-  { id: 2, title: 'Hackathon 2025', date: '2025-03-18', excerpt: 'Register now for the annual hackathon.' },
-  { id: 3, title: 'Guest Lecture: AI in Education', date: '2025-03-15', excerpt: 'Dr. Smith shares insights.' },
+// ========== DATA (same) ==========
+const stats = [
+  { value: "50K+", label: "Active Students" },
+  { value: "10K+", label: "Study Groups" },
+  { value: "99.9%", label: "Uptime" },
+  { value: "4.9★", label: "Avg Rating" },
 ];
 
-const mockEvents = [
-  { id: 1, title: 'CS50 Info Session', date: '2025-03-25', time: '3:00 PM', location: 'Zoom' },
-  { id: 2, title: 'Career Fair', date: '2025-03-28', time: '10:00 AM', location: 'Student Union' },
-  { id: 3, title: 'Yoga Class', date: '2025-03-22', time: '5:00 PM', location: 'Gym' },
+const features = [
+  { icon: "📝", tag: "Notes", title: "Smart Notes Sharing", desc: "Upload, organize, and share lecture notes with your peers. AI-powered summaries help you study smarter." },
+  { icon: "👥", tag: "Groups", title: "Study Groups", desc: "Create or join study groups, collaborate in real-time, and keep everyone on the same page." },
+  { icon: "📅", tag: "Schedule", title: "Timetable Manager", desc: "Manage your class schedule, set reminders, and never miss a lecture or deadline again." },
+  { icon: "🤖", tag: "AI", title: "AI Study Assistant", desc: "Get instant answers, generate flashcards, and receive personalized study recommendations." },
+  { icon: "💬", tag: "Chat", title: "Real-time Messaging", desc: "Chat with classmates, share files, and stay connected with your study groups instantly." },
+  { icon: "🎓", tag: "Kuppi", title: "Kuppi Sessions", desc: "Find or host peer tutoring sessions. Learn from the best students in your university." },
 ];
 
-const mockRooms = [
-  { id: 'A101', available: true, capacity: 30 },
-  { id: 'B202', available: false, capacity: 20 },
-  { id: 'C303', available: true, capacity: 15 },
-  { id: 'D404', available: true, capacity: 25 },
+const steps = [
+  { n: "01", title: "Create your account", desc: "Sign up in seconds with your university email. No credit card required." },
+  { n: "02", title: "Join or create groups", desc: "Find your course groups or create new ones. Invite classmates to collaborate." },
+  { n: "03", title: "Start collaborating", desc: "Share notes, schedule study sessions, chat in real-time, and leverage AI tools." },
+  { n: "04", title: "Ace your semester", desc: "Stay organized, study smarter, and achieve the grades you deserve." },
 ];
-
-const mockAnalytics = [
-  { month: 'Jan', completion: 65 },
-  { month: 'Feb', completion: 70 },
-  { month: 'Mar', completion: 80 },
-  { month: 'Apr', completion: 78 },
-  { month: 'May', completion: 85 },
-];
-
-const mockActivity = [
-  { user: 'Alice', action: 'joined study group', time: '2 min ago' },
-  { user: 'Bob', action: 'completed CS50 assignment', time: '5 min ago' },
-  { user: 'Charlie', action: 'posted in forum', time: '10 min ago' },
-  { user: 'Dana', action: 'created new event', time: '15 min ago' },
-];
-
-// ----------------------------------------------------------------------
-// Static content (features, how‑it‑works, etc.)
-// ----------------------------------------------------------------------
-const pageData = {
-  sections: {
-    featuresBadge: 'POWERFUL FEATURES',
-    featuresTitle: 'Everything you need to ',
-    featuresTitleHighlight: 'excel academically',
-    howItWorksBadge: 'HOW IT WORKS',
-    howItWorksTitle: 'Get started in ',
-    howItWorksTitleHighlight: 'three simple steps',
-    useCasesBadge: 'USE CASES',
-    useCasesTitle: 'Built for every ',
-    useCasesTitleHighlight: 'campus workflow',
-    testimonialsBadge: 'TESTIMONIALS',
-    testimonialsTitle: 'Trusted by ',
-    testimonialsTitleHighlight: 'students and educators',
-    pricingBadge: 'PRICING',
-    pricingTitle: 'One plan. ',
-    pricingTitleHighlight: 'Forever free.',
-    faqBadge: 'FAQ',
-    faqTitle: 'Questions? ',
-    faqTitleHighlight: 'We have answers',
-    blogBadge: 'BLOG',
-    blogTitle: 'From the ',
-    blogTitleHighlight: 'CampusIQ team',
-  },
-  features: [
-    { icon: '🎓', title: 'Smart Planning', description: 'Plan classes and deadlines intelligently.', stats: 'Always organized' },
-    { icon: '🤝', title: 'Group Collaboration', description: 'Create and manage study groups with ease.', stats: 'Faster teamwork' },
-    { icon: '📊', title: 'Progress Insights', description: 'Track academic momentum and completion trends.', stats: 'Clear progress' },
-  ],
-  howItWorks: [
-    { step: '1', title: 'Create Account', description: 'Sign up and set your academic profile.' },
-    { step: '2', title: 'Connect Tools', description: 'Add courses, groups, and schedules.' },
-    { step: '3', title: 'Stay on Track', description: 'Use reminders, analytics, and collaboration.' },
-  ],
-  useCases: [
-    { icon: '🗓️', title: 'Schedule Management', description: 'Organize class schedules and deadlines in one place.' },
-    { icon: '💬', title: 'Peer Communication', description: 'Share updates and coordinate with classmates.' },
-    { icon: '📚', title: 'Study Coordination', description: 'Plan sessions and monitor shared progress.' },
-  ],
-  pricing: {
-    title: 'CampusIQ Free',
-    subtitle: 'All core features included for students and educators.',
-    features: ['Unlimited groups', 'Smart reminders', 'Analytics dashboard', 'Collaboration tools'],
-  },
-  faqs: [
-    { question: 'Is CampusIQ really free?', answer: 'Yes. Core features are free with no trial window.' },
-    { question: 'Can I use it with classmates?', answer: 'Yes. You can create groups and collaborate in real time.' },
-    { question: 'Does it work on mobile?', answer: 'Yes. The app is designed to be responsive across devices.' },
-  ],
-};
 
 const testimonials = [
-  { name: 'Maya Chen', role: 'Student, Engineering', rating: 5, content: 'CampusIQ helps me manage classes and projects without chaos.' },
-  { name: 'Noah Patel', role: 'Teaching Assistant', rating: 5, content: 'Group coordination and reminders are extremely useful.' },
-  { name: 'Dr. Elena Ruiz', role: 'Professor', rating: 5, content: 'A practical platform for improving student organization.' },
+  {
+    quote: "Before SCC, I was juggling WhatsApp, Google Drive, and random docs. Now everything is in one place and my weekly planning takes half the time.",
+    name: "Nadeesha Perera",
+    role: "2nd Year • Computer Science",
+  },
+  {
+    quote: "The notes and Kuppi flow is super clean. I can quickly find who explained a topic best and revise without wasting hours searching.",
+    name: "Tharushi Jayasinghe",
+    role: "3rd Year • Engineering",
+  },
+  {
+    quote: "Group coordination improved a lot. We assign tasks, share resources, and stay on track before exams without constant confusion.",
+    name: "Mihiran Fernando",
+    role: "1st Year • Information Systems",
+  },
 ];
 
-const blogPosts = [
-  { title: 'How to Build a Better Study Routine', date: '2026-02-01', excerpt: 'Simple structure for consistent weekly progress.', slug: 'better-study-routine' },
-  { title: 'Managing Group Work Without Burnout', date: '2026-01-22', excerpt: 'Use shared ownership and smart deadlines.', slug: 'group-work-without-burnout' },
-  { title: 'Three Metrics That Actually Matter', date: '2026-01-10', excerpt: 'Focus on completion, consistency, and collaboration.', slug: 'three-metrics-that-matter' },
+const faqs = [
+  {
+    q: "Is Smart Campus Companion free for students?",
+    a: "Yes. Core features like notes, study groups, timetable planning, and collaboration are free to start.",
+  },
+  {
+    q: "Can I use SCC for multiple courses and groups?",
+    a: "Absolutely. You can create separate study groups, organize notes by module, and manage different class schedules in one account.",
+  },
+  {
+    q: "How quickly can I get started?",
+    a: "Most students are fully set up in under 10 minutes—create your account, join groups, and start sharing notes right away.",
+  },
+  {
+    q: "Does SCC work well for exam preparation?",
+    a: "Yes. Students use SCC to centralize revision notes, track deadlines, schedule focused sessions, and reduce last-minute stress.",
+  },
 ];
 
-// ----------------------------------------------------------------------
-// Helper
-// ----------------------------------------------------------------------
-const getWeatherIcon = (code) => {
-  const map = {
-    '01d': '☀️', '01n': '🌙', '02d': '⛅', '02n': '☁️', '03d': '☁️',
-    '04d': '☁️', '09d': '🌧️', '10d': '🌦️', '11d': '⛈️', '13d': '❄️', '50d': '🌫️',
-  };
-  return map[code] || '☀️';
-};
-
-// ----------------------------------------------------------------------
-// Main Component
-// ----------------------------------------------------------------------
-const Home = () => {
-  // UI state
+export default function Home() {
   const [scrolled, setScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [activeFaq, setActiveFaq] = useState(null);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [canvasReady, setCanvasReady] = useState(false);
+  const canvasRef = useRef(null);
+  const rootRef = useRef(null);
+  const profileMenuRef = useRef(null);
 
-  // Data state
-  const [weather, setWeather] = useState(null);
-  const [forecast, setForecast] = useState([]);
-  const [news, setNews] = useState([]);
-  const [events, setEvents] = useState([]);
-  const [rooms, setRooms] = useState([]);
-  const [analytics, setAnalytics] = useState([]);
-  const [activityLog, setActivityLog] = useState([]);
+  const dispatch = useDispatch();
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
 
-  // Loading & error
-  const [loading, setLoading] = useState({
-    weather: false,
-    news: false,
-    events: false,
-    rooms: false,
-    analytics: false,
-  });
-  const [error, setError] = useState({});
+  // Initialize enhanced Three.js background (now with green neon)
+  const setCanvasMountRef = (node) => {
+    canvasRef.current = node;
+    setCanvasReady(Boolean(node));
+  };
+  useCyberpunkBackground(canvasRef, canvasReady);
 
-  // Data source toggle
-  const [useMock, setUseMock] = useState(true);
-
-  // City selector
-  const [city, setCity] = useState('New York');
-  const cityOptions = [
-    { value: 'New York', label: 'New York' },
-    { value: 'London', label: 'London' },
-    { value: 'Tokyo', label: 'Tokyo' },
-    { value: 'Sydney', label: 'Sydney' },
-  ];
-
-  // Refs for scrolling
-  const heroRef = useRef(null);
-  const weatherRef = useRef(null);
-  const newsRef = useRef(null);
-  const roomsRef = useRef(null);
-  const featuresRef = useRef(null);
-  const howRef = useRef(null);
-  const pricingRef = useRef(null);
-  const faqRef = useRef(null);
-
-  // --------------------------------------------------------------------
-  // AOS animation simulation (since we don't import AOS library)
-  // --------------------------------------------------------------------
+  // Lenis smooth scrolling
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('aos-animate');
-          }
-        });
-      },
-      { threshold: 0.1 }
-    );
-
-    document.querySelectorAll('[data-aos]').forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
+    const lenis = new Lenis({
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      smoothWheel: true,
+    });
+    lenis.on("scroll", () => ScrollTrigger.update());
+    const raf = (time) => lenis.raf(time * 1000);
+    gsap.ticker.add(raf);
+    return () => {
+      gsap.ticker.remove(raf);
+      lenis.destroy();
+    };
   }, []);
-
-  // --------------------------------------------------------------------
-  // Data fetching functions
-  // --------------------------------------------------------------------
-  const fetchWeather = useCallback(async (selectedCity) => {
-    if (useMock) {
-      setWeather(mockWeather.current);
-      setForecast(mockWeather.forecast);
-      return;
-    }
-    setLoading(prev => ({ ...prev, weather: true }));
-    setError(prev => ({ ...prev, weather: null }));
-    try {
-      const [currentRes, forecastRes] = await Promise.all([
-        fetch(API.weather.current(selectedCity)),
-        fetch(API.weather.forecast(selectedCity)),
-      ]);
-      if (!currentRes.ok || !forecastRes.ok) throw new Error('Weather fetch failed');
-      const currentData = await currentRes.json();
-      const forecastData = await forecastRes.json();
-
-      setWeather({
-        temp: currentData.main.temp,
-        condition: currentData.weather[0].main,
-        icon: getWeatherIcon(currentData.weather[0].icon),
-      });
-
-      // Get one forecast per day (approx.)
-      const daily = forecastData.list.filter((_, idx) => idx % 8 === 0).map(item => ({
-        day: new Date(item.dt * 1000).toLocaleDateString('en', { weekday: 'short' }),
-        temp: item.main.temp,
-        icon: getWeatherIcon(item.weather[0].icon),
-      }));
-      setForecast(daily);
-    } catch (err) {
-      setError(prev => ({ ...prev, weather: err.message }));
-      // Fallback to mock
-      setWeather(mockWeather.current);
-      setForecast(mockWeather.forecast);
-    } finally {
-      setLoading(prev => ({ ...prev, weather: false }));
-    }
-  }, [useMock]);
-
-  const fetchNews = useCallback(async () => {
-    if (useMock) {
-      setNews(mockNews);
-      return;
-    }
-    setLoading(prev => ({ ...prev, news: true }));
-    setError(prev => ({ ...prev, news: null }));
-    try {
-      const res = await fetch(API.news);
-      if (!res.ok) throw new Error('News fetch failed');
-      const data = await res.json();
-      setNews(data);
-    } catch (err) {
-      setError(prev => ({ ...prev, news: err.message }));
-      setNews(mockNews);
-    } finally {
-      setLoading(prev => ({ ...prev, news: false }));
-    }
-  }, [useMock]);
-
-  const fetchEvents = useCallback(async () => {
-    if (useMock) {
-      setEvents(mockEvents);
-      return;
-    }
-    setLoading(prev => ({ ...prev, events: true }));
-    setError(prev => ({ ...prev, events: null }));
-    try {
-      const res = await fetch(API.events);
-      if (!res.ok) throw new Error('Events fetch failed');
-      const data = await res.json();
-      setEvents(data);
-    } catch (err) {
-      setError(prev => ({ ...prev, events: err.message }));
-      setEvents(mockEvents);
-    } finally {
-      setLoading(prev => ({ ...prev, events: false }));
-    }
-  }, [useMock]);
-
-  const fetchRooms = useCallback(async () => {
-    if (useMock) {
-      setRooms(mockRooms);
-      return;
-    }
-    setLoading(prev => ({ ...prev, rooms: true }));
-    setError(prev => ({ ...prev, rooms: null }));
-    try {
-      const res = await fetch(API.rooms);
-      if (!res.ok) throw new Error('Rooms fetch failed');
-      const data = await res.json();
-      setRooms(data);
-    } catch (err) {
-      setError(prev => ({ ...prev, rooms: err.message }));
-      setRooms(mockRooms);
-    } finally {
-      setLoading(prev => ({ ...prev, rooms: false }));
-    }
-  }, [useMock]);
-
-  const fetchAnalytics = useCallback(async () => {
-    if (useMock) {
-      setAnalytics(mockAnalytics);
-      return;
-    }
-    setLoading(prev => ({ ...prev, analytics: true }));
-    setError(prev => ({ ...prev, analytics: null }));
-    try {
-      const res = await fetch(API.analytics);
-      if (!res.ok) throw new Error('Analytics fetch failed');
-      const data = await res.json();
-      setAnalytics(data);
-    } catch (err) {
-      setError(prev => ({ ...prev, analytics: err.message }));
-      setAnalytics(mockAnalytics);
-    } finally {
-      setLoading(prev => ({ ...prev, analytics: false }));
-    }
-  }, [useMock]);
-
-  // Live activity simulation
-  useEffect(() => {
-    let interval;
-    if (!useMock) {
-      // WebSocket or polling
-      interval = setInterval(() => {
-        const newActivity = {
-          user: `User${Math.floor(Math.random() * 100)}`,
-          action: ['joined study group', 'completed task', 'posted question'][Math.floor(Math.random() * 3)],
-          time: new Date().toLocaleTimeString(),
-        };
-        setActivityLog(prev => [...prev.slice(-4), newActivity]);
-      }, 5000);
-    } else {
-      setActivityLog(mockActivity);
-    }
-    return () => clearInterval(interval);
-  }, [useMock]);
-
-  // Initial data load
-  useEffect(() => {
-    fetchWeather(city);
-    fetchNews();
-    fetchEvents();
-    fetchRooms();
-    fetchAnalytics();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [useMock]); // city not included to avoid re-fetch on city change (handled separately)
 
   // Navbar scroll effect
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 10);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const scrollToSection = (ref) => {
-    ref.current?.scrollIntoView({ behavior: "smooth" });
-    setMobileMenuOpen(false);
-  };
+  // GSAP Animations
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      gsap.from("[data-hero-title]", { y: 60, opacity: 0, duration: 1, ease: "power3.out", delay: 0.2 });
+      gsap.from("[data-hero-sub]", { y: 40, opacity: 0, duration: 1, ease: "power3.out", delay: 0.4 });
+      gsap.from("[data-hero-cta]", { y: 30, opacity: 0, duration: 0.8, stagger: 0.15, delay: 0.6 });
+      gsap.from("[data-hero-stats]", { y: 30, opacity: 0, duration: 0.8, stagger: 0.1, delay: 0.8 });
+      gsap.fromTo(
+        "[data-feat-card]",
+        { y: 36, autoAlpha: 0 },
+        {
+          y: 0,
+          autoAlpha: 1,
+          duration: 0.8,
+          stagger: 0.1,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: ".features-grid",
+            start: "top 86%",
+            once: true,
+            invalidateOnRefresh: true,
+          },
+        }
+      );
+      gsap.fromTo(
+        "[data-step-item]",
+        { x: -26, autoAlpha: 0 },
+        {
+          x: 0,
+          autoAlpha: 1,
+          duration: 0.75,
+          stagger: 0.16,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: ".steps-list",
+            start: "top 86%",
+            once: true,
+            invalidateOnRefresh: true,
+          },
+        }
+      );
+      gsap.fromTo(
+        "[data-glow-card]",
+        { scale: 0.98, autoAlpha: 0 },
+        {
+          scale: 1,
+          autoAlpha: 1,
+          duration: 0.9,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: ".glow-card",
+            start: "top 88%",
+            once: true,
+            invalidateOnRefresh: true,
+          },
+        }
+      );
+      gsap.fromTo(
+        "[data-cta-block]",
+        { scale: 0.98, autoAlpha: 0 },
+        {
+          scale: 1,
+          autoAlpha: 1,
+          duration: 1,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: ".cta-block",
+            start: "top 90%",
+            once: true,
+            invalidateOnRefresh: true,
+          },
+        }
+      );
+      gsap.utils.toArray("[data-section-title]").forEach((el) => {
+        gsap.from(el, {
+          scrollTrigger: { trigger: el, start: "top 85%" },
+          y: 40,
+          opacity: 0,
+          duration: 1,
+        });
+      });
+      ScrollTrigger.refresh();
+    }, rootRef);
+    return () => ctx.revert();
+  }, []);
 
-  // Stats for hero area (dynamic)
-  const statsData = [
-    { icon: '👥', value: '10K+', label: 'Active Students' },
-    { icon: '📰', value: news.length || 3, label: 'Campus Updates' },
-    { icon: '📅', value: events.length || 3, label: 'Upcoming Events' },
-    { icon: '🏫', value: rooms.filter(r => r.available).length || 2, label: 'Rooms Available' },
-  ];
+  // Close profile dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target)) {
+        setProfileOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
-    <div className="home">
-      {/* -------------------- Navigation -------------------- */}
-      <nav className={`navbar ${scrolled ? "scrolled" : ""}`}>
-        <div className="nav-container">
-          <Link to="/" className="nav-logo">
-            <span className="logo-icon">🎓</span>
-            <span className="logo-text">Campus<span className="logo-highlight">IQ</span></span>
-          </Link>
+    <>
+      <style>{`
+        /* ===== REDESIGNED UI WITH GREEN ACCENTS ===== */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-          <button
-            className={`mobile-menu-toggle ${mobileMenuOpen ? "active" : ""}`}
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle menu"
-          >
-            <span></span><span></span><span></span>
-          </button>
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
 
-          <div className={`nav-menu ${mobileMenuOpen ? "active" : ""}`}>
-            <button onClick={() => scrollToSection(weatherRef)} className="nav-link">Weather</button>
-            <button onClick={() => scrollToSection(newsRef)} className="nav-link">News</button>
-            <button onClick={() => scrollToSection(roomsRef)} className="nav-link">Rooms</button>
-            <button onClick={() => scrollToSection(pricingRef)} className="nav-link">Pricing</button>
-          </div>
+        button,
+        a {
+          -webkit-tap-highlight-color: transparent;
+        }
 
-          <div className="nav-actions">
-            <Link to="/login" className="nav-login">Sign In</Link>
-            <Link to="/register" className="nav-register">Get Started – It's Free</Link>
-          </div>
-        </div>
-      </nav>
+        a,
+        a:visited,
+        a:hover,
+        a:active {
+          color: inherit;
+          text-decoration: none;
+        }
 
-      {/* -------------------- Hero Section -------------------- */}
-      <section className="hero" ref={heroRef}>
-        <div className="hero-background">
-          <div className="hero-gradient"></div>
-          <div className="hero-particles">
-            {Array.from({ length: 16 }).map((_, idx) => (
-              <span
-                key={idx}
-                className="particle"
-                style={{
-                  left: `${(idx % 8) * 12 + 5}%`,
-                  top: `${Math.floor(idx / 8) * 30 + 20}%`,
-                  animationDelay: `${idx * 0.2}s`,
-                }}
-              />
-            ))}
-          </div>
-        </div>
+        button:focus,
+        a:focus {
+          outline: none;
+        }
 
-        <div className="hero-container">
-          <div className="hero-content">
-            <span className="hero-badge">✨ FREE FOR EVERYONE</span>
-            <h1 className="hero-title">
-              Study smarter with <span className="gradient-text">CampusIQ</span>
-            </h1>
-            <p className="hero-description">
-              Organize classes, collaborate with peers, and track progress — all in one modern student workspace, completely free.
-            </p>
-            <div className="hero-cta">
-              <Link to="/register" className="cta-primary">Get Started Free</Link>
-              <Link to="/login" className="cta-secondary">Sign In</Link>
-            </div>
-            <div className="hero-trust">
-              <span>✓ No credit card</span>
-              <span>•</span>
-              <span>✓ Free forever</span>
-            </div>
-          </div>
+        .home-signin-btn:focus-visible,
+        .btn-solid:focus-visible,
+        .btn-hero-primary:focus-visible,
+        .btn-hero-ghost:focus-visible,
+        .glow-card-btn:focus-visible,
+        .profile-dropdown a:focus-visible,
+        .profile-dropdown button:focus-visible,
+        .nav-links button:focus-visible {
+          outline: 2px solid var(--accent-green);
+          outline-offset: 2px;
+          box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+        }
 
-          <div className="hero-visual">
-            <div className="floating-card card-1">📚 Smart Planning</div>
-            <div className="floating-card card-2">🤝 Group Study</div>
-            <div className="floating-card card-3">📈 Live Insights</div>
-          </div>
-        </div>
+        :root {
+          --bg-dark: #101828;
+          --bg-card: rgba(18, 22, 36, 0.8);
+          --bg-surface: #121624;
+          --border: rgba(255, 255, 255, 0.08);
+          --accent-cyan: #2dd4bf;
+          --accent-green: #10b981;
+          --accent-purple: #a78bfa;
+          --text-primary: #ffffff;
+          --text-secondary: #e2e8f0;
+          --text-muted: #94a3b8;
+          --glow-green: 0 0 20px rgba(16, 185, 129, 0.5);
+          --glow-cyan: 0 0 20px rgba(45, 212, 191, 0.5);
+          --font-main: 'Inter', sans-serif;
+        }
 
-        <button className="hero-scroll" onClick={() => scrollToSection(weatherRef)}>
-          Explore live widgets
-          <span className="scroll-dot"></span>
-        </button>
-      </section>
+        body {
+          font-family: var(--font-main);
+          background: var(--bg-dark);
+          color: var(--text-primary);
+          line-height: 1.6;
+          overflow-x: hidden;
+        }
 
-      {/* -------------------- Quick Stats -------------------- */}
-      <section className="stats">
-        <div className="stats-container">
-          {statsData.map((stat, idx) => (
-            <div key={idx} className="stat-card">
-              <span className="stat-icon">{stat.icon}</span>
-              <div>
-                <div className="stat-value">{stat.value}</div>
-                <div className="stat-label">{stat.label}</div>
+        .page {
+          position: relative;
+          min-height: 100vh;
+          z-index: 1;
+        }
+
+        .bg-canvas {
+          position: fixed;
+          inset: 0;
+          z-index: 0;
+          pointer-events: none;
+          opacity: 0.9;
+          filter: contrast(1.14) saturate(1.14) brightness(1.08);
+        }
+
+        .overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 1;
+          pointer-events: none;
+          background: radial-gradient(circle at 30% 30%, rgba(16, 185, 129, 0.1) 0%, transparent 58%),
+                      radial-gradient(circle at 70% 80%, rgba(45, 212, 191, 0.1) 0%, transparent 58%),
+                      linear-gradient(180deg, rgba(10, 12, 20, 0.03) 0%, rgba(10, 12, 20, 0.46) 100%);
+        }
+
+        .content {
+          position: relative;
+          z-index: 10;
+        }
+
+        /* Navigation */
+        nav {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          z-index: 100;
+          padding: 1.25rem clamp(1.5rem, 5vw, 4rem);
+          transition: background 0.3s, backdrop-filter 0.3s;
+        }
+        nav.scrolled {
+          background: rgba(10, 12, 20, 0.85);
+          backdrop-filter: blur(12px);
+          border-bottom: 1px solid var(--border);
+        }
+        .nav-inner {
+          max-width: 1280px;
+          margin: 0 auto;
+          display: flex;
+          align-items: center;
+          gap: 2rem;
+        }
+        .brand {
+          font-weight: 700;
+          font-size: 1.25rem;
+          color: var(--text-primary);
+          background: none;
+          border: none;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          letter-spacing: -0.02em;
+        }
+        .brand-dot {
+          width: 8px;
+          height: 8px;
+          background: var(--accent-green);
+          border-radius: 50%;
+          box-shadow: var(--glow-green);
+        }
+        .nav-links {
+          display: flex;
+          align-items: center;
+          gap: 0.25rem;
+          margin-left: auto;
+        }
+        .nav-links button {
+          font-size: 0.9rem;
+          font-weight: 500;
+          color: var(--text-secondary);
+          background: none;
+          border: none;
+          padding: 0.5rem 1rem;
+          border-radius: 30px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .nav-links button:hover {
+          color: var(--text-primary);
+          background: rgba(16, 185, 129, 0.1);
+        }
+        .nav-actions {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+        .home-signin-btn {
+          font-size: 0.9rem;
+          font-weight: 500;
+          color: var(--accent-green);
+          background: transparent;
+          border: 1px solid rgba(16, 185, 129, 0.45);
+          border-radius: 30px;
+          padding: 0.5rem 1.4rem;
+          text-decoration: none;
+          box-shadow: 0 0 14px rgba(16, 185, 129, 0.2);
+          transition: all 0.2s;
+        }
+        .home-signin-btn:visited,
+        .home-signin-btn:active {
+          color: var(--accent-green);
+        }
+        .home-signin-btn:hover {
+          border-color: var(--accent-green);
+          color: var(--accent-green);
+          background: rgba(16, 185, 129, 0.16);
+          transform: translateY(-3px);
+          box-shadow: 0 0 22px rgba(16, 185, 129, 0.35);
+        }
+
+        .nav-actions .home-signin-btn,
+        .nav-actions .home-signin-btn:visited,
+        .nav-actions .home-signin-btn:active,
+        .nav-actions .home-signin-btn:hover,
+        .nav-actions .home-signin-btn:focus,
+        .nav-actions .home-signin-btn:focus-visible {
+          color: var(--accent-green) !important;
+          text-decoration: none !important;
+        }
+        .btn-solid {
+          font-size: 0.9rem;
+          font-weight: 600;
+          color: #ffffff;
+          background: var(--accent-green);
+          border: none;
+          border-radius: 30px;
+          padding: 0.5rem 1.6rem;
+          text-decoration: none;
+          box-shadow: var(--glow-green);
+          transition: opacity 0.2s, box-shadow 0.2s;
+        }
+        .btn-solid:visited,
+        .btn-solid:active,
+        .btn-solid:hover {
+          color: #ffffff;
+        }
+        .btn-solid:hover {
+          opacity: 0.9;
+          box-shadow: 0 0 25px var(--accent-green);
+        }
+
+        /* Profile dropdown */
+        .profile-wrapper { position: relative; }
+        .profile-avatar {
+          width: 38px; height: 38px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, var(--accent-cyan), var(--accent-green));
+          color: #fff;
+          display: flex; align-items: center; justify-content: center;
+          font-weight: 600;
+          cursor: pointer;
+          border: 2px solid transparent;
+          transition: border-color 0.2s;
+        }
+        .profile-avatar:hover {
+          border-color: var(--accent-green);
+        }
+        .profile-dropdown {
+          position: absolute;
+          top: calc(100% + 8px);
+          right: 0;
+          min-width: 220px;
+          background: var(--bg-surface);
+          border: 1px solid var(--border);
+          border-radius: 16px;
+          padding: 0.5rem 0;
+          z-index: 200;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .profile-dropdown-header {
+          padding: 0.8rem 1rem;
+          border-bottom: 1px solid var(--border);
+        }
+        .profile-dropdown-name {
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+        .profile-dropdown-email {
+          font-size: 0.8rem;
+          color: var(--text-muted);
+        }
+        .profile-dropdown a,
+        .profile-dropdown button {
+          display: block;
+          width: 100%;
+          text-align: left;
+          padding: 0.7rem 1rem;
+          font-size: 0.9rem;
+          color: var(--text-secondary);
+          background: none;
+          border: none;
+          cursor: pointer;
+          text-decoration: none;
+          transition: 0.15s;
+        }
+        .profile-dropdown a:hover,
+        .profile-dropdown button:hover {
+          background: rgba(16, 185, 129, 0.1);
+          color: var(--text-primary);
+        }
+        .profile-dropdown .logout-btn {
+          color: var(--accent-green);
+          border-top: 1px solid var(--border);
+        }
+
+        /* Hero */
+        .hero {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          padding: 8rem clamp(1.5rem, 5vw, 4rem) 5rem;
+        }
+        .hero-inner {
+          max-width: 1280px;
+          margin: 0 auto;
+          width: 100%;
+        }
+        .hero-tag {
+          display: inline-block;
+          font-size: 0.75rem;
+          font-weight: 600;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: var(--accent-green);
+          background: rgba(16, 185, 129, 0.1);
+          border: 1px solid rgba(16, 185, 129, 0.3);
+          padding: 0.4rem 1.2rem;
+          border-radius: 40px;
+          margin-bottom: 2rem;
+        }
+        .hero-title {
+          font-size: clamp(2.8rem, 7vw, 5.5rem);
+          font-weight: 800;
+          line-height: 1.1;
+          letter-spacing: -0.02em;
+          color: var(--text-primary);
+          max-width: 900px;
+          margin-bottom: 1.5rem;
+        }
+        .gradient-text {
+          background: linear-gradient(135deg, var(--accent-cyan), var(--accent-green), var(--accent-purple));
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+        .hero-sub {
+          font-size: clamp(1rem, 1.5vw, 1.25rem);
+          color: var(--text-secondary);
+          max-width: 600px;
+          margin-bottom: 2.5rem;
+        }
+        .hero-btns {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 1rem;
+          margin-bottom: 4rem;
+        }
+        .btn-hero-primary {
+          font-size: 1rem;
+          font-weight: 600;
+          color: #ffffff;
+          background: var(--accent-green);
+          border: none;
+          border-radius: 40px;
+          padding: 0.9rem 2.4rem;
+          text-decoration: none;
+          box-shadow: var(--glow-green);
+          transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-hero-primary:visited,
+        .btn-hero-primary:active,
+        .btn-hero-primary:hover {
+          color: #ffffff;
+        }
+        .btn-hero-primary:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 0 30px var(--accent-green);
+        }
+        .btn-hero-ghost {
+          font-size: 1rem;
+          font-weight: 500;
+          color: var(--text-primary);
+          background: rgba(255,255,255,0.03);
+          border: 1px solid var(--border);
+          border-radius: 40px;
+          padding: 0.9rem 2.4rem;
+          text-decoration: none;
+          transition: 0.2s;
+        }
+        .btn-hero-ghost:visited,
+        .btn-hero-ghost:active {
+          color: var(--text-primary);
+        }
+        .btn-hero-ghost:hover {
+          border-color: var(--accent-green);
+          background: rgba(16, 185, 129, 0.16);
+          transform: translateY(-3px);
+        }
+        .stats-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 3rem 4rem;
+        }
+        .stat-item {
+          text-align: left;
+        }
+        .stat-val {
+          font-size: 2.5rem;
+          font-weight: 800;
+          color: var(--accent-green);
+          line-height: 1;
+          margin-bottom: 0.3rem;
+        }
+        .stat-label {
+          font-size: 0.85rem;
+          color: var(--text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        /* Sections */
+        .section {
+          padding: 6rem clamp(1.5rem, 5vw, 4rem);
+        }
+        .section-inner {
+          max-width: 1280px;
+          margin: 0 auto;
+        }
+        .section-label {
+          font-size: 0.75rem;
+          font-weight: 600;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+          color: var(--accent-green);
+          margin-bottom: 1rem;
+        }
+        .section-title {
+          font-size: clamp(2rem, 4vw, 3rem);
+          font-weight: 700;
+          color: var(--text-primary);
+          max-width: 700px;
+          margin-bottom: 3rem;
+          line-height: 1.2;
+        }
+
+        /* Features grid */
+        .features-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+          gap: 1.5rem;
+        }
+        .feat-card,
+        .step-item,
+        .glow-card,
+        .cta-block {
+          opacity: 1;
+          visibility: visible;
+        }
+        .feat-card {
+          background: var(--bg-card);
+          backdrop-filter: blur(10px);
+          border: 1px solid var(--border);
+          border-radius: 24px;
+          padding: 2rem;
+          transition: all 0.3s;
+        }
+        .feat-card:hover {
+          border-color: var(--accent-green);
+          transform: translateY(-4px);
+          box-shadow: 0 20px 30px rgba(0,0,0,0.3), 0 0 20px rgba(16, 185, 129, 0.2);
+        }
+        .feat-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 1.5rem;
+        }
+        .feat-icon {
+          width: 48px;
+          height: 48px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(16, 185, 129, 0.1);
+          border: 1px solid rgba(16, 185, 129, 0.3);
+          border-radius: 16px;
+          font-size: 1.4rem;
+        }
+        .feat-tag {
+          font-size: 0.7rem;
+          font-weight: 600;
+          color: var(--text-muted);
+          background: rgba(255,255,255,0.05);
+          border: 1px solid var(--border);
+          border-radius: 30px;
+          padding: 0.2rem 0.8rem;
+        }
+        .feat-title {
+          font-size: 1.2rem;
+          font-weight: 600;
+          color: var(--text-primary);
+          margin-bottom: 0.8rem;
+        }
+        .feat-desc {
+          font-size: 0.9rem;
+          color: var(--text-secondary);
+          line-height: 1.6;
+        }
+
+        .extra-content-section {
+          padding: 2rem clamp(1.5rem, 5vw, 4rem) 6rem;
+        }
+
+        .read-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          gap: 1.2rem;
+          margin-bottom: 3rem;
+        }
+
+        .read-card {
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 20px;
+          padding: 1.5rem;
+          backdrop-filter: blur(10px);
+        }
+
+        .read-quote {
+          color: var(--text-secondary);
+          font-size: 0.95rem;
+          line-height: 1.7;
+          margin-bottom: 1rem;
+        }
+
+        .read-name {
+          color: var(--text-primary);
+          font-size: 0.95rem;
+          font-weight: 600;
+        }
+
+        .read-role {
+          color: var(--text-muted);
+          font-size: 0.82rem;
+          margin-top: 0.2rem;
+        }
+
+        .faq-list {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1rem;
+        }
+
+        .faq-item {
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 18px;
+          padding: 1.25rem 1.3rem;
+          backdrop-filter: blur(10px);
+        }
+
+        .faq-q {
+          color: var(--text-primary);
+          font-size: 0.98rem;
+          font-weight: 600;
+          margin-bottom: 0.5rem;
+          line-height: 1.4;
+        }
+
+        .faq-a {
+          color: var(--text-secondary);
+          font-size: 0.9rem;
+          line-height: 1.65;
+        }
+
+        /* Steps */
+        .steps-section {
+          padding: 5rem clamp(1.5rem, 5vw, 4rem) 7rem;
+        }
+        .steps-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 4rem;
+          align-items: start;
+        }
+        .steps-list {
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+        }
+        .step-item {
+          display: flex;
+          gap: 1.5rem;
+          padding-bottom: 2.5rem;
+        }
+        .step-item:last-child { padding-bottom: 0; }
+        .step-left {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        .step-num {
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          background: rgba(16, 185, 129, 0.1);
+          border: 1px solid var(--accent-green);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          color: var(--accent-green);
+        }
+        .step-line {
+          flex: 1;
+          width: 2px;
+          background: linear-gradient(180deg, var(--accent-green), transparent);
+          margin-top: 0.5rem;
+        }
+        .step-item:last-child .step-line { display: none; }
+        .step-content { padding-top: 0.5rem; }
+        .step-title {
+          font-size: 1.1rem;
+          font-weight: 600;
+          color: var(--text-primary);
+          margin-bottom: 0.3rem;
+        }
+        .step-desc {
+          font-size: 0.9rem;
+          color: var(--text-secondary);
+        }
+
+        /* Glow card */
+        .glow-card {
+          margin-top: 4rem;
+          background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(45, 212, 191, 0.1));
+          border: 1px solid var(--accent-green);
+          border-radius: 32px;
+          padding: 3rem;
+          backdrop-filter: blur(10px);
+          box-shadow: 0 20px 30px rgba(0,0,0,0.3), 0 0 60px rgba(16, 185, 129, 0.2);
+        }
+        .glow-card-title {
+          font-size: 1.8rem;
+          font-weight: 700;
+          color: var(--text-primary);
+          margin-bottom: 1rem;
+        }
+        .glow-card-sub {
+          font-size: 1rem;
+          color: var(--text-secondary);
+          max-width: 600px;
+          margin-bottom: 2rem;
+        }
+        .mini-stats {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 1.5rem;
+          margin-bottom: 2rem;
+        }
+        .mini-stat {
+          background: rgba(0,0,0,0.2);
+          border: 1px solid var(--border);
+          border-radius: 16px;
+          padding: 1.2rem;
+          text-align: center;
+        }
+        .mini-stat-val {
+          font-size: 1.8rem;
+          font-weight: 700;
+          color: var(--accent-green);
+          line-height: 1;
+          margin-bottom: 0.2rem;
+        }
+        .mini-stat-lbl {
+          font-size: 0.8rem;
+          color: var(--text-muted);
+        }
+        .glow-card-btn {
+          display: inline-block;
+          font-size: 1rem;
+          font-weight: 600;
+          color: #ffffff;
+          background: var(--accent-green);
+          border: none;
+          border-radius: 40px;
+          padding: 0.9rem 2.5rem;
+          text-decoration: none;
+          box-shadow: var(--glow-green);
+          transition: 0.2s;
+        }
+        .glow-card-btn:visited,
+        .glow-card-btn:active,
+        .glow-card-btn:hover {
+          color: #ffffff;
+        }
+        .glow-card-btn:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 0 30px var(--accent-green);
+        }
+
+        /* CTA */
+        .cta-section {
+          padding: 5rem clamp(1.5rem, 5vw, 4rem) 8rem;
+        }
+        .cta-block {
+          max-width: 900px;
+          margin: 0 auto;
+          text-align: center;
+          background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(167, 139, 250, 0.1));
+          border: 1px solid var(--accent-green);
+          border-radius: 48px;
+          padding: 5rem 3rem;
+          backdrop-filter: blur(10px);
+          box-shadow: 0 20px 30px rgba(0,0,0,0.3), 0 0 60px rgba(16, 185, 129, 0.2);
+        }
+        .cta-badge {
+          display: inline-block;
+          font-size: 0.7rem;
+          font-weight: 600;
+          letter-spacing: 0.2em;
+          color: var(--accent-green);
+          background: rgba(16, 185, 129, 0.15);
+          border: 1px solid rgba(16, 185, 129, 0.3);
+          padding: 0.3rem 1.2rem;
+          border-radius: 40px;
+          margin-bottom: 2rem;
+        }
+        .cta-title {
+          font-size: clamp(2.2rem, 5vw, 3.5rem);
+          font-weight: 700;
+          color: var(--text-primary);
+          line-height: 1.2;
+          margin-bottom: 1.5rem;
+        }
+        .cta-sub {
+          font-size: 1.1rem;
+          color: var(--text-secondary);
+          max-width: 500px;
+          margin: 0 auto 2.5rem;
+        }
+        .cta-btns {
+          display: flex;
+          justify-content: center;
+          gap: 1rem;
+          flex-wrap: wrap;
+        }
+
+        /* Footer */
+        footer {
+          border-top: 1px solid var(--border);
+          padding: 2rem clamp(1.5rem, 5vw, 4rem);
+        }
+        .footer-inner {
+          max-width: 1280px;
+          margin: 0 auto;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 1rem;
+        }
+        .footer-copy {
+          font-size: 0.85rem;
+          color: var(--text-muted);
+        }
+
+        /* Light theme overrides */
+        [data-theme="light"] body {
+          background: #f4f7fb;
+          color: #0f172a;
+        }
+
+        [data-theme="light"] .bg-canvas {
+          opacity: 0.68;
+          filter: contrast(1.18) saturate(1.06);
+        }
+
+        [data-theme="light"] .overlay {
+          background:
+            radial-gradient(circle at 20% 20%, rgba(16, 185, 129, 0.11) 0%, transparent 55%),
+            radial-gradient(circle at 80% 75%, rgba(45, 212, 191, 0.1) 0%, transparent 55%),
+            linear-gradient(180deg, rgba(244, 247, 251, 0) 0%, rgba(244, 247, 251, 0.45) 100%);
+        }
+
+        [data-theme="light"] nav.scrolled {
+          background: rgba(255, 255, 255, 0.9);
+          border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+        }
+
+        [data-theme="light"] .brand,
+        [data-theme="light"] .hero-title,
+        [data-theme="light"] .section-title,
+        [data-theme="light"] .feat-title,
+        [data-theme="light"] .step-title,
+        [data-theme="light"] .glow-card-title,
+        [data-theme="light"] .cta-title {
+          color: #0f172a;
+        }
+
+        [data-theme="light"] .hero-sub,
+        [data-theme="light"] .feat-desc,
+        [data-theme="light"] .step-desc,
+        [data-theme="light"] .glow-card-sub,
+        [data-theme="light"] .cta-sub,
+        [data-theme="light"] .footer-copy,
+        [data-theme="light"] .nav-links button {
+          color: #334155;
+        }
+
+        [data-theme="light"] .stat-label,
+        [data-theme="light"] .mini-stat-lbl,
+        [data-theme="light"] .feat-tag {
+          color: #475569;
+        }
+
+        [data-theme="light"] .feat-card,
+        [data-theme="light"] .mini-stat,
+        [data-theme="light"] .profile-dropdown,
+        [data-theme="light"] .read-card,
+        [data-theme="light"] .faq-item,
+        [data-theme="light"] .milestone-item,
+        [data-theme="light"] .milestone-end {
+          background: rgba(255, 255, 255, 0.9);
+          border: 1px solid rgba(15, 23, 42, 0.14);
+          box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+        }
+
+        [data-theme="light"] .glow-card,
+        [data-theme="light"] .cta-block {
+          background: linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(236, 253, 245, 0.9));
+          border: 1px solid rgba(16, 185, 129, 0.4);
+          box-shadow: 0 18px 32px rgba(15, 23, 42, 0.1);
+        }
+
+        [data-theme="light"] .mini-stat {
+          background: rgba(255, 255, 255, 0.86);
+        }
+
+        [data-theme="light"] .btn-hero-ghost,
+        [data-theme="light"] .home-signin-btn {
+          color: #0f172a !important;
+          background: rgba(255, 255, 255, 0.7);
+          border-color: rgba(15, 23, 42, 0.14);
+        }
+
+        [data-theme="light"] .hero-tag,
+        [data-theme="light"] .section-label,
+        [data-theme="light"] .cta-badge {
+          color: #0f766e;
+          background: rgba(15, 118, 110, 0.12);
+          border-color: rgba(15, 118, 110, 0.3);
+        }
+
+        [data-theme="light"] .faq-a,
+        [data-theme="light"] .read-quote,
+        [data-theme="light"] .milestone-desc,
+        [data-theme="light"] .milestone-end p {
+          color: #334155;
+        }
+
+        [data-theme="light"] .faq-q,
+        [data-theme="light"] .read-name,
+        [data-theme="light"] .milestone-title,
+        [data-theme="light"] .milestone-end h3 {
+          color: #0f172a;
+        }
+
+        [data-theme="light"] .read-role {
+          color: #475569;
+        }
+
+        [data-theme="light"] .milestone-period {
+          color: #0f766e;
+        }
+
+        [data-theme="light"] .btn-hero-ghost:hover,
+        [data-theme="light"] .home-signin-btn:hover,
+        [data-theme="light"] .nav-links button:hover,
+        [data-theme="light"] .profile-dropdown a:hover,
+        [data-theme="light"] .profile-dropdown button:hover {
+          background: rgba(16, 185, 129, 0.16);
+          color: #0f172a;
+        }
+
+        [data-theme="light"] .profile-dropdown-name {
+          color: #0f172a;
+        }
+
+        [data-theme="light"] .profile-dropdown-email,
+        [data-theme="light"] .profile-dropdown a,
+        [data-theme="light"] .profile-dropdown button {
+          color: #475569;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+          .steps-grid { grid-template-columns: 1fr; }
+          .mini-stats { grid-template-columns: 1fr 1fr; }
+          .faq-list { grid-template-columns: 1fr; }
+          .nav-links, .nav-actions .home-signin-btn { display: none; }
+        }
+        @media (max-width: 600px) {
+          .stats-row { gap: 2rem; }
+          .stat-val { font-size: 2rem; }
+          .cta-block { padding: 3rem 1.5rem; }
+        }
+      `}</style>
+
+      <div className="page" ref={rootRef}>
+        <div className="bg-canvas" ref={setCanvasMountRef} />
+        <div className="overlay" />
+
+        <div className="content">
+          <nav className={scrolled ? "scrolled" : ""}>
+            <div className="nav-inner">
+              <button className="brand">
+                <span className="brand-dot" />
+                Campus Companion
+              </button>
+              <div className="nav-links">
+                <button onClick={() => document.querySelector(".features-grid")?.scrollIntoView({ behavior: "smooth" })}>Features</button>
+                <button onClick={() => document.querySelector(".steps-section")?.scrollIntoView({ behavior: "smooth" })}>How It Works</button>
               </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* -------------------- Data Source Toggle -------------------- */}
-      <div className="data-source-toggle">
-        <span>Data source:</span>
-        <button className={useMock ? 'active' : ''} onClick={() => setUseMock(true)}>Mock</button>
-        <button className={!useMock ? 'active' : ''} onClick={() => setUseMock(false)}>Live API</button>
-      </div>
-
-      {/* -------------------- Weather Widget -------------------- */}
-      <section className="weather-widget" ref={weatherRef}>
-        <div className="section-header">
-          <span className="section-badge">LIVE WEATHER</span>
-          <h2 className="section-title">Campus <span className="gradient-text">Weather</span></h2>
-        </div>
-        <div className="weather-container">
-          <div className="city-selector">
-            <Select
-              options={cityOptions}
-              value={cityOptions.find(opt => opt.value === city)}
-              onChange={(opt) => { setCity(opt.value); fetchWeather(opt.value); }}
-              isDisabled={loading.weather}
-              className="react-select"
-              classNamePrefix="react-select"
-            />
-            <button onClick={() => fetchWeather(city)} disabled={loading.weather} className="refresh-btn">
-              🔄
-            </button>
-          </div>
-          {loading.weather && <p className="info">Loading weather...</p>}
-          {error.weather && <p className="error">⚠️ {error.weather} (using mock)</p>}
-          {weather && (
-            <>
-              <div className="weather-current">
-                <span className="weather-icon">{weather.icon}</span>
-                <div>
-                  <div className="weather-temp">{weather.temp}°C</div>
-                  <div className="weather-condition">{weather.condition}</div>
-                </div>
-              </div>
-              <div className="weather-forecast">
-                {forecast.map((day, idx) => (
-                  <div key={idx} className="forecast-day">
-                    <span>{day.day}</span>
-                    <span className="forecast-icon">{day.icon}</span>
-                    <span>{Math.round(day.temp)}°</span>
+              <div className="nav-actions">
+                {isAuthenticated ? (
+                  <div className="profile-wrapper" ref={profileMenuRef}>
+                    <div className="profile-avatar" onClick={() => setProfileOpen((v) => !v)}>
+                      {user?.profilePicture ? <img src={user.profilePicture} alt={user.name} /> : (user?.name?.[0] || "U")}
+                    </div>
+                    {profileOpen && (
+                      <div className="profile-dropdown">
+                        <div className="profile-dropdown-header">
+                          <div className="profile-dropdown-name">{user?.name || "User"}</div>
+                          <div className="profile-dropdown-email">{user?.email || ""}</div>
+                        </div>
+                        <Link to="/dashboard" onClick={() => setProfileOpen(false)}>Dashboard</Link>
+                        <Link to="/groups" onClick={() => setProfileOpen(false)}>My Groups</Link>
+                        <Link to="/notes" onClick={() => setProfileOpen(false)}>My Notes</Link>
+                        <button className="logout-btn" onClick={() => { dispatch(logout()); setProfileOpen(false); }}>Sign Out</button>
+                      </div>
+                    )}
                   </div>
-                ))}
+                ) : (
+                  <>
+                    <Link to="/login" className="home-signin-btn">Sign In</Link>
+                    <Link to="/register" className="btn-solid">Register</Link>
+                  </>
+                )}
               </div>
-            </>
-          )}
-        </div>
-      </section>
-
-      {/* -------------------- Campus News Feed -------------------- */}
-      <section className="news-feed" ref={newsRef}>
-        <div className="section-header">
-          <span className="section-badge">CAMPUS NEWS</span>
-          <h2 className="section-title">Latest <span className="gradient-text">Updates</span></h2>
-        </div>
-        <div className="news-container">
-          {loading.news && <p className="info">Loading news...</p>}
-          {error.news && <p className="error">⚠️ {error.news} (using mock)</p>}
-          <div className="news-grid">
-            {news.map(item => (
-              <div key={item.id} className="news-card">
-                <h4>{item.title}</h4>
-                <span className="news-date">{item.date}</span>
-                <p>{item.excerpt}</p>
-                <Link to={`/news/${item.id}`} className="news-link">Read more →</Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* -------------------- Study Room Availability -------------------- */}
-      <section className="room-availability" ref={roomsRef}>
-        <div className="section-header">
-          <span className="section-badge">REAL‑TIME</span>
-          <h2 className="section-title">Study Room <span className="gradient-text">Availability</span></h2>
-        </div>
-        <div className="rooms-container">
-          {loading.rooms && <p className="info">Loading rooms...</p>}
-          {error.rooms && <p className="error">⚠️ {error.rooms} (using mock)</p>}
-          <div className="rooms-grid">
-            {rooms.map(room => (
-              <div key={room.id} className={`room-card ${room.available ? 'available' : 'occupied'}`}>
-                <div className="room-header">
-                  <span className="room-name">{room.id}</span>
-                  <span className="room-status">{room.available ? '🟢 Free' : '🔴 Occupied'}</span>
-                </div>
-                <div className="room-capacity">👥 {room.capacity} seats</div>
-                {room.available && <button className="book-btn">Book now</button>}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* -------------------- Upcoming Events -------------------- */}
-      <section className="upcoming-events">
-        <div className="section-header">
-          <span className="section-badge">CALENDAR</span>
-          <h2 className="section-title">Upcoming <span className="gradient-text">Events</span></h2>
-        </div>
-        <div className="events-container">
-          {loading.events && <p className="info">Loading events...</p>}
-          {error.events && <p className="error">⚠️ {error.events} (using mock)</p>}
-          <div className="events-list">
-            {events.map(event => (
-              <div key={event.id} className="event-item">
-                <div className="event-date">
-                  <span className="event-day">{new Date(event.date).getDate()}</span>
-                  <span className="event-month">{new Date(event.date).toLocaleString('en', { month: 'short' })}</span>
-                </div>
-                <div className="event-details">
-                  <h4>{event.title}</h4>
-                  <p>{event.time} · {event.location}</p>
-                </div>
-                <button className="event-remind">🔔 Remind</button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* -------------------- Analytics Chart -------------------- */}
-      <section className="analytics-chart">
-        <div className="section-header">
-          <span className="section-badge">TRENDS</span>
-          <h2 className="section-title">Course Completion <span className="gradient-text">Analytics</span></h2>
-        </div>
-        <div className="chart-container">
-          {loading.analytics && <p className="info">Loading chart...</p>}
-          {error.analytics && <p className="error">⚠️ {error.analytics} (using mock)</p>}
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={analytics}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="completion" stroke="#5a67d8" strokeWidth={3} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </section>
-
-      {/* -------------------- Live User Activity -------------------- */}
-      <section className="live-activity">
-        <div className="section-header">
-          <span className="section-badge">LIVE</span>
-          <h2 className="section-title">User <span className="gradient-text">Activity</span></h2>
-        </div>
-        <div className="activity-container">
-          <div className="activity-log">
-            {activityLog.map((act, idx) => (
-              <div key={idx} className="activity-item">
-                <span className="activity-user">{act.user}</span>
-                <span className="activity-action">{act.action}</span>
-                <span className="activity-time">{act.time}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* -------------------- Features Section -------------------- */}
-      <section className="features" ref={featuresRef}>
-        <div className="section-header" data-aos="fade-up">
-          <span className="section-badge">{pageData.sections.featuresBadge}</span>
-          <h2 className="section-title">
-            {pageData.sections.featuresTitle}
-            <span className="gradient-text">{pageData.sections.featuresTitleHighlight}</span>
-          </h2>
-          <p className="section-subtitle">All features are completely free – no upgrades, no hidden costs.</p>
-        </div>
-
-        <div className="features-grid">
-          {pageData.features.map((feature, idx) => (
-            <div key={idx} className="feature-card" data-aos="fade-up" data-aos-delay={idx * 100}>
-              <div className="feature-icon" style={{ background: `hsl(${idx * 60}, 70%, 60%)` }}>{feature.icon}</div>
-              <h3 className="feature-title">{feature.title}</h3>
-              <p className="feature-description">{feature.description}</p>
-              <span className="feature-stats">{feature.stats}</span>
             </div>
-          ))}
-        </div>
-      </section>
+          </nav>
 
-      {/* -------------------- How It Works -------------------- */}
-      <section className="how-it-works" ref={howRef}>
-        <div className="section-header" data-aos="fade-up">
-          <span className="section-badge">{pageData.sections.howItWorksBadge}</span>
-          <h2 className="section-title">
-            {pageData.sections.howItWorksTitle}
-            <span className="gradient-text">{pageData.sections.howItWorksTitleHighlight}</span>
-          </h2>
-        </div>
-
-        <div className="steps-container">
-          {pageData.howItWorks.map((step, idx) => (
-            <div key={idx} className="step-card" data-aos="fade-up" data-aos-delay={idx * 150}>
-              <div className="step-number">{step.step}</div>
-              <h3>{step.title}</h3>
-              <p>{step.description}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* -------------------- Use Cases -------------------- */}
-      <section className="use-cases">
-        <div className="section-header" data-aos="fade-up">
-          <span className="section-badge">{pageData.sections.useCasesBadge}</span>
-          <h2 className="section-title">
-            {pageData.sections.useCasesTitle}
-            <span className="gradient-text">{pageData.sections.useCasesTitleHighlight}</span>
-          </h2>
-        </div>
-
-        <div className="use-cases-grid">
-          {pageData.useCases.map((item, idx) => (
-            <div key={idx} className="use-case-card" data-aos="fade-up" data-aos-delay={idx * 150}>
-              <div className="use-case-icon">{item.icon}</div>
-              <h3>{item.title}</h3>
-              <p>{item.description}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* -------------------- Testimonials -------------------- */}
-      <section className="testimonials">
-        <div className="section-header center" data-aos="fade-up">
-          <span className="section-badge">{pageData.sections.testimonialsBadge}</span>
-          <h2 className="section-title">
-            {pageData.sections.testimonialsTitle}
-            <span className="gradient-text">{pageData.sections.testimonialsTitleHighlight}</span>
-          </h2>
-        </div>
-
-        <div className="testimonials-grid">
-          {testimonials.map((t, idx) => (
-            <div key={idx} className="testimonial-card" data-aos="fade-up" data-aos-delay={idx * 150}>
-              <div className="testimonial-rating">
-                {[...Array(5)].map((_, i) => (
-                  <span key={i} className={i < t.rating ? "star filled" : "star"}>★</span>
-                ))}
-              </div>
-              <p className="testimonial-content">"{t.content}"</p>
-              <div className="testimonial-author">
-                <div className="author-avatar">
-                  <span>{t.name.charAt(0)}</span>
+          <main>
+            {/* Hero */}
+            <section className="hero">
+              <div className="hero-inner">
+                <p className="hero-tag" data-hero-title>✧ THE FUTURE OF STUDY ✧</p>
+                <h1 className="hero-title" data-hero-title>
+                  Your academic life <br />
+                  <span className="gradient-text">finally under control.</span>
+                </h1>
+                <p className="hero-sub" data-hero-sub>
+                  Smart Campus Companion brings together notes, study groups, AI insights, and seamless collaboration—all in one sleek workspace.
+                </p>
+                <div className="hero-btns" data-hero-cta>
+                  <Link to="/register" className="btn-hero-primary">Launch Your Workspace →</Link>
+                  <button className="btn-hero-ghost" onClick={() => document.querySelector(".features-grid")?.scrollIntoView({ behavior: "smooth" })}>
+                    Explore Features
+                  </button>
                 </div>
-                <div>
-                  <div className="author-name">{t.name}</div>
-                  <div className="author-role">{t.role}</div>
+                <div className="stats-row" data-hero-stats>
+                  {stats.map((s) => (
+                    <div className="stat-item" key={s.label}>
+                      <div className="stat-val">{s.value}</div>
+                      <div className="stat-label">{s.label}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      </section>
+            </section>
 
-      {/* -------------------- Pricing -------------------- */}
-      <section className="pricing" ref={pricingRef}>
-        <div className="section-header" data-aos="fade-up">
-          <span className="section-badge">{pageData.sections.pricingBadge}</span>
-          <h2 className="section-title">
-            {pageData.sections.pricingTitle}
-            <span className="gradient-text">{pageData.sections.pricingTitleHighlight}</span>
-          </h2>
-        </div>
-
-        <div className="pricing-card" data-aos="zoom-in">
-          <div className="pricing-badge">🔥 100% Free</div>
-          <h3 className="pricing-name">{pageData.pricing.title}</h3>
-          <p className="pricing-description">{pageData.pricing.subtitle}</p>
-          <ul className="pricing-features">
-            {pageData.pricing.features.map((feat, i) => (
-              <li key={i}>✓ {feat}</li>
-            ))}
-          </ul>
-          <Link to="/register" className="cta-primary large">Get Started – It's Free</Link>
-          <p className="pricing-note">No credit card required. No time limits.</p>
-        </div>
-      </section>
-
-      {/* -------------------- FAQ -------------------- */}
-      <section className="faq" ref={faqRef}>
-        <div className="section-header" data-aos="fade-up">
-          <span className="section-badge">{pageData.sections.faqBadge}</span>
-          <h2 className="section-title">
-            {pageData.sections.faqTitle}
-            <span className="gradient-text">{pageData.sections.faqTitleHighlight}</span>
-          </h2>
-        </div>
-
-        <div className="faq-container">
-          {pageData.faqs.map((item, idx) => (
-            <div key={idx} className="faq-item" data-aos="fade-up" data-aos-delay={idx * 100}>
-              <div className="faq-question" onClick={() => setActiveFaq(activeFaq === idx ? null : idx)}>
-                <h4>{item.question}</h4>
-                <span className="faq-icon">{activeFaq === idx ? '−' : '+'}</span>
-              </div>
-              {activeFaq === idx && (
-                <div className="faq-answer">
-                  <p>{item.answer}</p>
+            {/* Features */}
+            <section className="section">
+              <div className="section-inner">
+                <p className="section-label" data-section-title>Everything you need</p>
+                <h2 className="section-title" data-section-title>Built for students who refuse to settle for average.</h2>
+                <div className="features-grid">
+                  {features.map((f) => (
+                    <article className="feat-card card-shine hover-glow" data-feat-card key={f.title}>
+                      <div className="feat-top">
+                        <div className="feat-icon">{f.icon}</div>
+                        <span className="feat-tag">{f.tag}</span>
+                      </div>
+                      <h3 className="feat-title">{f.title}</h3>
+                      <p className="feat-desc">{f.desc}</p>
+                    </article>
+                  ))}
                 </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </section>
+              </div>
+            </section>
 
-      {/* -------------------- Blog Preview -------------------- */}
-      <section className="blog-preview">
-        <div className="section-header" data-aos="fade-up">
-          <span className="section-badge">{pageData.sections.blogBadge}</span>
-          <h2 className="section-title">
-            {pageData.sections.blogTitle}
-            <span className="gradient-text">{pageData.sections.blogTitleHighlight}</span>
-          </h2>
-        </div>
+            {/* Steps */}
+            <section className="steps-section">
+              <div className="section-inner">
+                <p className="section-label" data-section-title>From setup to mastery</p>
+                <h2 className="section-title" data-section-title>Up and running in minutes.</h2>
+                <div className="steps-grid">
+                  <div>
+                    <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
+                      No steep learning curve. No bloat. Designed to get out of your way and let you focus on what matters.
+                    </p>
+                  </div>
+                  <div className="steps-list">
+                    {steps.map((s) => (
+                      <div className="step-item" data-step-item key={s.n}>
+                        <div className="step-left">
+                          <div className="step-num">{s.n}</div>
+                          <div className="step-line" />
+                        </div>
+                        <div className="step-content">
+                          <h3 className="step-title">{s.title}</h3>
+                          <p className="step-desc">{s.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
-        <div className="blog-grid">
-          {blogPosts.map((post, idx) => (
-            <div key={idx} className="blog-card" data-aos="fade-up" data-aos-delay={idx * 150}>
-              <h4>{post.title}</h4>
-              <span className="blog-date">{post.date}</span>
-              <p>{post.excerpt}</p>
-              <Link to={`/blog/${post.slug}`} className="blog-link">Read more →</Link>
-            </div>
-          ))}
-        </div>
-      </section>
+                <div className="glow-card" data-glow-card>
+                  <h3 className="glow-card-title">Join 50,000+ students already thriving</h3>
+                  <p className="glow-card-sub">The average student reports 40% better time management and significantly less exam stress within the first month.</p>
+                  <div className="mini-stats">
+                    {stats.map((s) => (
+                      <div className="mini-stat" key={s.label}>
+                        <div className="mini-stat-val">{s.value}</div>
+                        <div className="mini-stat-lbl">{s.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <Link to="/register" className="glow-card-btn">Create Free Account →</Link>
+                </div>
+              </div>
+            </section>
 
-      {/* -------------------- Final CTA -------------------- */}
-      <section className="cta-section">
-        <div className="cta-container" data-aos="zoom-in">
-          <h2 className="cta-title">Join the free education revolution</h2>
-          <p className="cta-description">Start using CampusIQ today – no strings attached.</p>
-          <div className="cta-buttons">
-            <Link to="/register" className="cta-primary large">Create Free Account</Link>
-            <Link to="/contact" className="cta-secondary large">Contact Us</Link>
-          </div>
-          <div className="cta-features">
-            <span>✓ No credit card</span>
-            <span>✓ All features included</span>
-            <span>✓ Cancel anytime (but you won't)</span>
-          </div>
-        </div>
-      </section>
+            {/* More to read */}
+            <section className="extra-content-section">
+              <div className="section-inner">
+                <p className="section-label" data-section-title>Student voices</p>
+                <h2 className="section-title" data-section-title>Real outcomes from real campus life.</h2>
+                <div className="read-grid">
+                  {testimonials.map((t) => (
+                    <article className="read-card" key={t.name}>
+                      <p className="read-quote">“{t.quote}”</p>
+                      <div className="read-name">{t.name}</div>
+                      <div className="read-role">{t.role}</div>
+                    </article>
+                  ))}
+                </div>
 
-      {/* -------------------- Footer -------------------- */}
-      <footer className="footer">
-        <div className="footer-container">
-          <div className="footer-brand">
-            <Link to="/" className="footer-logo">
-              <span className="logo-icon">🎓</span>
-              <span className="logo-text">Campus<span className="logo-highlight">IQ</span></span>
-            </Link>
-            <p>Free academic tools for everyone.</p>
-            <div className="social-links">
-              <a href="#" aria-label="Twitter">𝕏</a>
-              <a href="#" aria-label="LinkedIn">in</a>
-              <a href="#" aria-label="GitHub">GH</a>
+                <p className="section-label" data-section-title>FAQs</p>
+                <h2 className="section-title" data-section-title>Quick answers before you dive in.</h2>
+                <div className="faq-list">
+                  {faqs.map((item) => (
+                    <article className="faq-item" key={item.q}>
+                      <h3 className="faq-q">{item.q}</h3>
+                      <p className="faq-a">{item.a}</p>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* CTA */}
+            <section className="cta-section">
+              <div className="cta-block" data-cta-block>
+                <p className="cta-badge">✦ &nbsp; Free to start. Always.</p>
+                <h2 className="cta-title">The semester of your life starts right now.</h2>
+                <p className="cta-sub">Join thousands of students who've upgraded their academic experience.</p>
+                <div className="cta-btns">
+                  <Link to="/register" className="btn-hero-primary">Create Free Account →</Link>
+                  <Link to="/login" className="btn-hero-ghost">I already have access</Link>
+                </div>
+              </div>
+            </section>
+          </main>
+
+          <footer>
+            <div className="footer-inner">
+              <p className="footer-copy">© {new Date().getFullYear()} Smart Campus Companion. All rights reserved.</p>
             </div>
-          </div>
-          {["Product", "Company", "Resources", "Legal"].map((col, i) => (
-            <div key={i} className="footer-column">
-              <h4>{col}</h4>
-              <ul>
-                {["Features","How it works","Pricing","FAQ"].map(link => (
-                  <li key={link}><a href="#">{link}</a></li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          </footer>
         </div>
-        <div className="footer-bottom">
-          <p>© {new Date().getFullYear()} CampusIQ. Free for everyone.</p>
-          <div>
-            <a href="#">Privacy</a>
-            <a href="#">Terms</a>
-            <a href="#">Cookies</a>
-          </div>
-        </div>
-      </footer>
-    </div>
+      </div>
+    </>
   );
-};
-
-export default Home;
+}

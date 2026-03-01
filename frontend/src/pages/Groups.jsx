@@ -177,7 +177,7 @@ const Groups = () => {
           {groups.map((group, index) => (
             <div 
               key={group._id} 
-              className="group-card slide-in"
+              className="group-card card-shine hover-glow slide-in"
               style={{ animationDelay: `${index * 50}ms` }}
             >
               <div className="group-header">
@@ -250,7 +250,7 @@ const Groups = () => {
 
       {showCreateModal && (
         <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
-          <div className="modal-content scale-in" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content uiverse-glass scale-in" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Create New Study Group</h2>
               <button 
