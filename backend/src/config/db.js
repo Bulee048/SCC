@@ -1,19 +1,17 @@
 import mongoose from "mongoose";
 
 const connectDB = async () => {
-  const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
-
-  if (!mongoUri) {
-    throw new Error("MongoDB URI is missing. Set MONGO_URI or MONGODB_URI in your environment.");
-  }
-
   try {
-    const conn = await mongoose.connect(mongoUri);
-    console.log(`MongoDB Connected...`);
-    return conn;
+    await mongoose.connect(process.env.MONGODB_URI || process.env.DB_URL || "mongodb://localhost:27017/scc");
+    console.log("MongoDB connected successfully");
   } catch (error) {
-    throw new Error(`MongoDB connection failed: ${error.message}`);
+    console.error("MongoDB connection error:", error.message);
+    process.exit(1);
   }
+};
+
+export const isDBConnected = () => {
+  return mongoose.connection.readyState === 1;
 };
 
 export default connectDB;
