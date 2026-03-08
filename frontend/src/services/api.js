@@ -60,13 +60,13 @@ api.interceptors.response.use(
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
         localStorage.removeItem("user");
-        
+
         // Only redirect if not already on auth page
-        if (!window.location.pathname.includes('/login') && 
-            !window.location.pathname.includes('/register')) {
+        if (!window.location.pathname.includes('/login') &&
+          !window.location.pathname.includes('/register')) {
           window.location.href = "/login";
         }
-        
+
         return Promise.reject(refreshError);
       }
     }

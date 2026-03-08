@@ -5,6 +5,7 @@ import chatReducer from "../features/chat/chatSlice";
 import notesReducer from "../features/notes/notesSlice";
 import kuppiReducer from "../features/kuppi/kuppiSlice";
 import notificationsReducer from "../features/notifications/notificationsSlice";
+import meetupReducer from "../features/meetups/meetupSlice";
 
 export const store = configureStore({
   reducer: {
@@ -13,12 +14,13 @@ export const store = configureStore({
     chat: chatReducer,
     notes: notesReducer,
     kuppi: kuppiReducer,
-    notifications: notificationsReducer
+    notifications: notificationsReducer,
+    meetups: meetupReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
-      serializableCheck: false
-    })
+      serializableCheck: false,
+    }),
 });
 
 export default store;
