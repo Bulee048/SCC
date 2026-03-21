@@ -10,6 +10,7 @@ import connectDB from "./config/db.js";
 import KuppiPost from "./models/KuppiPost.js";
 
 // Import routes
+
 import authRoutes from "./routes/authRoutes.js";
 import groupRoutes from "./routes/groupRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
@@ -17,6 +18,9 @@ import fileRoutes from "./routes/fileRoutes.js";
 import notesRoutes from "./routes/notesRoutes.js";
 import kuppiRoutes from "./routes/kuppiRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
+import examRoutes from "./routes/examRoutes.js";
+
+
 
 const app = express();
 const server = http.createServer(app);
@@ -45,6 +49,7 @@ app.get("/", (req, res) => {
 });
 
 // API Routes
+
 app.use("/api/auth", authRoutes);
 app.use("/api/groups", groupRoutes);
 app.use("/api", messageRoutes);
@@ -52,6 +57,7 @@ app.use("/api", fileRoutes);
 app.use("/api", notesRoutes);
 app.use("/api", kuppiRoutes);
 app.use("/api", notificationRoutes);
+app.use('/api/exams', examRoutes);
 
 // 404 handler
 app.use((req, res) => {

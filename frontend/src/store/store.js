@@ -6,6 +6,9 @@ import notesReducer from "../features/notes/notesSlice";
 import kuppiReducer from "../features/kuppi/kuppiSlice";
 import notificationsReducer from "../features/notifications/notificationsSlice";
 
+//Exam mode by mithun features 
+import examReducer from "../features/exam/examSlice";
+
 export const store = configureStore({
   reducer: {
     auth: authReducer,
@@ -13,7 +16,8 @@ export const store = configureStore({
     chat: chatReducer,
     notes: notesReducer,
     kuppi: kuppiReducer,
-    notifications: notificationsReducer
+    notifications: notificationsReducer,
+    exam: examReducer
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

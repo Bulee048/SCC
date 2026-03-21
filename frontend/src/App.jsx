@@ -6,6 +6,8 @@ import { ThemeProvider } from "./context/ThemeContext";
 import ThemeToggle from "./components/ThemeToggle";
 
 // Pages
+
+import ExamMode from './pages/ExamMode';
 import Home from "./pages/Home";
 import AuthPage from "./pages/AuthPage";
 import Dashboard from "./pages/Dashboard";
@@ -120,6 +122,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Notifications />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/exam-mode"
+                element={
+                  <ProtectedRoute>
+                    <ExamMode />
                   </ProtectedRoute>
                 }
               />
