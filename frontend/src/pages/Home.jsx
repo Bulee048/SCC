@@ -1290,7 +1290,6 @@ export default function Home() {
             <div className="nav-inner">
               {/* Brand */}
               <Link to="/" className="nav-brand">
-                <span className="nav-brand-logo">S</span>
                 <span className="nav-brand-name">Smart<span> Campus Companion</span></span>
               </Link>
 

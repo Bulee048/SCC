@@ -57,20 +57,22 @@ const AuthToggle = () => {
 
   const [justLoggedIn, setJustLoggedIn] = useState(false);
 
+  const { user } = useSelector((state) => state.auth);
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && user) {
+      const target = user.role === "admin" ? "/admin" : "/dashboard";
       if (justLoggedIn) {
         // Show success message briefly after fresh login/register
         const timer = setTimeout(() => {
-          navigate("/dashboard", { replace: true });
+          navigate(target, { replace: true });
         }, 1200);
         return () => clearTimeout(timer);
       } else {
-        // Already had a valid session — go straight to dashboard
-        navigate("/dashboard", { replace: true });
+        // Already had a valid session — go straight to correct dashboard
+        navigate(target, { replace: true });
       }
     }
-  }, [isAuthenticated, justLoggedIn, navigate]);
+  }, [isAuthenticated, justLoggedIn, navigate, user]);
 
   useEffect(() => {
     return () => {
@@ -472,7 +474,6 @@ const AuthToggle = () => {
                       <option value="2">2nd Year</option>
                       <option value="3">3rd Year</option>
                       <option value="4">4th Year</option>
-                      <option value="5">5th Year</option>
                     </select>
                   </div>
                 </div>
