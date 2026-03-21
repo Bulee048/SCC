@@ -1,8 +1,12 @@
 import axios from "axios";
+import mongoose from "mongoose";
 import Timetable from "../models/Timetable.js";
 import CalendarSync from "../models/CalendarSync.js";
 import { generateOptimizedSchedule, findScheduleConflicts } from "../utils/timetableScheduler.js";
 import { assertOpenAIConfigured, createChatCompletion, getChatCompletionText } from "../config/openai.js";
+import fs from "fs/promises";
+import Tesseract from "tesseract.js";
+import { PDFParse } from "pdf-parse";
 
 /**
  * Create Raw Timetable
@@ -17,7 +21,14 @@ import { assertOpenAIConfigured, createChatCompletion, getChatCompletionText } f
  */
 export const createRawTimetable = async (req, res) => {
   try {
-    const { universitySchedule } = req.body;
+    const {
+      universitySchedule,
+      difficultyLevels = {},
+      preferredStudyHours = { startHour: 6, endHour: 22 },
+      subjectPriorities = {},
+      personalCommitments = [],
+      balanceRules = {}
+    } = req.body || {};
 
     if (!Array.isArray(universitySchedule) || universitySchedule.length === 0) {
       return res.status(400).json({
@@ -26,17 +37,32 @@ export const createRawTimetable = async (req, res) => {
       });
     }
 
-    const timetable = await Timetable.create({
-      user: req.user._id,
-      universitySchedule,
-      optimizedSchedule: []
+    // Save base timetable and auto-generate optimized plan in one step (user-friendly one-click flow).
+    const optimizedSchedule = generateOptimizedSchedule(universitySchedule, {
+      difficultyLevels,
+      preferredStudyHours,
+      subjectPriorities,
+      personalCommitments,
+      balanceRules
     });
 
-    const conflicts = findScheduleConflicts(universitySchedule);
+    // Update the latest timetable instead of always creating a new document.
+    const timetable = await Timetable.findOneAndUpdate(
+      { user: req.user._id },
+      {
+        $set: {
+          universitySchedule,
+          optimizedSchedule
+        }
+      },
+      { sort: { createdAt: -1 }, new: true, upsert: true }
+    );
+
+    const conflicts = findScheduleConflicts(optimizedSchedule);
 
     return res.status(201).json({
       success: true,
-      message: "Timetable saved successfully",
+      message: "Timetable saved and optimized plan generated successfully",
       data: {
         timetable,
         conflicts,
@@ -91,6 +117,150 @@ export const getUserTimetable = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch timetable",
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Delete all timetable documents for the current user (full reset).
+ * DELETE /api/timetable
+ */
+export const deleteUserTimetables = async (req, res) => {
+  try {
+    let googleCleanup = {
+      removedFromGoogle: 0,
+      attempted: 0,
+      hadConnection: false
+    };
+    try {
+      googleCleanup = await clearSccSyncedGoogleEventsOnly(req.user._id);
+    } catch (gErr) {
+      console.error("[delete timetable] Google cleanup error:", gErr?.message || gErr);
+    }
+
+    const raw = req.user._id;
+    const idStr = raw?.toString?.() ?? String(raw);
+
+    // Match `user` whether Mongo stored ObjectId or string (legacy / cast quirks).
+    const or = [{ user: raw }, { user: idStr }];
+    if (mongoose.Types.ObjectId.isValid(idStr)) {
+      try {
+        const asOid = new mongoose.Types.ObjectId(idStr);
+        or.push({ user: asOid });
+      } catch {
+        /* ignore */
+      }
+    }
+
+    // Also match when BSON type differs but string form is the same (some drivers / imports).
+    or.push({
+      $expr: {
+        $eq: [{ $toString: { $ifNull: ["$user", ""] } }, idStr]
+      }
+    });
+
+    let result = await Timetable.deleteMany({ $or: or });
+
+    // Last resort: native collection (bypasses any Mongoose query transforms).
+    if (result.deletedCount === 0) {
+      result = await Timetable.collection.deleteMany({
+        $or: [
+          { user: raw },
+          { user: idStr },
+          ...(mongoose.Types.ObjectId.isValid(idStr)
+            ? [{ user: new mongoose.Types.ObjectId(idStr) }]
+            : []),
+          { $expr: { $eq: [{ $toString: { $ifNull: ["$user", ""] } }, idStr] } }
+        ]
+      });
+    }
+
+    const total = typeof result.deletedCount === "number" ? result.deletedCount : 0;
+
+    console.log("[delete timetable]", {
+      userId: idStr,
+      deletedCount: total
+    });
+
+    const gMsg =
+      googleCleanup.attempted > 0
+        ? ` Removed ${googleCleanup.removedFromGoogle}/${googleCleanup.attempted} synced Google Calendar event(s) created by SCC.`
+        : "";
+
+    return res.status(200).json({
+      success: true,
+      message:
+        (total > 0
+          ? "Timetable deleted successfully."
+          : "No timetable was saved for your account.") + gMsg,
+      data: {
+        deletedCount: total,
+        googleEventsRemoved: googleCleanup.removedFromGoogle,
+        googleEventsRemovalAttempted: googleCleanup.attempted
+      }
+    });
+  } catch (error) {
+    console.error("Delete timetable error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete timetable",
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Clear only the AI / rule-based optimized schedule; keep university timetable rows.
+ * POST /api/timetable/clear-optimized
+ */
+export const clearOptimizedScheduleOnly = async (req, res) => {
+  try {
+    let googleCleanup = {
+      removedFromGoogle: 0,
+      attempted: 0,
+      hadConnection: false
+    };
+    try {
+      googleCleanup = await clearSccSyncedGoogleEventsOnly(req.user._id);
+    } catch (gErr) {
+      console.error("[clear-optimized] Google cleanup error:", gErr?.message || gErr);
+    }
+
+    const timetable = await Timetable.findOneAndUpdate(
+      { user: req.user._id },
+      { $set: { optimizedSchedule: [] } },
+      { sort: { createdAt: -1 }, new: true }
+    );
+
+    if (!timetable) {
+      return res.status(404).json({
+        success: false,
+        message: "No timetable found for this user"
+      });
+    }
+
+    const gHint =
+      googleCleanup.attempted > 0
+        ? ` Also removed ${googleCleanup.removedFromGoogle}/${googleCleanup.attempted} SCC-synced event(s) from Google Calendar.`
+        : "";
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "AI / optimized plan removed. Your university timetable (the table you edit) is unchanged." +
+        gHint,
+      data: {
+        timetable,
+        googleEventsRemoved: googleCleanup.removedFromGoogle,
+        googleEventsRemovalAttempted: googleCleanup.attempted
+      }
+    });
+  } catch (error) {
+    console.error("Clear optimized schedule error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to clear optimized schedule",
       error: error.message
     });
   }
@@ -195,9 +365,11 @@ export const getOngoingEvent = async (req, res) => {
   }
 };
 
+// `calendar.events` allows create/update/delete for events we created (needed for sync + cleanup).
 const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
+const GOOGLE_CALENDAR_EVENTS_URL = "https://www.googleapis.com/calendar/v3/calendars/primary/events";
 
 /**
  * Get Google OAuth URL for Calendar (uses GOOGLE_CLIENT_ID from .env)
@@ -216,7 +388,19 @@ export const getGoogleAuthUrl = async (req, res) => {
       });
     }
 
-    const redirectUri = `${apiUrl}/api/timetable/google-callback`;
+    // Google requires the `redirect_uri` to match EXACTLY one of the
+    // Authorized redirect URIs configured in Google Cloud Console.
+    //
+    // Use a dedicated env override so we can match whatever URI you registered
+    // (localhost vs 127.0.0.1, http vs https, custom port, etc).
+    const redirectUri =
+      process.env.GOOGLE_REDIRECT_URI?.replace(/\/$/, "") ||
+      `${apiUrl}/api/timetable/google-callback`;
+
+    // Helpful for debugging OAuth flow mismatch.
+    console.log("[Google OAuth Callback] redirectUri =", redirectUri);
+
+    console.log("[Google OAuth] redirectUri =", redirectUri);
     const state = String(req.user._id);
     const url = `${GOOGLE_AUTH_URL}?${new URLSearchParams({
       client_id: clientId,
@@ -243,6 +427,103 @@ export const getGoogleAuthUrl = async (req, res) => {
 };
 
 /**
+ * Google connection status for current user
+ * GET /api/timetable/google-status
+ */
+export const getGoogleStatus = async (req, res) => {
+  try {
+    const sync = await CalendarSync.findOne({ user: req.user._id })
+      .select("+googleRefreshToken lastSyncedAt")
+      .lean();
+
+    console.log("[Google status]", {
+      user: String(req.user._id),
+      found: Boolean(sync),
+      hasRefreshToken: Boolean(sync?.googleRefreshToken),
+      lastSyncedAt: sync?.lastSyncedAt ? String(sync.lastSyncedAt) : null
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        connected: Boolean(sync?.googleRefreshToken),
+        lastSyncedAt: sync?.lastSyncedAt || null
+      }
+    });
+  } catch (error) {
+    console.error("Google status error:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch Google Calendar connection status",
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get upcoming Google Calendar events (read-only).
+ * Requires the user to have connected Google (refresh token stored).
+ * GET /api/timetable/google-events
+ */
+export const getGoogleEvents = async (req, res) => {
+  try {
+    const sync = await CalendarSync.findOne({ user: req.user._id })
+      .select("+googleRefreshToken")
+      .lean();
+
+    if (!sync?.googleRefreshToken) {
+      return res.status(400).json({
+        success: false,
+        message: "Google Calendar is not connected"
+      });
+    }
+
+    const accessToken = await getAccessTokenFromRefreshToken(sync.googleRefreshToken);
+    if (!accessToken) {
+      return res.status(401).json({
+        success: false,
+        message: "Unable to access Google Calendar. Reconnect your Google account."
+      });
+    }
+
+    const timeMin = new Date().toISOString();
+    const maxResults = Math.min(50, Number(req.query?.maxResults || 15));
+
+    const eventsRes = await axios.get(GOOGLE_CALENDAR_EVENTS_URL, {
+      params: {
+        timeMin,
+        maxResults,
+        singleEvents: true,
+        orderBy: "startTime"
+      },
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+
+    const items = Array.isArray(eventsRes.data?.items) ? eventsRes.data.items : [];
+    const events = items.map((e) => ({
+      id: e.id,
+      summary: e.summary || "(No title)",
+      start: e.start?.dateTime || e.start?.date || null,
+      end: e.end?.dateTime || e.end?.date || null,
+      location: e.location || "",
+      htmlLink: e.htmlLink || ""
+    }));
+
+    return res.status(200).json({
+      success: true,
+      data: { events }
+    });
+  } catch (error) {
+    console.error("Google events error:", error?.response?.data || error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch Google Calendar events",
+      error: error?.response?.data || error.message
+    });
+  }
+};
+
+/**
  * Google OAuth callback (no auth – called by Google with ?code= & state=userId)
  * GET /api/timetable/google-callback
  * Uses GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET from .env.
@@ -253,17 +534,23 @@ export const googleCallback = async (req, res) => {
     const clientUrl = (process.env.CLIENT_URL || "http://localhost:5173").replace(/\/$/, "");
     const apiUrl = (process.env.API_URL || `http://localhost:${process.env.PORT || 5000}`).replace(/\/$/, "");
 
+    console.log(
+      "[Google callback] received:",
+      JSON.stringify({ hasCode: Boolean(code), code: code ? String(code).slice(0, 6) + "..." : null, state })
+    );
+
     if (!code || !state) {
       return res.redirect(`${clientUrl}/timetable?google_error=missing_code_or_state`);
     }
-
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
     if (!clientId || !clientSecret) {
       return res.redirect(`${clientUrl}/timetable?google_error=server_not_configured`);
     }
 
-    const redirectUri = `${apiUrl}/api/timetable/google-callback`;
+    const redirectUri =
+      process.env.GOOGLE_REDIRECT_URI?.replace(/\/$/, "") ||
+      `${apiUrl}/api/timetable/google-callback`;
     const tokenRes = await axios.post(
       GOOGLE_TOKEN_URL,
       new URLSearchParams({
@@ -276,6 +563,15 @@ export const googleCallback = async (req, res) => {
       { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
     );
 
+    console.log(
+      "[Google callback] tokenRes status =",
+      tokenRes?.status,
+      "refresh_token present =",
+      Boolean(tokenRes?.data?.refresh_token),
+      "refresh_token length =",
+      tokenRes?.data?.refresh_token?.length
+    );
+
     const accessToken = tokenRes.data?.access_token;
     const refreshToken = tokenRes.data?.refresh_token;
 
@@ -283,14 +579,12 @@ export const googleCallback = async (req, res) => {
       return res.redirect(`${clientUrl}/timetable?google_error=no_token`);
     }
 
-    await CalendarSync.findOneAndUpdate(
-      { user: state },
-      {
-        googleRefreshToken: refreshToken || undefined,
-        lastSyncedAt: new Date()
-      },
-      { upsert: true, new: true }
-    );
+    // Google may not return refresh_token after the first consent.
+    // If it's missing, keep the existing stored value (if any).
+    const update = { lastSyncedAt: new Date() };
+    if (refreshToken) update.googleRefreshToken = refreshToken;
+
+    await CalendarSync.findOneAndUpdate({ user: state }, update, { upsert: true, new: true });
 
     return res.redirect(`${clientUrl}/timetable?google_connected=1`);
   } catch (error) {
@@ -319,6 +613,137 @@ async function getAccessTokenFromRefreshToken(refreshToken) {
     { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
   );
   return res.data?.access_token ?? null;
+}
+
+/**
+ * Delete Google Calendar events by ID (best-effort; 404 ignored).
+ */
+async function deleteGoogleCalendarEventsById(accessToken, eventIds) {
+  if (!accessToken || !Array.isArray(eventIds) || eventIds.length === 0) {
+    return { removed: 0, attempted: 0 };
+  }
+  const results = await Promise.allSettled(
+    eventIds.map((id) =>
+      axios.delete(`${GOOGLE_CALENDAR_EVENTS_URL}/${encodeURIComponent(id)}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        validateStatus: (s) => (s >= 200 && s < 300) || s === 404
+      })
+    )
+  );
+  const removed = results.filter((r) => {
+    if (r.status !== "fulfilled") return false;
+    const s = r.value?.status;
+    return (s >= 200 && s < 300) || s === 404;
+  }).length;
+  return { removed, attempted: eventIds.length };
+}
+
+/**
+ * Remove previously synced SCC events from Google and clear stored IDs.
+ */
+async function clearSccSyncedGoogleEventsOnly(userId) {
+  const sync = await CalendarSync.findOne({ user: userId })
+    .select("+googleRefreshToken syncedGoogleEventIds")
+    .lean();
+
+  const prevIds = Array.isArray(sync?.syncedGoogleEventIds)
+    ? sync.syncedGoogleEventIds.filter(Boolean)
+    : [];
+
+  if (prevIds.length === 0) {
+    return { removedFromGoogle: 0, attempted: 0, hadConnection: Boolean(sync?.googleRefreshToken) };
+  }
+
+  let accessToken = null;
+  if (sync?.googleRefreshToken) {
+    accessToken = await getAccessTokenFromRefreshToken(sync.googleRefreshToken);
+  }
+
+  let removedFromGoogle = 0;
+  if (accessToken) {
+    const { removed } = await deleteGoogleCalendarEventsById(accessToken, prevIds);
+    removedFromGoogle = removed;
+  }
+
+  await CalendarSync.findOneAndUpdate(
+    { user: userId },
+    { $set: { syncedGoogleEventIds: [] } },
+    { new: true }
+  );
+
+  return {
+    removedFromGoogle,
+    attempted: prevIds.length,
+    hadConnection: Boolean(accessToken)
+  };
+}
+
+/**
+ * Replace Google events for this user: delete IDs we stored, insert new events from optimized schedule, save new IDs.
+ */
+async function replaceSccSyncedGoogleEvents(userId, accessToken, optimizedSchedule) {
+  const sync = await CalendarSync.findOne({ user: userId })
+    .select("+googleRefreshToken syncedGoogleEventIds")
+    .lean();
+  const prevIds = Array.isArray(sync?.syncedGoogleEventIds)
+    ? sync.syncedGoogleEventIds.filter(Boolean)
+    : [];
+
+  if (accessToken && prevIds.length > 0) {
+    await deleteGoogleCalendarEventsById(accessToken, prevIds);
+  }
+
+  if (!accessToken || !Array.isArray(optimizedSchedule) || optimizedSchedule.length === 0) {
+    await CalendarSync.findOneAndUpdate(
+      { user: userId },
+      { $set: { syncedGoogleEventIds: [], lastSyncedAt: new Date() } },
+      { upsert: true, new: true }
+    );
+    return { created: 0, removedOld: prevIds.length, failureCount: 0 };
+  }
+
+  const requests = optimizedSchedule.map((event) => {
+    const start = new Date(event.start);
+    const end = new Date(event.end);
+    const googleEvent = {
+      summary: event.title,
+      location: event.location || undefined,
+      start: { dateTime: start.toISOString() },
+      end: { dateTime: end.toISOString() },
+      extendedProperties: {
+        private: { sccTimetableSync: "1" }
+      }
+    };
+    return axios.post(GOOGLE_CALENDAR_EVENTS_URL, googleEvent, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json"
+      }
+    });
+  });
+
+  const settled = await Promise.allSettled(requests);
+  const newIds = [];
+  for (const r of settled) {
+    if (r.status === "fulfilled" && r.value?.data?.id) newIds.push(r.value.data.id);
+  }
+
+  await CalendarSync.findOneAndUpdate(
+    { user: userId },
+    {
+      $set: {
+        syncedGoogleEventIds: newIds,
+        lastSyncedAt: new Date()
+      }
+    },
+    { upsert: true, new: true }
+  );
+
+  return {
+    created: newIds.length,
+    removedOld: prevIds.length,
+    failureCount: settled.filter((r) => r.status === "rejected").length
+  };
 }
 
 /**
@@ -363,29 +788,7 @@ export const syncGoogleCalendar = async (req, res) => {
     }
 
     const schedule = timetable.optimizedSchedule;
-    const calendarEndpoint = "https://www.googleapis.com/calendar/v3/calendars/primary/events";
-
-    const requests = schedule.map((event) => {
-      const start = new Date(event.start);
-      const end = new Date(event.end);
-      const googleEvent = {
-        summary: event.title,
-        description: event.type === "study"
-          ? "Study session generated by Smart Campus Companion"
-          : "Class from university timetable",
-        location: event.location || undefined,
-        start: { dateTime: start.toISOString() },
-        end: { dateTime: end.toISOString() }
-      };
-      return axios.post(calendarEndpoint, googleEvent, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json"
-        }
-      });
-    });
-
-    await Promise.allSettled(requests);
+    const syncStats = await replaceSccSyncedGoogleEvents(req.user._id, accessToken, schedule);
 
     const update = { lastSyncedAt: new Date() };
     if (refreshToken) update.googleRefreshToken = refreshToken;
@@ -403,7 +806,12 @@ export const syncGoogleCalendar = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Timetable synced to Google Calendar (best-effort)."
+      message: "Timetable synced to Google Calendar (best-effort).",
+      data: {
+        eventsCreated: syncStats.created,
+        previousEventsRemoved: syncStats.removedOld,
+        failureCount: syncStats.failureCount
+      }
     });
   } catch (error) {
     console.error("Google Calendar sync error:", error?.response?.data || error.message);
@@ -414,6 +822,63 @@ export const syncGoogleCalendar = async (req, res) => {
     });
   }
 };
+
+function normalizePersonalCommitmentsInput(input) {
+  let list = input;
+  if (typeof list === "string") {
+    try {
+      list = JSON.parse(list);
+    } catch {
+      list = [];
+    }
+  }
+  if (!Array.isArray(list)) return [];
+  return list
+    .map((c) => ({
+      title: typeof c?.title === "string" ? c.title.trim() : "",
+      dayOfWeek: c?.dayOfWeek,
+      startHour: Number(c?.startHour),
+      endHour: Number(c?.endHour)
+    }))
+    .filter(
+      (c) =>
+        c.title.length > 0 &&
+        Number.isFinite(c.startHour) &&
+        Number.isFinite(c.endHour) &&
+        c.endHour > c.startHour
+    );
+}
+
+function derivePlannerRulesFromMessage(message = "") {
+  const text = String(message || "").toLowerCase();
+  const out = {
+    restDays: [],
+    balanceRules: {}
+  };
+
+  if (/\bsunday\b/.test(text) && /\b(rest|off|break)\b/.test(text)) {
+    out.restDays.push("Sun");
+  }
+
+  // Examples: "2 hours", "2hr", "2 h"
+  const hoursMatch = text.match(/(\d+(?:\.\d+)?)\s*(hours?|hrs?|hr|h)\b/);
+  if (hoursMatch) {
+    const h = Number(hoursMatch[1]);
+    if (Number.isFinite(h) && h > 0) {
+      const mins = Math.round(h * 60);
+      out.balanceRules.sessionDurationMinutes = mins;
+      // Usually means one focused block/day unless user asks otherwise.
+      if (!("maxStudySessionsPerDay" in out.balanceRules)) {
+        out.balanceRules.maxStudySessionsPerDay = 1;
+      }
+      if (!("maxStudyMinutesPerDay" in out.balanceRules)) {
+        out.balanceRules.maxStudyMinutesPerDay = mins;
+      }
+    }
+  }
+
+  return out;
+}
 
 /**
  * AI Timetable Chat
@@ -433,7 +898,15 @@ export const syncGoogleCalendar = async (req, res) => {
  */
 export const aiTimetableChat = async (req, res) => {
   try {
-    const { message, googleAccessToken } = req.body || {};
+    const {
+      message,
+      googleAccessToken,
+      universitySchedule: providedUniversitySchedule,
+      personalCommitments: providedPersonalCommitmentsRaw
+    } = req.body || {};
+    const providedPersonalCommitments = normalizePersonalCommitmentsInput(
+      providedPersonalCommitmentsRaw
+    );
 
     if (!message || typeof message !== "string") {
       return res.status(400).json({
@@ -448,6 +921,218 @@ export const aiTimetableChat = async (req, res) => {
       return res.status(e.status || 500).json({
         success: false,
         message: e.message || "OpenAI is not configured"
+      });
+    }
+
+    // NEW FLOW:
+    // If the frontend already provided the user's semester timetable (structured events),
+    // we don't ask the AI to re-extract events. Instead, the AI only chooses:
+    // - difficultyLevels (easy/medium/hard) per subject key
+    // - preferredStudyHours window (startHour/endHour)
+    if (Array.isArray(providedUniversitySchedule) && providedUniversitySchedule.length > 0) {
+      const normalizedSchedule = providedUniversitySchedule
+        .filter((e) => e && e.title && e.start && e.end)
+        .map((e) => ({
+          title: e.title,
+          subjectCode: e.subjectCode || "",
+          type: e.type || "lecture",
+          start: new Date(e.start),
+          end: new Date(e.end),
+          location: e.location || ""
+        }));
+
+      if (normalizedSchedule.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "universitySchedule was provided but no valid events were found (need title, start, end)."
+        });
+      }
+
+      // Ask AI to infer studying preferences only.
+      const subjectKeys = Array.from(
+        new Set(
+          normalizedSchedule
+            .map((e) => e.subjectCode || e.title)
+            .filter((k) => typeof k === "string" && k.trim().length > 0)
+        )
+      );
+
+      const systemPrompt = `You are an assistant that helps students improve their study plan.
+You will receive:
+1) The student's request/prompt
+2) Their semester timetable events (JSON) for context
+
+Return ONLY valid JSON (no markdown, no explanation) with this shape:
+{
+  "difficultyLevels": {
+    "[subjectKey]": "easy | medium | hard"
+  },
+  "subjectPriorities": {
+    "[subjectKey]": "low | medium | high"
+  },
+  "preferredStudyHours": {
+    "startHour": number,   // 0-23
+    "endHour": number      // 0-23
+  },
+  "personalCommitments": [
+    {
+      "title": "string",
+      "dayOfWeek": "Mon | Tue | Wed | Thu | Fri | Sat | Sun",
+      "startHour": number, // 0-23.99
+      "endHour": number    // 0-23.99 and > startHour
+    }
+  ],
+  "balanceRules": {
+    "maxStudySessionsPerDay": number, // 1-6 (default 2)
+    "maxStudyMinutesPerDay": number   // 30-360 (default 180)
+  }
+}
+
+Rules:
+- Use the subject keys from the provided timetable (subjectCode if available, otherwise title).
+- preferredStudyHours must be numbers between 0 and 23.
+- Infer subjectPriorities from the student's wording (e.g. "focus on math" => math high).
+- If student mentions personal plans like gym/job/travel/club, return them in personalCommitments.
+- Keep personalCommitments empty [] when not provided.
+- If the student doesn't specify a preference, pick a reasonable window (default: 18-21).`;
+
+      const data = await createChatCompletion({
+        model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          {
+            role: "user",
+            content: `Student prompt:\n${message}\n\nSubject keys:\n${JSON.stringify(subjectKeys)}\n\nUser-provided fixed commitments (must be respected):\n${JSON.stringify(
+              providedPersonalCommitments
+            )}\n\nSemester timetable events:\n${JSON.stringify(
+              normalizedSchedule.map((e) => ({
+                title: e.title,
+                subjectCode: e.subjectCode,
+                type: e.type,
+                start: e.start.toISOString(),
+                end: e.end.toISOString(),
+                location: e.location
+              }))
+            )}`
+          }
+        ],
+        temperature: 0.2
+      });
+
+      const rawContent = getChatCompletionText(data);
+      if (!rawContent) {
+        return res.status(500).json({
+          success: false,
+          message: "AI did not return a usable response"
+        });
+      }
+
+      let parsed;
+      try {
+        parsed = JSON.parse(rawContent);
+      } catch (e) {
+        // Sometimes the model may wrap JSON in text; try best-effort extraction
+        try {
+          const first = rawContent.indexOf("{");
+          const last = rawContent.lastIndexOf("}");
+          if (first !== -1 && last !== -1 && last > first) {
+            parsed = JSON.parse(rawContent.slice(first, last + 1));
+          } else {
+            throw e;
+          }
+        } catch (e2) {
+          return res.status(500).json({
+            success: false,
+            message: "Failed to parse AI response as JSON",
+            error: e2.message
+          });
+        }
+      }
+
+      const derived = derivePlannerRulesFromMessage(message);
+      const difficultyLevels = parsed?.difficultyLevels || {};
+      const subjectPriorities = parsed?.subjectPriorities || {};
+      const preferredStudyHours = parsed?.preferredStudyHours || { startHour: 18, endHour: 21 };
+      const personalCommitments = Array.isArray(parsed?.personalCommitments)
+        ? parsed.personalCommitments
+        : [];
+      const mergedPersonalCommitments = [
+        ...providedPersonalCommitments,
+        ...personalCommitments
+      ];
+      const balanceRules =
+        parsed?.balanceRules && typeof parsed.balanceRules === "object"
+          ? parsed.balanceRules
+          : {};
+      const mergedBalanceRules = { ...balanceRules, ...derived.balanceRules };
+      const mergedRestDays = [
+        ...(Array.isArray(parsed?.restDays) ? parsed.restDays : []),
+        ...derived.restDays
+      ];
+
+      const optimizedSchedule = generateOptimizedSchedule(normalizedSchedule, {
+        difficultyLevels,
+        preferredStudyHours,
+        subjectPriorities,
+        personalCommitments: mergedPersonalCommitments,
+        balanceRules: mergedBalanceRules,
+        restDays: mergedRestDays
+      });
+      
+      // Update the latest timetable document for this user.
+      const timetable = await Timetable.findOneAndUpdate(
+        { user: req.user._id },
+        {
+          $set: {
+            universitySchedule: normalizedSchedule,
+            optimizedSchedule
+          }
+        },
+        { sort: { createdAt: -1 }, new: true, upsert: true }
+      );
+
+      const conflicts = findScheduleConflicts(optimizedSchedule);
+
+      let calendarSyncResult = null;
+      if (googleAccessToken) {
+        try {
+          const stats = await replaceSccSyncedGoogleEvents(
+            req.user._id,
+            googleAccessToken,
+            optimizedSchedule
+          );
+          calendarSyncResult = {
+            attempted: true,
+            successCount: stats.created,
+            failureCount: stats.failureCount,
+            removedPreviousFromGoogle: stats.removedOld
+          };
+        } catch (calendarError) {
+          console.error("AI chat calendar sync error:", calendarError?.response?.data || calendarError.message);
+          calendarSyncResult = {
+            attempted: true,
+            error: calendarError?.response?.data || calendarError.message
+          };
+        }
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: googleAccessToken
+          ? "AI-generated timetable created, optimized, and sent to Google Calendar (best-effort)."
+          : "AI-generated timetable created and optimized.",
+        data: {
+          timetable,
+          conflicts,
+          hasConflicts: conflicts.length > 0,
+          difficultyLevels,
+          subjectPriorities,
+          preferredStudyHours,
+          personalCommitments: mergedPersonalCommitments,
+          balanceRules: mergedBalanceRules,
+          restDays: mergedRestDays,
+          calendarSyncResult
+        }
       });
     }
 
@@ -470,14 +1155,30 @@ Return ONLY valid JSON (no markdown, no explanation) with this shape:
   "difficultyLevels": {
     "[subjectCode or title]": "easy | medium | hard"
   },
+  "subjectPriorities": {
+    "[subjectCode or title]": "low | medium | high"
+  },
   "preferredStudyHours": {
     "startHour": number,   // 0-23
     "endHour": number      // 0-23
+  },
+  "personalCommitments": [
+    {
+      "title": "string",
+      "dayOfWeek": "Mon | Tue | Wed | Thu | Fri | Sat | Sun",
+      "startHour": number, // 0-23.99
+      "endHour": number    // 0-23.99 and > startHour
+    }
+  ],
+  "balanceRules": {
+    "maxStudySessionsPerDay": number, // 1-6 (default 2)
+    "maxStudyMinutesPerDay": number   // 30-360 (default 180)
   }
 }`;
 
     const data = await createChatCompletion({
-      model: "gpt-4.1-mini",
+      // Allow switching models/providers via env (useful for OpenRouter).
+      model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: message }
@@ -538,26 +1239,53 @@ Return ONLY valid JSON (no markdown, no explanation) with this shape:
         location: e.location || ""
       }));
 
+    const derived = derivePlannerRulesFromMessage(message);
     const difficultyLevels = parsed.difficultyLevels || {};
+    const subjectPriorities = parsed.subjectPriorities || {};
     const preferredStudyHours = parsed.preferredStudyHours || {
       startHour: 18,
       endHour: 21
     };
+    const personalCommitments = Array.isArray(parsed.personalCommitments)
+      ? parsed.personalCommitments
+      : [];
+    const mergedPersonalCommitments = [
+      ...providedPersonalCommitments,
+      ...personalCommitments
+    ];
+    const balanceRules =
+      parsed.balanceRules && typeof parsed.balanceRules === "object"
+        ? parsed.balanceRules
+        : {};
+    const mergedBalanceRules = { ...balanceRules, ...derived.balanceRules };
+    const mergedRestDays = [
+      ...(Array.isArray(parsed.restDays) ? parsed.restDays : []),
+      ...derived.restDays
+    ];
 
-    // Create or overwrite latest timetable for this user
-    const timetable = await Timetable.create({
-      user: req.user._id,
-      universitySchedule: normalizedSchedule,
-      optimizedSchedule: []
-    });
+      const optimizedSchedule = generateOptimizedSchedule(
+        normalizedSchedule,
+        {
+          difficultyLevels,
+          preferredStudyHours,
+          subjectPriorities,
+          personalCommitments: mergedPersonalCommitments,
+          balanceRules: mergedBalanceRules,
+          restDays: mergedRestDays
+        }
+      );
 
-    const optimizedSchedule = generateOptimizedSchedule(
-      normalizedSchedule,
-      { difficultyLevels, preferredStudyHours }
-    );
-
-    timetable.optimizedSchedule = optimizedSchedule;
-    await timetable.save();
+      // Update the latest timetable document for this user.
+      const timetable = await Timetable.findOneAndUpdate(
+        { user: req.user._id },
+        {
+          $set: {
+            universitySchedule: normalizedSchedule,
+            optimizedSchedule
+          }
+        },
+        { sort: { createdAt: -1 }, new: true, upsert: true }
+      );
 
     const conflicts = findScheduleConflicts(optimizedSchedule);
 
@@ -565,45 +1293,16 @@ Return ONLY valid JSON (no markdown, no explanation) with this shape:
     let calendarSyncResult = null;
     if (googleAccessToken) {
       try {
-        const calendarEndpoint = "https://www.googleapis.com/calendar/v3/calendars/primary/events";
-        const requests = optimizedSchedule.map((event) => {
-          const start = new Date(event.start);
-          const end = new Date(event.end);
-
-          const googleEvent = {
-            summary: event.title,
-            description: event.type === "study"
-              ? "Study session generated by Smart Campus Companion"
-              : "Class from university timetable",
-            location: event.location || undefined,
-            start: {
-              dateTime: start.toISOString()
-            },
-            end: {
-              dateTime: end.toISOString()
-            }
-          };
-
-          return axios.post(calendarEndpoint, googleEvent, {
-            headers: {
-              Authorization: `Bearer ${googleAccessToken}`,
-              "Content-Type": "application/json"
-            }
-          });
-        });
-
-        const results = await Promise.allSettled(requests);
-
-        await CalendarSync.findOneAndUpdate(
-          { user: req.user._id },
-          { lastSyncedAt: new Date() },
-          { upsert: true, new: true }
+        const stats = await replaceSccSyncedGoogleEvents(
+          req.user._id,
+          googleAccessToken,
+          optimizedSchedule
         );
-
         calendarSyncResult = {
           attempted: true,
-          successCount: results.filter((r) => r.status === "fulfilled").length,
-          failureCount: results.filter((r) => r.status === "rejected").length
+          successCount: stats.created,
+          failureCount: stats.failureCount,
+          removedPreviousFromGoogle: stats.removedOld
         };
       } catch (calendarError) {
         console.error("AI chat calendar sync error:", calendarError?.response?.data || calendarError.message);
@@ -625,15 +1324,118 @@ Return ONLY valid JSON (no markdown, no explanation) with this shape:
         hasConflicts: conflicts.length > 0,
         difficultyLevels,
         preferredStudyHours,
+        subjectPriorities,
+        personalCommitments: mergedPersonalCommitments,
+        balanceRules: mergedBalanceRules,
+        restDays: mergedRestDays,
         calendarSyncResult
       }
     });
   } catch (error) {
     console.error("AI timetable chat error:", error?.response?.data || error.message);
+
+    // OpenAI-compatible providers return different error shapes.
+    // Examples:
+    // - OpenAI/Router: { error: { message, code, ... } }
+    // - xAI: { code: "...", error: "Incorrect API key ..." }
+    // - Groq: { error: { message, code, ... } } (varies)
+    const payload = error?.response?.data;
+    const openaiError = payload?.error ?? payload;
+    const openaiCode = openaiError?.code ?? payload?.code;
+    const openaiMessage =
+      openaiError?.message ??
+      (typeof openaiError === "string" ? openaiError : null) ??
+      payload?.message ??
+      payload?.error;
+
+    if (openaiCode === "insufficient_quota") {
+      return res.status(402).json({
+        success: false,
+        message:
+          "OpenAI quota exceeded. Please check your OpenAI plan/billing and try again.",
+        error: openaiError || error?.response?.data || error.message
+      });
+    }
+
+    const status = error?.response?.status || 500;
+    return res.status(status).json({
+      success: false,
+      message: openaiMessage || "Failed to process AI timetable request",
+      error: openaiError || payload || error.message
+    });
+  }
+};
+
+/**
+ * Import timetable from an uploaded image (weekly timetable screenshot).
+ * POST /api/timetable/import-timetable
+ *
+ * Body (multipart/form-data):
+ * - file: image/* or application/pdf
+ * - prompt: string (optional) your request, e.g. "make a suitable working timetable and add study time"
+ */
+export const importTimetableFromFile = async (req, res) => {
+  const uploaded = req.file;
+
+  if (!uploaded) {
+    return res.status(400).json({
+      success: false,
+      message: "No file uploaded"
+    });
+  }
+
+  try {
+    const userPrompt =
+      typeof req.body?.prompt === "string" && req.body.prompt.trim().length > 0
+        ? req.body.prompt.trim()
+        : "Make a suitable working timetable for me and add study time during my free hours.";
+
+    let ocrText = "";
+    if (uploaded.mimetype === "application/pdf") {
+      // For PDFs, we try to extract selectable text first (fast + no rasterization needed).
+      // If the PDF is scanned (no selectable text), extracted `text` can be empty.
+      const pdfBuffer = await fs.readFile(uploaded.path);
+      const parser = new PDFParse({ data: pdfBuffer });
+      try {
+        const result = await parser.getText({ first: 1, last: 3 });
+        ocrText = (result?.text || "").trim();
+      } finally {
+        await parser.destroy().catch(() => {});
+      }
+    } else {
+      // For images, run OCR using tesseract.js.
+      const { data } = await Tesseract.recognize(uploaded.path, "eng");
+      ocrText = (data?.text || "").trim();
+    }
+
+    if (!ocrText) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Could not extract text from the uploaded file. If your PDF is scanned (no selectable text), upload a clearer image/screenshot instead."
+      });
+    }
+
+    // Remove uploaded file to avoid clutter.
+    fs.unlink(uploaded.path).catch(() => {});
+
+    // Feed OCR text into the existing AI generator by setting `req.body.message`.
+    // The AI will parse universitySchedule + study preferences from the text.
+    req.body.message = `${userPrompt}
+
+This is a weekly timetable (it may list weekdays + times only, without specific dates).
+When you output start/end as ISO 8601 datetimes, map each weekday to the NEXT occurrence in the upcoming week (Mon-Sun) using my local timezone.
+
+Semester timetable text (OCR):
+${ocrText}`;
+
+    return aiTimetableChat(req, res);
+  } catch (error) {
+    console.error("Import OCR error:", error?.message || error);
     return res.status(500).json({
       success: false,
-      message: "Failed to process AI timetable request",
-      error: error?.response?.data || error.message
+      message: "Failed to import timetable from file",
+      error: error?.message || String(error)
     });
   }
 };

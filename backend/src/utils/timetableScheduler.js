@@ -60,11 +60,32 @@ export const findScheduleConflicts = (events = []) => {
 export const generateOptimizedSchedule = (universitySchedule = [], options = {}) => {
   const {
     difficultyLevels = {},
-    preferredStudyHours = { startHour: 18, endHour: 21 }
+    preferredStudyHours = { startHour: 18, endHour: 21 },
+    subjectPriorities = {},
+    personalCommitments = [],
+    balanceRules = {},
+    restDays = []
   } = options;
 
   // Clone base schedule so we don't mutate incoming data
   const optimized = [...universitySchedule];
+
+  // Use the actual timetable dates (not "today") so study/work blocks appear in the right week.
+  const candidateDates = (() => {
+    const map = new Map(); // key -> Date (midnight)
+    for (const evt of universitySchedule) {
+      if (!evt?.start) continue;
+      const d = new Date(evt.start);
+      if (Number.isNaN(d.getTime())) continue;
+      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      if (!map.has(key)) {
+        const midnight = new Date(d);
+        midnight.setHours(0, 0, 0, 0);
+        map.set(key, midnight);
+      }
+    }
+    return [...map.values()].sort((a, b) => a - b);
+  })();
 
   // Helper to get all events on a given calendar date
   const getEventsOnDate = (events, date) => {
@@ -75,6 +96,83 @@ export const generateOptimizedSchedule = (universitySchedule = [], options = {})
         d.getMonth() === date.getMonth() &&
         d.getDate() === date.getDate()
       );
+    });
+  };
+
+  const parseHour = (value, fallback) => {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.max(0, Math.min(23.99, n));
+  };
+
+  const dayKey = (date) =>
+    `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+
+  const normalizeWeekday = (day) => {
+    if (typeof day === "number" && Number.isInteger(day)) {
+      // Accept JS day (0-6, Sun-Sat)
+      if (day >= 0 && day <= 6) return day;
+      return null;
+    }
+    if (typeof day !== "string") return null;
+    const s = day.trim().toLowerCase();
+    const map = {
+      sun: 0,
+      sunday: 0,
+      mon: 1,
+      monday: 1,
+      tue: 2,
+      tues: 2,
+      tuesday: 2,
+      wed: 3,
+      wednesday: 3,
+      thu: 4,
+      thur: 4,
+      thurs: 4,
+      thursday: 4,
+      fri: 5,
+      friday: 5,
+      sat: 6,
+      saturday: 6
+    };
+    return Object.prototype.hasOwnProperty.call(map, s) ? map[s] : null;
+  };
+
+  const normalizedRestDays = new Set(
+    (Array.isArray(restDays) ? restDays : [])
+      .map((d) => normalizeWeekday(d))
+      .filter((d) => d !== null)
+  );
+
+  // Convert recurring personal commitments (e.g. gym) into concrete blocks on candidate dates.
+  const commitmentByWeekday = (Array.isArray(personalCommitments) ? personalCommitments : [])
+    .map((c) => ({
+      title: c?.title || "Personal commitment",
+      weekday: normalizeWeekday(c?.dayOfWeek),
+      startHour: parseHour(c?.startHour, null),
+      endHour: parseHour(c?.endHour, null)
+    }))
+    .filter((c) => c.weekday !== null && c.startHour !== null && c.endHour !== null && c.endHour > c.startHour);
+
+  const commitmentEventsForDate = (date) => {
+    const weekday = date.getDay(); // 0-6
+    const matches = commitmentByWeekday.filter((c) => c.weekday === weekday);
+    return matches.map((c) => {
+      const start = new Date(date);
+      const end = new Date(date);
+      const sh = Math.floor(c.startHour);
+      const sm = Math.round((c.startHour - sh) * 60);
+      const eh = Math.floor(c.endHour);
+      const em = Math.round((c.endHour - eh) * 60);
+      start.setHours(sh, sm, 0, 0);
+      end.setHours(eh, em, 0, 0);
+      return {
+        title: c.title,
+        type: "other",
+        start,
+        end,
+        location: "Personal"
+      };
     });
   };
 
@@ -90,10 +188,18 @@ export const generateOptimizedSchedule = (universitySchedule = [], options = {})
   }
 
   const today = new Date();
+  const dailyStudyStats = new Map(); // yyyy-m-d => { sessions, minutes }
+  const maxStudySessionsPerDay = Number.isFinite(Number(balanceRules?.maxStudySessionsPerDay))
+    ? Math.max(1, Number(balanceRules.maxStudySessionsPerDay))
+    : 2;
+  const maxStudyMinutesPerDay = Number.isFinite(Number(balanceRules?.maxStudyMinutesPerDay))
+    ? Math.max(30, Number(balanceRules.maxStudyMinutesPerDay))
+    : 180;
 
   // For each subject, add a number of study blocks per week based on difficulty
   for (const [code] of subjects.entries()) {
     const difficulty = difficultyLevels[code] || "medium";
+    const priority = String(subjectPriorities?.[code] || "medium").toLowerCase();
 
     let studySessionsPerWeek;
     let studyDurationMinutes;
@@ -114,78 +220,130 @@ export const generateOptimizedSchedule = (universitySchedule = [], options = {})
         break;
     }
 
+    // If caller requested a fixed session length (e.g. 2 hours), enforce it.
+    if (Number.isFinite(Number(balanceRules?.sessionDurationMinutes))) {
+      studyDurationMinutes = Math.max(30, Number(balanceRules.sessionDurationMinutes));
+    }
+
+    // Priority tuning on top of difficulty:
+    // high => more frequent/longer, low => lighter.
+    if (priority === "high") {
+      studySessionsPerWeek += 1;
+      studyDurationMinutes += 15;
+    } else if (priority === "low") {
+      studySessionsPerWeek = Math.max(1, studySessionsPerWeek - 1);
+      studyDurationMinutes = Math.max(30, studyDurationMinutes - 15);
+    }
+
     for (let i = 0; i < studySessionsPerWeek; i++) {
-      const baseDate = new Date(today);
-      baseDate.setDate(today.getDate() + i); // spread across upcoming days
+      // Try to place this session on any of the timetable dates that exist.
+      // This avoids "first dates are packed => no study blocks anywhere".
+      const dateCandidates =
+        candidateDates.length > 0
+          ? candidateDates
+          : (() => {
+              const fallback = [];
+              for (let k = 0; k < studySessionsPerWeek; k++) {
+                const d = new Date(today);
+                d.setDate(today.getDate() + k);
+                fallback.push(d);
+              }
+              return fallback;
+            })();
 
-      // Try to find a free slot within the preferred window on this day
-      const dayEvents = getEventsOnDate(optimized, baseDate).sort(
-        (a, b) => new Date(a.start) - new Date(b.start)
-      );
+      let placedEvent = null;
 
-      // Start with preferred window
-      let slotStart = new Date(baseDate);
-      slotStart.setHours(preferredStudyHours.startHour, 0, 0, 0);
+      for (let t = 0; t < dateCandidates.length; t++) {
+        const idx = (t + i) % dateCandidates.length;
+        const baseDate = new Date(dateCandidates[idx]);
+        if (normalizedRestDays.has(baseDate.getDay())) {
+          continue;
+        }
+        const statsKey = dayKey(baseDate);
+        const stats = dailyStudyStats.get(statsKey) || { sessions: 0, minutes: 0 };
+        if (
+          stats.sessions >= maxStudySessionsPerDay ||
+          stats.minutes + studyDurationMinutes > maxStudyMinutesPerDay
+        ) {
+          continue;
+        }
 
-      const windowEnd = new Date(baseDate);
-      windowEnd.setHours(preferredStudyHours.endHour, 0, 0, 0);
+        // Try to find a free slot within the preferred window on this day
+        const dayEvents = [
+          ...getEventsOnDate(optimized, baseDate),
+          ...commitmentEventsForDate(baseDate)
+        ].sort((a, b) => new Date(a.start) - new Date(b.start));
 
-      let placed = false;
+        // Start with preferred window
+        let slotStart = new Date(baseDate);
+        slotStart.setHours(preferredStudyHours.startHour, 0, 0, 0);
 
-      const fitsInWindow = (start) => {
-        const end = new Date(start);
-        end.setMinutes(end.getMinutes() + studyDurationMinutes);
-        return end <= windowEnd;
-      };
+        const windowEnd = new Date(baseDate);
+        windowEnd.setHours(preferredStudyHours.endHour, 0, 0, 0);
 
-      // Slide the study block after any overlapping classes until we find a gap
-      for (const evt of dayEvents) {
-        const evtStart = new Date(evt.start);
-        const evtEnd = new Date(evt.end);
+        const fitsInWindow = (start) => {
+          const end = new Date(start);
+          end.setMinutes(end.getMinutes() + studyDurationMinutes);
+          return end <= windowEnd;
+        };
 
-        // If our proposed slot ends before this event starts, we are good
-        const proposedEnd = new Date(slotStart);
-        proposedEnd.setMinutes(proposedEnd.getMinutes() + studyDurationMinutes);
+        let placed = false;
 
-        if (proposedEnd <= evtStart) {
-          if (fitsInWindow(slotStart)) {
-            placed = true;
+        // Slide the study block after any overlapping classes until we find a gap
+        for (const evt of dayEvents) {
+          const evtStart = new Date(evt.start);
+          const evtEnd = new Date(evt.end);
+
+          // If our proposed slot ends before this event starts, we are good
+          const proposedEnd = new Date(slotStart);
+          proposedEnd.setMinutes(
+            proposedEnd.getMinutes() + studyDurationMinutes
+          );
+
+          if (proposedEnd <= evtStart) {
+            if (fitsInWindow(slotStart)) {
+              placed = true;
+            }
+            break;
           }
-          break;
+
+          // If our slot overlaps this event, push it to after the class
+          if (slotStart < evtEnd && proposedEnd > evtStart) {
+            slotStart = new Date(evtEnd);
+          }
         }
 
-        // If our slot overlaps this event, push it to after the class
-        if (slotStart < evtEnd && proposedEnd > evtStart) {
-          slotStart = new Date(evtEnd);
+        // If we went through all events and still haven't placed, try at final slotStart
+        if (!placed && fitsInWindow(slotStart)) {
+          placed = true;
         }
+
+        if (!placed) continue;
+
+        const finalStart = new Date(slotStart);
+        const finalEnd = new Date(finalStart);
+        finalEnd.setMinutes(finalEnd.getMinutes() + studyDurationMinutes);
+
+        placedEvent = {
+          title: `${code} - Work Plan`,
+          subjectCode: code,
+          type: "study",
+          start: finalStart,
+          end: finalEnd,
+          location: "Work Plan",
+          metadata: {
+            difficulty,
+            generated: true
+          }
+        };
+        dailyStudyStats.set(statsKey, {
+          sessions: stats.sessions + 1,
+          minutes: stats.minutes + studyDurationMinutes
+        });
+        break;
       }
 
-      // If we went through all events and still haven't placed, try at final slotStart
-      if (!placed && fitsInWindow(slotStart)) {
-        placed = true;
-      }
-
-      if (!placed) {
-        // Could not fit this session into the preferred window without conflicts
-        continue;
-      }
-
-      const finalStart = new Date(slotStart);
-      const finalEnd = new Date(finalStart);
-      finalEnd.setMinutes(finalEnd.getMinutes() + studyDurationMinutes);
-
-      optimized.push({
-        title: `${code} - Study Session`,
-        subjectCode: code,
-        type: "study",
-        start: finalStart,
-        end: finalEnd,
-        location: "Self-study",
-        metadata: {
-          difficulty,
-          generated: true
-        }
-      });
+      if (placedEvent) optimized.push(placedEvent);
     }
   }
 
