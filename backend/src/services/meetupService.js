@@ -30,8 +30,9 @@ export const createMeetup = async ({ groupId, organizerId, body }) => {
         throw err;
     }
 
-    if (!group.isMember(organizerId)) {
-        const err = new Error("Only group members can create meetups");
+    // Allow both regular members and group admins/creator to create meetups
+    if (!group.isMember(organizerId) && !group.isAdmin(organizerId)) {
+        const err = new Error("Only group members or admins can create meetups");
         err.statusCode = 403;
         throw err;
     }
