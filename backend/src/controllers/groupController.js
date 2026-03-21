@@ -8,21 +8,29 @@ import { authenticate } from "../middlewares/auth.js";
  */
 export const searchUsers = async (req, res) => {
     try {
-        const { q } = req.query;
-
-        const query = {
-            _id: { $ne: req.user._id } // never include current user
-        };
-
-        if (q && q.trim().length > 0) {
-            const regex = new RegExp(q.trim(), "i");
-            query.$or = [{ name: regex }, { email: regex }];
+        const { q, groupId } = req.query;
+        if (!q || q.trim().length < 2) {
+            return res.status(400).json({ success: false, message: "Search query must be at least 2 characters" });
         }
 
-        const users = await User.find(query)
+        const regex = new RegExp(q.trim(), "i");
+        let excludedIds = [req.user._id];
+
+        // Also exclude existing members if groupId provided
+        if (groupId) {
+            const group = await Group.findById(groupId).select("members");
+            if (group) {
+                const memberIds = group.members.map((m) => m.user?.toString() || m.toString());
+                excludedIds = [...excludedIds, ...memberIds];
+            }
+        }
+
+        const users = await User.find({
+            _id: { $nin: excludedIds },
+            $or: [{ name: regex }, { email: regex }],
+        })
             .select("name email profilePicture")
-            .sort({ name: 1 })
-            .limit(50);
+            .limit(10);
 
         res.status(200).json({ success: true, data: users });
     } catch (error) {
