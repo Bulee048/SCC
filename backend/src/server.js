@@ -18,6 +18,9 @@ import notesRoutes from "./routes/notesRoutes.js";
 import kuppiRoutes from "./routes/kuppiRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import meetupRoutes from "./routes/meetupRoutes.js";
+import timetableRoutes from "./routes/timetableRoutes.js";
+import aiRoutes from "./routes/aiRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 import { startMeetupCancellationJob } from "./jobs/meetupJobs.js";
 
 const app = express();
@@ -91,6 +94,9 @@ app.use("/api", notesRoutes);
 app.use("/api", kuppiRoutes);
 app.use("/api", notificationRoutes);
 app.use("/api", meetupRoutes);
+app.use("/api", timetableRoutes);
+app.use("/api/ai", aiRoutes);
+app.use("/api/admin", adminRoutes);
 
 // 404 handler
 app.use((req, res) => {
