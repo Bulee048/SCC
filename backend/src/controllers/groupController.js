@@ -8,29 +8,21 @@ import { authenticate } from "../middlewares/auth.js";
  */
 export const searchUsers = async (req, res) => {
     try {
-        const { q, groupId } = req.query;
-        if (!q || q.trim().length < 2) {
-            return res.status(400).json({ success: false, message: "Search query must be at least 2 characters" });
+        const { q } = req.query;
+
+        const query = {
+            _id: { $ne: req.user._id } // never include current user
+        };
+
+        if (q && q.trim().length > 0) {
+            const regex = new RegExp(q.trim(), "i");
+            query.$or = [{ name: regex }, { email: regex }];
         }
 
-        const regex = new RegExp(q.trim(), "i");
-        let excludedIds = [req.user._id];
-
-        // Also exclude existing members if groupId provided
-        if (groupId) {
-            const group = await Group.findById(groupId).select("members");
-            if (group) {
-                const memberIds = group.members.map((m) => m.user?.toString() || m.toString());
-                excludedIds = [...excludedIds, ...memberIds];
-            }
-        }
-
-        const users = await User.find({
-            _id: { $nin: excludedIds },
-            $or: [{ name: regex }, { email: regex }],
-        })
+        const users = await User.find(query)
             .select("name email profilePicture")
-            .limit(10);
+            .sort({ name: 1 })
+            .limit(50);
 
         res.status(200).json({ success: true, data: users });
     } catch (error) {
@@ -280,7 +272,7 @@ export const inviteMember = async (req, res) => {
 
         // Create persisted notification for invited user
         const { createNotification } = await import("../services/notificationService.js");
-        await createNotification({
+        const notification = await createNotification({
             userId: invitedUserId,
             type: "general",
             title: `Invited to group: ${group.name}`,
@@ -292,15 +284,7 @@ export const inviteMember = async (req, res) => {
         // Real-time push to invited user's personal room
         const io = req.app.get("io");
         if (io) {
-            io.to(invitedUserId.toString()).emit("notification:new", {
-                type: "general",
-                title: `Invited to group: ${group.name}`,
-                message: `You have been added to "${group.name}"`,
-                relatedModel: "Group",
-                relatedId: group._id,
-                isRead: false,
-                createdAt: new Date(),
-            });
+            io.to(invitedUserId.toString()).emit("notification:new", notification);
             io.to(`group-${group._id}`).emit("group:member-added", { groupId: group._id, userId: invitedUserId });
         }
 
