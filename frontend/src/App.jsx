@@ -19,6 +19,7 @@ import Notifications from "./pages/Notifications";
 import CommunityPage from "./pages/CommunityPage";
 import ResourcesPage from "./pages/ResourcesPage";
 import TutorsPage from "./pages/TutorsPage";
+import Timetable from "./pages/Timetable";
 
 // Components
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -129,6 +130,14 @@ function App() {
               <Route path="/community" element={<CommunityPage />} />
               <Route path="/resources" element={<ResourcesPage />} />
               <Route path="/tutors" element={<TutorsPage />} />
+              <Route
+                path="/timetable"
+                element={
+                  <ProtectedRoute>
+                    <Timetable />
+                  </ProtectedRoute>
+                }
+              />
             </Routes>
           </div>
         </Router>

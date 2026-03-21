@@ -15,6 +15,11 @@ const calendarSyncSchema = new mongoose.Schema(
     },
     lastSyncedAt: {
       type: Date
+    },
+    /** Google Calendar event IDs created by SCC sync (so we can delete them later). */
+    syncedGoogleEventIds: {
+      type: [String],
+      default: []
     }
   },
   {

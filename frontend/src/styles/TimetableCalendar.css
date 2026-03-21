@@ -1,0 +1,291 @@
+.ttcal {
+  width: 100%;
+}
+
+.ttcal__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  flex-wrap: wrap;
+}
+
+.ttcal__title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.ttcal__subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  margin-top: 2px;
+}
+
+.ttcal__controls {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.ttcal__grid {
+  display: grid;
+  grid-template-columns: 84px 1fr;
+  grid-template-rows: auto 1fr;
+  gap: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  background: var(--color-bg-primary);
+}
+
+.ttcal__corner {
+  grid-column: 1 / 2;
+  grid-row: 1 / 2;
+  background: var(--color-bg-secondary);
+  border-right: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.ttcal__days {
+  grid-column: 2 / 3;
+  grid-row: 1 / 2;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.ttcal__dayHead {
+  padding: 10px 12px;
+  border-right: 1px solid var(--color-border);
+}
+.ttcal__dayHead:last-child {
+  border-right: none;
+}
+
+.ttcal__dayName {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.ttcal__dayDate {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  margin-top: 2px;
+}
+
+.ttcal__times {
+  grid-column: 1 / 2;
+  grid-row: 2 / 3;
+  background: var(--color-bg-secondary);
+  border-right: 1px solid var(--color-border);
+}
+
+.ttcal__time {
+  height: 56px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 10px 10px 0 8px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.ttcal__body {
+  grid-column: 2 / 3;
+  grid-row: 2 / 3;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  position: relative;
+}
+
+.ttcal__col {
+  position: relative;
+  min-height: calc(56px * 17); /* (maxHour-minHour)+1 => default 6..22 => 17 lines */
+  border-right: 1px solid var(--color-border);
+  background:
+    linear-gradient(180deg, rgba(99, 102, 241, 0.035), transparent 30%),
+    var(--color-bg-primary);
+}
+.ttcal__col:last-child {
+  border-right: none;
+}
+
+.ttcal__hourLine {
+  height: 56px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.ttcal__event {
+  position: absolute;
+  z-index: 5;
+  border-radius: var(--radius-lg);
+  padding: 8px 10px;
+  border: 1px solid rgba(2, 6, 23, 0.12);
+  box-shadow: 0 10px 18px rgba(2, 6, 23, 0.08);
+  overflow: hidden;
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.ttcal__event > * {
+  position: relative;
+  z-index: 1;
+}
+
+.ttcal__event::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    to bottom right,
+    transparent 40%,
+    rgba(16, 185, 129, 0.03) 45%,
+    rgba(16, 185, 129, 0.10) 50%,
+    rgba(16, 185, 129, 0.03) 55%,
+    transparent 60%
+  );
+  transform: rotate(45deg) translateY(100%);
+  transition: transform 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ttcal__event:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.25), 0 10px 20px rgba(0, 0, 0, 0.25);
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+.ttcal__event:hover::before {
+  transform: rotate(45deg) translateY(-100%);
+}
+
+.ttcal__eventTitle {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  color: rgba(255, 255, 255, 0.95);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+
+.ttcal__eventMeta {
+  font-size: var(--font-size-xs);
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.25;
+}
+
+.ttcal__modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 18px;
+}
+
+.ttcal__modal {
+  width: 100%;
+  max-width: 520px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55);
+  color: #ffffff;
+  overflow: hidden;
+}
+
+.ttcal__modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.22), rgba(79, 70, 229, 0.18));
+}
+
+.ttcal__modalTitle {
+  font-weight: 800;
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+}
+
+.ttcal__modalClose {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.ttcal__modalClose:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.ttcal__modalBody {
+  padding: 14px 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ttcal__modalLine {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Event color variants */
+.ttcal__event--lecture {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.95), rgba(45, 212, 191, 0.82));
+}
+.ttcal__event--tutorial {
+  background: linear-gradient(135deg, rgba(45, 212, 191, 0.95), rgba(16, 185, 129, 0.82));
+}
+.ttcal__event--lab {
+  background: linear-gradient(135deg, rgba(167, 139, 250, 0.95), rgba(45, 212, 191, 0.82));
+}
+.ttcal__event--study {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.95), rgba(167, 139, 250, 0.82));
+}
+
+/* Mobile: turn into stacked days */
+@media (max-width: 900px) {
+  .ttcal__grid {
+    grid-template-columns: 72px 1fr;
+  }
+  .ttcal__days,
+  .ttcal__body {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .ttcal__days,
+  .ttcal__body {
+    grid-template-columns: 1fr;
+  }
+  .ttcal__corner {
+    display: none;
+  }
+  .ttcal__grid {
+    grid-template-columns: 72px 1fr;
+  }
+}
+
