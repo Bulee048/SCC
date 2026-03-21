@@ -1,6 +1,11 @@
 import axios from "axios";
 
-const OPENAI_BASE_URL = "https://api.openai.com/v1";
+// Supports OpenAI-compatible providers (e.g. OpenRouter) via env override.
+// IMPORTANT: don't read env into a constant at module-load time,
+// because ESM imports can run before `dotenv.config()` executes.
+const getOpenAIBaseUrl = () => {
+  return process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
+};
 
 export const OPENAI_CHAT_MODELS = [
   { id: "gpt-4.1-mini", label: "GPT-4.1 Mini (fast/cheap)" },
@@ -35,7 +40,7 @@ export const createChatCompletion = async ({
   const apiKey = assertOpenAIConfigured();
 
   const response = await axios.post(
-    `${OPENAI_BASE_URL}/chat/completions`,
+    `${getOpenAIBaseUrl()}/chat/completions`,
     {
       model,
       messages,

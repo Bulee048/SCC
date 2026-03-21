@@ -3,11 +3,15 @@ import { authenticate } from "../middlewares/auth.js";
 import {
   createRawTimetable,
   getUserTimetable,
+  deleteUserTimetables,
+  clearOptimizedScheduleOnly,
   generateOptimizedTimetable,
   getOngoingEvent,
   syncGoogleCalendar,
   aiTimetableChat,
   getGoogleAuthUrl,
+  getGoogleStatus,
+  getGoogleEvents,
   googleCallback
 } from "../controllers/timetableController.js";
 import {
@@ -15,6 +19,8 @@ import {
   validateGenerateTimetable,
   validateGoogleSync
 } from "../middlewares/timetableValidation.js";
+import upload from "../middlewares/upload.js";
+import { importTimetableFromFile } from "../controllers/timetableController.js";
 
 const router = express.Router();
 
@@ -24,27 +30,27 @@ router.get("/timetable/google-callback", googleCallback);
 // All other timetable routes require authentication
 router.use(authenticate);
 
-// Google OAuth URL (uses GOOGLE_CLIENT_ID from .env)
+// ── Static paths first (before /timetable/:userId catches "ongoing", "me", etc.) ──
 router.get("/timetable/google-auth-url", getGoogleAuthUrl);
-
-// 1️⃣ Create Raw Timetable
-router.post("/timetable", validateCreateTimetable, createRawTimetable);
-
-// 2️⃣ Get User Timetable
-router.get("/timetable/:userId", getUserTimetable);
-
-// 3️⃣ Generate Optimized Timetable (rule-based for now)
-router.post("/timetable/generate", validateGenerateTimetable, generateOptimizedTimetable);
-
-// 4️⃣ Dashboard Ongoing Event
+router.get("/timetable/google-status", getGoogleStatus);
+router.get("/timetable/google-events", getGoogleEvents);
 router.get("/timetable/ongoing", getOngoingEvent);
 
-// 5️⃣ Google Calendar Sync
+router.post("/timetable", validateCreateTimetable, createRawTimetable);
+router.post("/timetable/generate", validateGenerateTimetable, generateOptimizedTimetable);
 router.post("/timetable/sync-google", validateGoogleSync, syncGoogleCalendar);
-
-// 6️⃣ AI Timetable Chat
 router.post("/timetable/ai-chat", aiTimetableChat);
+router.post("/timetable/import-timetable", upload.single("file"), importTimetableFromFile);
+
+// Delete all timetables for the logged-in user (explicit paths — reliable vs some proxies/clients)
+router.delete("/timetable/me", deleteUserTimetables);
+router.delete("/timetable", deleteUserTimetables);
+// POST fallback (some networks block DELETE)
+router.post("/timetable/clear-my-data", deleteUserTimetables);
+// Remove only AI / optimized study blocks; keep editable university timetable
+router.post("/timetable/clear-optimized", clearOptimizedScheduleOnly);
+
+// Latest timetable for a user (param route last)
+router.get("/timetable/:userId", getUserTimetable);
 
 export default router;
-
-
