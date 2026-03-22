@@ -10,10 +10,13 @@ const api = axios.create({
   }
 });
 
+let refreshInFlight = null;
+
 // Request interceptor to add token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("accessToken");
+    config.headers = config.headers || {};
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -37,10 +40,15 @@ api.interceptors.response.use(
       try {
         const refreshToken = localStorage.getItem("refreshToken");
         if (refreshToken) {
-          // Use direct axios call to avoid interceptor loop
-          const response = await axios.post(`${API_URL}/api/auth/refresh`, {
-            refreshToken
-          });
+          // Single-flight refresh: avoid parallel refresh races clearing tokens.
+          if (!refreshInFlight) {
+            refreshInFlight = axios
+              .post(`${API_URL}/api/auth/refresh`, { refreshToken })
+              .finally(() => {
+                refreshInFlight = null;
+              });
+          }
+          const response = await refreshInFlight;
 
           // Backend returns { success, message, data: { accessToken } }
           if (response.data.success && response.data.data?.accessToken) {
@@ -54,19 +62,11 @@ api.interceptors.response.use(
             throw new Error("Invalid refresh token response");
           }
         }
+        throw new Error("No refresh token found");
       } catch (refreshError) {
-        // Refresh token failed, logout user
+        // Refresh failed: don't aggressively clear storage here.
+        // Let callers decide whether to redirect/login; avoids random token loss races.
         console.error("Token refresh failed:", refreshError);
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
-        localStorage.removeItem("user");
-
-        // Only redirect if not already on auth page
-        if (!window.location.pathname.includes('/login') &&
-          !window.location.pathname.includes('/register')) {
-          window.location.href = "/login";
-        }
-
         return Promise.reject(refreshError);
       }
     }

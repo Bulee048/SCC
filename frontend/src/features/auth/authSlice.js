@@ -275,6 +275,13 @@ const authSlice = createSlice({
       .addCase(fetchUserProfile.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
+        // If token was invalid/expired and refresh also failed, reset auth
+        if (!localStorage.getItem("accessToken")) {
+          state.user = null;
+          state.accessToken = null;
+          state.refreshToken = null;
+          state.isAuthenticated = false;
+        }
       })
       
       // Update profile
