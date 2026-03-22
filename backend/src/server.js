@@ -76,10 +76,14 @@ app.get("/api/health", (req, res) => {
 app.use("/api", (req, res, next) => {
   if (req.path === "/health") return next();
   if (app.locals.dbConnected) return next();
-  return res.status(503).json({
+  const payload = {
     success: false,
     message: "Database not connected. Check /api/health for details.",
-  });
+  };
+  if ((process.env.NODE_ENV || "development") !== "production" && app.locals.dbError) {
+    payload.dbError = app.locals.dbError;
+  }
+  return res.status(503).json(payload);
 });
 
 // API Routes (require DB)
