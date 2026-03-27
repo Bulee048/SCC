@@ -5,14 +5,14 @@ import StudyPlanMindMap from '../components/Exam/StudyPlanMindMap';
 import '../styles/ExamMode.css';
 
 const ExamMode = () => {
-    // ✅ Redux store එකෙන් currentExam සහ currentPlan ලබා ගැනීම නිවැරදි තැනට ගෙන ආවා
+    // TAKE currentExam AND currentPlan from Redux store  point to correct position
     const { currentExam, currentPlan } = useSelector((state) => state.exam);
     const [showSetup, setShowSetup] = useState(false);
 
     const todayFormatted = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
     const todayStr = new Date().toISOString().split('T')[0];
 
-    // අද දවසට අදාළ වැඩ තිබේදැයි පරීක්ෂා කිරීම
+    // check today tasks
     const todaysWork = currentExam?.dailyPlan?.find(p => p.date === todayStr);
 
     return (
@@ -84,10 +84,10 @@ const ExamMode = () => {
 
                     <div className="dashboard-grid">
                         
-                        {/* ✅ අලුත් වෙනස: Tasks Section එක Mind Map එක මගින් ප්‍රතිස්ථාපනය වීම */}
+                        {/* Tasks Section Update by Mind Map */}
                         <div className="tasks-column" style={{ display: 'flex', flexDirection: 'column' }}>
                             
-                            {/* AI Plan එකක් ඇත්නම් Mind Map එක පෙන්වයි, නැත්නම් පරණ Task ලිස්ට් එක පෙන්වයි */}
+                            {/*If have AI plan show OR show regular  */}
                             {currentPlan ? (
                                 <div className="mindmap-dashboard-view" style={{ flexGrow: 1, minHeight: '500px' }}>
                                     <div className="section-header">

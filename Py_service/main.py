@@ -5,7 +5,7 @@ import fitz  # PyMuPDF for fast PDF text extraction
 import os
 from dotenv import load_dotenv
 
-# ✅ අලුතින් එක්කළ LangChain NVIDIA Endpoint එක
+# LangChain NVIDIA Endpoint 
 from langchain_nvidia_ai_endpoints import ChatNVIDIA
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_core.output_parsers import JsonOutputParser
@@ -16,7 +16,7 @@ load_dotenv()
 app = FastAPI(title="SCC Exam Plan AI Microservice")
 
 # --- AI MODEL SETUP (NVIDIA Nemotron 3 Super 120B) ---
-# ඔබ ඉල්ලූ පරිදි 'enable_thinking' සහ 'reasoning_budget' සමගින්
+# 'enable_thinking' AND 'reasoning_budget' 
 llm_planner = ChatNVIDIA(
     model="nvidia/nemotron-3-super-120b-a12b",
     api_key=os.getenv("NVIDIA_API_KEY"), 
@@ -40,21 +40,21 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
 
 @app.post("/api/generate-plan")
 async def generate_study_plan(
-    systemPrompt: str = Form(...), # Node.js එකෙන් එවන Rules/Prompt එක ලබා ගැනීම
+    systemPrompt: str = Form(...), # take sending data reules/prompts from  node.js 
     planCategory: str = Form(...),
     dailyHours: int = Form(...),
     modulesData: str = Form(...),
     outlines: Optional[List[UploadFile]] = File(None)
 ):
-    # 1. PDF වලින් text ගැනීම
+    # 1. get text from PDF files 
     pdf_contents = {}
     if outlines:
         for file in outlines:
             file_bytes = await file.read()
             pdf_contents[file.filename] = extract_text_from_pdf(file_bytes)
 
-    # 2. සාමාන්‍ය Text (Messages) ලෙස Prompt එක සකස් කිරීම
-    # මෙහිදී SystemMessage භාවිතා කරන නිසා LangChain මගින් {} variables ලෙස සලකන්නේ නැත.
+    # 2. create messages for LangChain with SystemMessage and HumanMessage
+    
     user_message = f"""
     [EXTRACTED PDF OUTLINES / SYLLABUS TEXT]
     {str(pdf_contents)[:5000]}
@@ -67,11 +67,11 @@ async def generate_study_plan(
         HumanMessage(content=user_message)
     ]
 
-    # 3. LangChain Pipeline එක ක්‍රියාත්මක කිරීම
+    # 3. LangChain Pipeline activation
     chain = llm_planner | JsonOutputParser()
 
     try:
-        # මෙහිදී කෙළින්ම අර හැදූ messages array එක ලබා දෙනවා
+        # give direct  messages array
         result = await chain.ainvoke(messages) 
         return {"success": True, "data": result}
     except Exception as e:
@@ -80,5 +80,5 @@ async def generate_study_plan(
 
 if __name__ == "__main__":
     import uvicorn
-    # සර්වර් එක 8000 පෝට් එකෙන් ක්‍රියාත්මක වේ
+    # Run the FastAPI app with Uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

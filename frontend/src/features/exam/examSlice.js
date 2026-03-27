@@ -2,13 +2,13 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../services/api'; // ✅ Use the existing interceptor (adjust path if needed)
 import { refreshAccessToken } from '../auth/authSlice';
 
-// Backend API එකට Request එක යැවීම
+// Send request to Backend API 
 export const createExamPlan = createAsyncThunk(
     'exam/createExamPlan',
     async (formData, thunkAPI) => {
         try {
-            // ✅ වෙනස: මෙතැන තිබුණු headers {...} කොටස සම්පූර්ණයෙන්ම ඉවත් කර ඇත.
-            // FormData යවද්දී Axios ඉබේම නිවැරදි Content-Type සහ Boundary සකස් කරගනී.
+           //Axios Automatically creationg Content-Type & boundary while sending formdata
+            
             const response = await api.post('/api/exams/setup', formData);
             return response.data;
         } catch (error) {
@@ -41,7 +41,7 @@ const examSlice = createSlice({
             })
             .addCase(createExamPlan.fulfilled, (state, action) => {
                 state.loading = false;
-                // ✅ වෙනස: කෙළින්ම action.payload.data එක currentPlan එකට දමන්න
+                // put action.payload.data into currentPlan 
                 state.currentPlan = action.payload.data; 
                 state.error = null;
             })

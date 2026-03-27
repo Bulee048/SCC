@@ -1,7 +1,7 @@
-import mongoose from 'mongoose'; // require වෙනුවට import පාවිච්චි කිරීම
+import mongoose from 'mongoose'; 
 
 const examSchema = new mongoose.Schema({
-    student_id: { type: String, required: true }, // Auth වලින් එන ID එක
+    student_id: { type: String, required: true }, //ID from Auth
     module_Id: { type: String, required: true },
     module_name: { type: String, required: true },
     examDate: { type: Date, required: true },

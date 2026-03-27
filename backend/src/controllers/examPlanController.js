@@ -8,7 +8,7 @@ export const generateExamPlan = async (req, res) => {
            const body = req.body || {};
         
 
-        // 1. JSON Data සකස් කරගැනීම
+        // 1. JSON Data 
         const modulesData = req.body.modulesData ? JSON.parse(req.body.modulesData) : [];
         const planCategory = req.body.planCategory || 'Official';
         const dailyHours = req.body.dailyHours || 4;
@@ -16,7 +16,7 @@ export const generateExamPlan = async (req, res) => {
         let subjectsString = modulesData.map(m => `${m.id} ${m.name}`).join(', ');
         let allTopics = modulesData.map(m => (m.topics ? m.topics.join(', ') : '')).join(' | ');
 
-        // 2. Pre-defined System Rules සහ Prompt එක මෙතනම හැදීම
+        // 2. Pre-defined System Rules & Prompt 
         const systemRulesPrompt = `
           Create a personalized study plan for an upcoming exam. 
           Plan Type: ${planCategory}
@@ -60,16 +60,16 @@ export const generateExamPlan = async (req, res) => {
           Use unique IDs for all nodes. Return strictly valid JSON.
         `;
 
-        // 3. Python API එකට යවන්න අලුත් FormData එකක් හදමු
+        // 3. NEw formdata for send to Python api
         const pythonFormData = new FormData();
         
-        // අපි හදාගත්තු Prompt එක සහ අනිත් දත්ත Python එකට අමුණනවා
-        pythonFormData.append('systemPrompt', systemRulesPrompt); // Rules ටික යවන්නේ මෙතැනින්
+        //Prompt and other data attached 
+        pythonFormData.append('systemPrompt', systemRulesPrompt); // Send pre defined Rules
         pythonFormData.append('planCategory', planCategory);
         pythonFormData.append('dailyHours', dailyHours);
         pythonFormData.append('modulesData', JSON.stringify(modulesData));
 
-        // 4. Multer හරහා ආපු PDF Files ටික Python එකට අමුණනවා
+        // 4. Attach PDF files into python came from via Multer
         if (req.files && req.files.length > 0) {
             req.files.forEach(file => {
                 pythonFormData.append('outlines', file.buffer, file.originalname);
@@ -78,14 +78,14 @@ export const generateExamPlan = async (req, res) => {
 
         console.log("Sending data and rules to Python Microservice...");
 
-        // 5. Python FastAPI සර්වර් එකට Axios හරහා Request එක යැවීම
+        // 5. Send Request to Python FastAPI server via Axios
         const pythonResponse = await axios.post('http://localhost:8000/api/generate-plan', pythonFormData, {
             headers: {
                 ...pythonFormData.getHeaders()
             }
         });
 
-        // 6. Python එකෙන් ආපු සාර්ථක පිළිතුර Frontend එකට යැවීම
+        // 6. send msg (came from python api) to frontend
         res.status(200).json({
             success: true,
             data: pythonResponse.data.data 
