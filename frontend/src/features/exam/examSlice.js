@@ -5,10 +5,11 @@ import { refreshAccessToken } from '../auth/authSlice';
 // Backend API එකට Request එක යැවීම
 export const createExamPlan = createAsyncThunk(
     'exam/createExamPlan',
-    async (examData, thunkAPI) => {
+    async (formData, thunkAPI) => {
         try {
-            // ✅ No need to manually attach token — the api interceptor handles it automatically
-            const response = await api.post('/api/exams/setup', examData);
+            // ✅ වෙනස: මෙතැන තිබුණු headers {...} කොටස සම්පූර්ණයෙන්ම ඉවත් කර ඇත.
+            // FormData යවද්දී Axios ඉබේම නිවැරදි Content-Type සහ Boundary සකස් කරගනී.
+            const response = await api.post('/api/exams/setup', formData);
             return response.data;
         } catch (error) {
             return thunkAPI.rejectWithValue(error.response?.data || "Something went wrong");
@@ -40,10 +41,9 @@ const examSlice = createSlice({
             })
             .addCase(createExamPlan.fulfilled, (state, action) => {
                 state.loading = false;
-                const examData = action.payload.examDetails || action.payload;
-                state.currentExam = examData;
-                state.upcomingExams.push(examData);
-                state.currentPlan = action.payload.planData || examData.dailyPlan;
+                // ✅ වෙනස: කෙළින්ම action.payload.data එක currentPlan එකට දමන්න
+                state.currentPlan = action.payload.data; 
+                state.error = null;
             })
             .addCase(createExamPlan.rejected, (state, action) => {
                 state.loading = false;

@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 import SetupExamForm from '../components/Exam/SetupExamForm';
+import StudyPlanMindMap from '../components/Exam/StudyPlanMindMap';
 import '../styles/ExamMode.css';
 
 const ExamMode = () => {
-    // Redux store >> currentExam
-    const { currentExam } = useSelector((state) => state.exam);
+    // ✅ Redux store එකෙන් currentExam සහ currentPlan ලබා ගැනීම නිවැරදි තැනට ගෙන ආවා
+    const { currentExam, currentPlan } = useSelector((state) => state.exam);
     const [showSetup, setShowSetup] = useState(false);
 
     const todayFormatted = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
     const todayStr = new Date().toISOString().split('T')[0];
 
-    // 
+    // අද දවසට අදාළ වැඩ තිබේදැයි පරීක්ෂා කිරීම
     const todaysWork = currentExam?.dailyPlan?.find(p => p.date === todayStr);
 
     return (
@@ -37,28 +38,21 @@ const ExamMode = () => {
 
                 <nav className="sidebar-nav">
                     <a href="#" className="nav-item active">
-                        <span className="material-symbols-outlined">dashboard</span> Student Dashboard
+                        <span className="material-symbols-outlined">Student Dashboard</span> 
                     </a>
                     <a href="#" className="nav-item" onClick={() => setShowSetup(true)}>
-                        <span className="material-symbols-outlined">edit_calendar</span> Setup Your Exams
+                        <span className="material-symbols-outlined">Setup Your Study Plans</span> 
                     </a>
                     <a href="#" className="nav-item">
-                        <span className="material-symbols-outlined">event_note</span> Planning & Preparation
+                        <span className="material-symbols-outlined">Study Pilot</span> 
                     </a>
                     <a href="#" className="nav-item">
-                        <span className="material-symbols-outlined">hub</span> Creator Hub
+                        <span className="material-symbols-outlined">Chat</span> 
                     </a>
-                    {/* The O.R.A.C.L.E link removed from here */}
                 </nav>
 
                 <div className="sidebar-footer">
-                    <div className="system-health">
-                        <p className="status-label">SYSTEM HEALTH</p>
-                        <div className="status-indicator">
-                            <span className="dot online"></span>
-                            <span>System Online</span> {/* Changed text since O.R.A.C.L.E is removed */}
-                        </div>
-                    </div>
+                    
                 </div>
             </aside>
 
@@ -89,35 +83,49 @@ const ExamMode = () => {
                     </section>
 
                     <div className="dashboard-grid">
-                        {/* Tasks Section */}
-                        <div className="tasks-column">
-                            <div className="section-header">
-                                <h2 className="section-title">WHAT SHOULD I DO TODAY</h2>
-                                <span className="date-tag">{todayFormatted}</span>
-                            </div>
+                        
+                        {/* ✅ අලුත් වෙනස: Tasks Section එක Mind Map එක මගින් ප්‍රතිස්ථාපනය වීම */}
+                        <div className="tasks-column" style={{ display: 'flex', flexDirection: 'column' }}>
+                            
+                            {/* AI Plan එකක් ඇත්නම් Mind Map එක පෙන්වයි, නැත්නම් පරණ Task ලිස්ට් එක පෙන්වයි */}
+                            {currentPlan ? (
+                                <div className="mindmap-dashboard-view" style={{ flexGrow: 1, minHeight: '500px' }}>
+                                    <div className="section-header">
+                                        <h2 className="section-title">YOUR AI STUDY PLAN MIND MAP</h2>
+                                    </div>
+                                    <StudyPlanMindMap aiPlanData={currentPlan} />
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="section-header">
+                                        <h2 className="section-title">WHAT SHOULD I DO TODAY</h2>
+                                        <span className="date-tag">{todayFormatted}</span>
+                                    </div>
 
-                            <div className="task-list">
-                                {!currentExam ? (
-                                    <div className="empty-tasks-msg">
-                                        <p style={{ color: '#94a3b8' }}>No active exams. Click "Setup Your Exams" to generate a plan.</p>
-                                    </div>
-                                ) : todaysWork && todaysWork.topics.length > 0 ? (
-                                    todaysWork.topics.map((topic, i) => (
-                                        <div key={i} className={`scc-task-card ${i === 0 ? 'priority' : ''}`}>
-                                            <input type="checkbox" className="task-check" />
-                                            <div className="task-details">
-                                                <h4>{topic}</h4>
-                                                <p>{currentExam.module_name} • Daily Session</p>
+                                    <div className="task-list">
+                                        {!currentExam ? (
+                                            <div className="empty-tasks-msg">
+                                                <p style={{ color: '#94a3b8' }}>No active exams. Click "Setup Your Study Plans" to generate a plan.</p>
                                             </div>
-                                            {i === 0 && <span className="priority-tag">PRIORITY</span>}
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="empty-tasks-msg">
-                                        <p style={{ color: '#94a3b8' }}>No specific tasks for today. Great job keeping up! 🎉</p>
+                                        ) : todaysWork && todaysWork.topics.length > 0 ? (
+                                            todaysWork.topics.map((topic, i) => (
+                                                <div key={i} className={`scc-task-card ${i === 0 ? 'priority' : ''}`}>
+                                                    <input type="checkbox" className="task-check" />
+                                                    <div className="task-details">
+                                                        <h4>{topic}</h4>
+                                                        <p>{currentExam.module_name} • Daily Session</p>
+                                                    </div>
+                                                    {i === 0 && <span className="priority-tag">PRIORITY</span>}
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="empty-tasks-msg">
+                                                <p style={{ color: '#94a3b8' }}>No specific tasks for today. Great job keeping up! 🎉</p>
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-                            </div>
+                                </>
+                            )}
                         </div>
 
                         {/* Right Column Stats */}
@@ -134,9 +142,6 @@ const ExamMode = () => {
                                     <div className="progress-bar" style={{ width: `${currentExam?.readinessScore || 0}%` }}></div>
                                 </div>
                             </div>
-                            
-                            {/* O.R.A.C.L.E. AI Chat card completely removed from here */}
-                            
                         </div>
                     </div>
                 </div>

@@ -1,94 +1,102 @@
-import OpenAI from "openai";
-import dotenv from "dotenv";
-
-dotenv.config();
-
-const openai = new OpenAI({
-  baseURL: 'https://api.deepseek.com',
-  apiKey: process.env.DEEPSEEK_API_KEY,
-});
+import axios from 'axios';
+import FormData from 'form-data';
 
 export const generateExamPlan = async (req, res) => {
-  try {
-    // 1. Frontend එකෙන් එන දත්ත බලාගැනීමට log එකක් දාමු (පරීක්ෂා කිරීමට පහසුයි)
-    console.log("Received data from Frontend:", req.body);
+    try {
+        console.log("Received request from Frontend to generate plan");
 
-    // 2. දත්ත ලබා ගැනීම (Frontend එකෙන් එන විදිහටම අල්ලගමු)
-    // සමහරවිට 'subjects' කියන එක string එකක් වෙන්නත් පුළුවන්, array එකක් වෙන්නත් පුළුවන්
-    const { 
-      subjects, 
-      examDate, 
-      availableHoursPerDay, 
-      userPreferences,
-      // Frontend එකේ "Coverage Topics" (EER කියලා ගහපු එක) එන්නේ වෙන නමකින් නම් ඒකත් ගමු
-      topics 
-    } = req.body;
+           const body = req.body || {};
+        
 
-    // 3. Subjects එක String එකක් විදිහට හදාගැනීම (join error එක නැති කිරීමට)
-    let subjectsString = "Selected Subjects"; // Default අගයක්
-    
-    if (Array.isArray(subjects)) {
-        subjectsString = subjects.join(', '); // Array එකක් නම් join කරනවා
-    } else if (typeof subjects === 'string') {
-        subjectsString = subjects; // String එකක් නම් ඒකම ගන්නවා
-    } else if (req.body.moduleName || req.body.moduleId) {
-        // Frontend එකේ "MODULE ID & NAME" එකෙන් එන දත්ත
-        subjectsString = `${req.body.moduleId || ''} ${req.body.moduleName || ''}`.trim();
-    }
+        // 1. JSON Data සකස් කරගැනීම
+        const modulesData = req.body.modulesData ? JSON.parse(req.body.modulesData) : [];
+        const planCategory = req.body.planCategory || 'Official';
+        const dailyHours = req.body.dailyHours || 4;
 
-    // 4. Prompt එක
-    const prompt = `
-      Create a personalized study plan for an upcoming exam on ${examDate || "a future date"}. 
-      The student is studying the following subjects/modules: ${subjectsString}.
-      Coverage Topics: ${topics || "General syllabus"}.
-      They have ${availableHoursPerDay || 4} hours available per day.
-      Preferences: ${userPreferences || "Focus on key concepts"}.
-      
-      Generate a mind map style study plan in JSON format. The output MUST be a strict JSON object with the following structure:
-      {
-        "id": "root",
-        "type": "main",
-        "data": { "label": "Exam Study Plan" },
-        "position": { "x": 0, "y": 0 },
-        "children": [
+        let subjectsString = modulesData.map(m => `${m.id} ${m.name}`).join(', ');
+        let allTopics = modulesData.map(m => (m.topics ? m.topics.join(', ') : '')).join(' | ');
+
+        // 2. Pre-defined System Rules සහ Prompt එක මෙතනම හැදීම
+        const systemRulesPrompt = `
+          Create a personalized study plan for an upcoming exam. 
+          Plan Type: ${planCategory}
+          Modules: ${subjectsString || 'Not specified'}
+          Coverage Topics: ${allTopics || 'General syllabus'}
+          Daily Hours: ${dailyHours}
+          
+          [PRE-DEFINED SYSTEM RULES]
+          1. OFFICIAL AND NON-OFFICIAL are MAIN 2 categories of study plan.
+             - Official [High priority]: Need fast-possible plan for limited time period.
+             - Non-official [After-official]: User added for pre-preparation early.
+             - Non-official Plans should automatically be removed/overwritten when Official Plans come for the same Module ID.
+          2. Module Outline Pdf: Use extracted text to get Information about the Module Core and boundaries.
+          3. Date And Time: Calculate how much days/time left accurately.
+          4. Difficulty Level student knows about Module:
+             - Easy: 80% student knows (Allocate less time)
+             - Medium: 50% student knows (Allocate average time)
+             - Noob: less than 50% student knows (Allocate maximum time and fundamentals)
+          5. Cover topics: Focus strictly on the provided topics for each exam type.
+          6. Daily commitment Hours: Use the average student commitment hours provided.
+          7. MULTI-MODULE BALANCE: Generate a study plan to cover EVERY module the user added (Balanced plan). Calculate processes for Official and Non-Official separately.
+          
+          Generate a mind map style study plan in JSON format. The output MUST be a strict JSON object with the following structure:
           {
-            "id": "subject1",
-            "type": "subject",
-            "data": { "label": "Subject 1" },
-            "position": { "x": 200, "y": -100 },
+            "id": "root",
+            "type": "main",
+            "data": { "label": "Exam Study Plan" },
+            "position": { "x": 0, "y": 0 },
             "children": [
-              { "id": "topic1", "type": "topic", "data": { "label": "Topic 1" }, "position": { "x": 400, "y": -150 } }
+              {
+                "id": "subject1",
+                "type": "subject",
+                "data": { "label": "Subject 1" },
+                "position": { "x": 200, "y": -100 },
+                "children": [
+                  { "id": "topic1", "type": "topic", "data": { "label": "Topic 1" }, "position": { "x": 400, "y": -150 } }
+                ]
+              }
             ]
           }
-        ]
-      }
-      Use unique IDs for all nodes. Return strictly valid JSON.
-    `;
+          Use unique IDs for all nodes. Return strictly valid JSON.
+        `;
 
-    // 5. DeepSeek API Call එක
-    const response = await openai.chat.completions.create({
-      model: "deepseek-chat",
-      messages: [
-        { role: "system", content: "You are a helpful study planner assistant that generates structured data for mind maps. You must return ONLY a JSON object." },
-        { role: "user", content: prompt },
-      ],
-      response_format: { type: "json_object" }
-    });
+        // 3. Python API එකට යවන්න අලුත් FormData එකක් හදමු
+        const pythonFormData = new FormData();
+        
+        // අපි හදාගත්තු Prompt එක සහ අනිත් දත්ත Python එකට අමුණනවා
+        pythonFormData.append('systemPrompt', systemRulesPrompt); // Rules ටික යවන්නේ මෙතැනින්
+        pythonFormData.append('planCategory', planCategory);
+        pythonFormData.append('dailyHours', dailyHours);
+        pythonFormData.append('modulesData', JSON.stringify(modulesData));
 
-    // 6. JSON දත්ත සකසා යැවීම
-    const mindMapData = JSON.parse(response.choices[0].message.content);
+        // 4. Multer හරහා ආපු PDF Files ටික Python එකට අමුණනවා
+        if (req.files && req.files.length > 0) {
+            req.files.forEach(file => {
+                pythonFormData.append('outlines', file.buffer, file.originalname);
+            });
+        }
 
-    res.status(200).json({
-      success: true,
-      data: mindMapData,
-    });
+        console.log("Sending data and rules to Python Microservice...");
 
-  } catch (error) {
-    console.error("DeepSeek Error Details:", error);
-    res.status(500).json({
-      success: false,
-      message: "Study plan එක generate කිරීමට අපොහොසත් විය.",
-      error: error.message // Frontend එකට error එකේ නම යවනවා බලන්න ලේසි වෙන්න
-    });
-  }
+        // 5. Python FastAPI සර්වර් එකට Axios හරහා Request එක යැවීම
+        const pythonResponse = await axios.post('http://localhost:8000/api/generate-plan', pythonFormData, {
+            headers: {
+                ...pythonFormData.getHeaders()
+            }
+        });
+
+        // 6. Python එකෙන් ආපු සාර්ථක පිළිතුර Frontend එකට යැවීම
+        res.status(200).json({
+            success: true,
+            data: pythonResponse.data.data 
+        });
+
+    } catch (error) {
+        console.error("Error communicating with Python AI Service:", error.response?.data || error.message);
+        res.status(500).json({
+            success: false,
+            message: "Study plan generation failed in microservice",
+            error: error.message 
+        });
+    }
 };

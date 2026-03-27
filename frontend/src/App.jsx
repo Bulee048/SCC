@@ -6,8 +6,6 @@ import { ThemeProvider } from "./context/ThemeContext";
 import ThemeToggle from "./components/ThemeToggle";
 
 // Pages
-
-import ExamMode from './pages/ExamMode';
 import Home from "./pages/Home";
 import AuthPage from "./pages/AuthPage";
 import Dashboard from "./pages/Dashboard";
@@ -18,9 +16,14 @@ import Notes from "./pages/Notes";
 import NoteDetail from "./pages/NoteDetail";
 import Kuppi from "./pages/Kuppi";
 import Notifications from "./pages/Notifications";
+import ExamMode from './pages/ExamMode'; 
 
 // Components
 import ProtectedRoute from "./components/ProtectedRoute";
+
+// අලුතින් හැදූ Exam Mode Components Import කරගැනීම
+import ExamLogin from './components/Exam/ExamLogin';
+import ExamProtectedRoute from './components/ExamProtectedRoute';
 
 // Styles
 import "./App.css";
@@ -57,6 +60,7 @@ function App() {
             />
             <ThemeToggle />
             <Routes>
+              {/* --- සාමාන්‍ය (Public & Protected) Routes --- */}
               <Route path="/" element={<Home />} />
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/login" element={<AuthPage />} />
@@ -125,14 +129,19 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/exam-mode"
-                element={
-                  <ProtectedRoute>
-                    <ExamMode />
-                  </ProtectedRoute>
-                }
-              />
+
+              {/* --- Exam Mode ට අදාළ Routes --- */}
+              
+              {/* 1. Exam Mode Login පිටුව */}
+              <Route path="/exam-login" element={<ExamLogin />} />
+
+              {/* 2. Exam Mode Protected Routes (ExamProtectedRoute හරහා) */}
+              <Route element={<ExamProtectedRoute />}>
+                <Route path="/exam-mode" element={<ExamMode />} />
+                {/* අනාගතයේදී එකතු කරන Exam sub-routes මෙතනට දමන්න */}
+                {/* <Route path="/exam-mode/study-plan" element={<StudyPlanGenerator />} /> */}
+              </Route>
+
             </Routes>
           </div>
         </Router>
