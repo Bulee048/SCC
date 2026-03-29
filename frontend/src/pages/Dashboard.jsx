@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+// Dashboard.jsx
+import { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate, Link } from "react-router-dom";
 import { logout } from "../features/auth/authSlice";
@@ -8,15 +9,14 @@ import {
   LogOut, ArrowRight, Home as HomeIcon,
   Video, Target, TrendingUp, Plus,
   Sparkles, ChevronRight, BookOpen, Activity,
-  LayoutDashboard, Waves, Zap,
+  LayoutDashboard, Zap, Clock, Award,
 } from "lucide-react";
 import NotificationBell from "../components/NotificationBell";
-import "../styles/Dashboard.css";
-import "../styles/Notifications.css";
 import { confirmAction } from "../utils/toast";
+import "../styles/Dashboard.css";
 
 export default function Dashboard() {
-  const { user, isAuthenticated } = useSelector(s => s.auth);
+  const { user, isAuthenticated } = useSelector((s) => s.auth);
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const dispatch = useDispatch();
@@ -37,7 +37,6 @@ export default function Dashboard() {
       confirmText: "Log out",
     });
     if (!confirmed) return;
-
     dispatch(logout());
     navigate("/login");
   };
@@ -47,266 +46,263 @@ export default function Dashboard() {
     return h < 12 ? "Good Morning" : h < 18 ? "Good Afternoon" : "Good Evening";
   };
 
-  if (!user) return (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      height: '100vh', background: isDark ? '#0a0f1a' : '#f5f7fa',
-      color: isDark ? '#fff' : '#1e293b',
-      fontFamily: 'Inter, sans-serif',
-      fontSize: '1rem',
-    }}>
-      Loading...
-    </div>
-  );
+  if (!user) {
+    return (
+      <div className="dashboard-loading" data-theme={theme}>
+        Loading...
+      </div>
+    );
+  }
 
+  // Core modules – primary tools
   const primaryModules = [
     {
-      icon: <Brain size={20} />, title: "AI Timetable",
-      desc: "Generate practical weekly plans, reduce clashes, and keep your routine aligned with deadlines.",
-      chips: ["AI Powered", "Calendar Sync", "Adaptive"],
-      color: "#2a9d8f", gradient: "linear-gradient(135deg,#2a9d8f,#1f7a71)",
-      pillColor: "#2a9d8f", pillBg: "rgba(42,157,143,.15)", pillBorder: "rgba(42,157,143,.3)",
-      pill: "Core", path: "/timetable",
+      icon: <Brain size={24} />,
+      title: "AI Timetable",
+      desc: "Generate adaptive weekly plans, avoid clashes, and sync with deadlines.",
+      color: "#2a9d8f",
+      path: "/timetable",
+      badge: "AI Powered",
     },
     {
-      icon: <BookMarked size={20} />, title: "Notes & Kuppi",
-      desc: "Organize personal notes, discover shared content, and run focused peer sessions quickly.",
-      chips: ["OneDrive", "Kuppi", "Social"],
-      color: "#3b82f6", gradient: "linear-gradient(135deg,#3b82f6,#2563eb)",
-      pillColor: "#3b82f6", pillBg: "rgba(59,130,246,.15)", pillBorder: "rgba(59,130,246,.3)",
-      pill: "Available", path: "/notes",
+      icon: <BookMarked size={24} />,
+      title: "Notes & Kuppi",
+      desc: "Organise personal notes, share resources, and run peer sessions.",
+      color: "#3b82f6",
+      path: "/notes",
+      badge: "Collaborative",
     },
     {
-      icon: <Users size={20} />, title: "Study Groups",
-      desc: "Coordinate tasks in one place with faster communication and cleaner group collaboration.",
-      chips: ["Channels", "Polls", "Collaboration"],
-      color: "#2a9d8f", gradient: "linear-gradient(135deg,#2a9d8f,#256f66)",
-      pillColor: "#2a9d8f", pillBg: "rgba(42,157,143,.12)", pillBorder: "rgba(42,157,143,.25)",
-      pill: "Available", path: "/groups",
+      icon: <Users size={24} />,
+      title: "Study Groups",
+      desc: "Chat, share files, and coordinate tasks with your group members.",
+      color: "#8b5cf6",
+      path: "/groups",
+      badge: "Active",
     },
   ];
 
+  // Secondary tools – compact cards
   const secondaryModules = [
-    { icon: <Target size={17} />, title: "Exam Mode", desc: "Structured exam preparation plans", color: "#2a9d8f", gradient: "linear-gradient(135deg,#2a9d8f,#1f7a71)", pill: "New", path: "/exam-mode" },
-    { icon: <Calendar size={17} />, title: "Calendar", desc: "Events and study checkpoints", color: "#3b82f6", gradient: "linear-gradient(135deg,#3b82f6,#2563eb)", pill: null, path: "/calendar" },
-    { icon: <Share2 size={17} />, title: "File Share", desc: "Fast resource sharing with peers", color: "#2a9d8f", gradient: "linear-gradient(135deg,#3ea89a,#2a7d73)", pill: null, path: "/files" },
+    { icon: <Target size={18} />, title: "Exam Mode", desc: "Focused preparation plans", color: "#f97316", path: "/exam-mode" },
+    { icon: <Calendar size={18} />, title: "Calendar", desc: "Events and study deadlines", color: "#06b6d4", path: "/calendar" },
+    { icon: <Share2 size={18} />, title: "File Share", desc: "Fast resource sharing", color: "#10b981", path: "/files" },
   ];
 
+  // Stats – key metrics
   const stats = [
-    { icon: <BookOpen size={16} />, val: "24", lbl: "Notes Shared", trend: "+12% this week", ac: "#00f5c4" },
-    { icon: <Users size={16} />, val: "5", lbl: "Study Groups", trend: "2 active now", ac: "#00aaff" },
-    { icon: <Calendar size={16} />, val: "8", lbl: "Events Today", trend: "Next at 2 PM", ac: "#7fffd4" },
-    { icon: <Target size={16} />, val: "12", lbl: "Active Tasks", trend: "3 due soon", ac: "#00ccff" },
+    { icon: <BookOpen size={20} />, value: "24", label: "Notes Shared", trend: "+12% this week", color: "#10b981" },
+    { icon: <Users size={20} />, value: "5", label: "Study Groups", trend: "2 active now", color: "#3b82f6" },
+    { icon: <Calendar size={20} />, value: "8", label: "Events Today", trend: "Next at 2 PM", color: "#8b5cf6" },
+    { icon: <Target size={20} />, value: "12", label: "Active Tasks", trend: "3 due soon", color: "#f59e0b" },
   ];
 
+  // Quick actions
   const quickActions = [
-    { icon: <Plus size={13} />, label: "New Timetable", path: "/timetable", primary: true },
-    { icon: <BookMarked size={13} />, label: "Share Notes", path: "/notes" },
-    { icon: <Video size={13} />, label: "Create Kuppi", path: "/kuppi" },
-    { icon: <Users size={13} />, label: "New Group", path: "/groups" },
+    { icon: <Plus size={16} />, label: "New Timetable", path: "/timetable", primary: true },
+    { icon: <Video size={16} />, label: "Create Kuppi", path: "/kuppi" },
+    { icon: <Users size={16} />, label: "New Group", path: "/groups" },
+    { icon: <Share2 size={16} />, label: "Share Notes", path: "/notes" },
   ];
 
+  // Nav links (used in header)
   const navLinks = [
-    { icon: <HomeIcon size={14} />, label: "Home", path: "/" },
-    { icon: <LayoutDashboard size={14} />, label: "Dashboard", path: "/dashboard", active: true },
-    { icon: <Brain size={14} />, label: "Timetable", path: "/timetable" },
-    { icon: <BookMarked size={14} />, label: "Notes", path: "/notes" },
-    { icon: <Video size={14} />, label: "Kuppi", path: "/kuppi" },
-    { icon: <Users size={14} />, label: "Groups", path: "/groups" },
-  ];
-
-  const shortcuts = [
-    { label: "Open Timetable", path: "/timetable" },
-    { label: "Open Notes", path: "/notes" },
-    { label: "Create Kuppi", path: "/kuppi" },
+    { icon: <HomeIcon size={16} />, label: "Home", path: "/" },
+    { icon: <LayoutDashboard size={16} />, label: "Dashboard", path: "/dashboard", active: true },
+    { icon: <Brain size={16} />, label: "Timetable", path: "/timetable" },
+    { icon: <BookMarked size={16} />, label: "Notes", path: "/notes" },
+    { icon: <Video size={16} />, label: "Kuppi", path: "/kuppi" },
+    { icon: <Users size={16} />, label: "Groups", path: "/groups" },
   ];
 
   return (
-    <div className="db-root dashboard-page">
-      {/* Simple gradient background – no Three.js */}
-      <div className="db-bg-gradient" />
+    <div className="dashboard" data-theme={theme}>
+      {/* Header */}
+      <header className="dashboard-header">
+        <div className="dashboard-header__inner">
+          <Link to="/dashboard" className="dashboard-logo">
+            <span className="dashboard-logo__icon">🧠</span>
+            <span className="dashboard-logo__text">Smart Campus</span>
+          </Link>
 
-      <div className="db-layout">
+          <nav className="dashboard-nav">
+            {navLinks.map((link) => (
+              <Link
+                key={link.path}
+                to={link.path}
+                className={`dashboard-nav__link ${link.active ? "active" : ""}`}
+              >
+                {link.icon}
+                <span>{link.label}</span>
+              </Link>
+            ))}
+          </nav>
 
-        {/* ── Navbar ── */}
-        <nav className="db-nav">
-          <div className="db-nav__inner">
-            <Link to="/dashboard" className="db-brand">
-              <div>
-                <div className="db-brand__name">Smart Campus Companion</div>
-              </div>
-            </Link>
-
-            <div className="db-nav__links">
-              {navLinks.map((l, i) => (
-                <Link key={i} to={l.path} className={`db-nav__link${l.active ? " db-nav__link--active" : ""}`}>
-                  {l.icon}<span>{l.label}</span>
-                </Link>
-              ))}
-            </div>
-
-            <div className="db-nav__right">
-              <NotificationBell />
-              <button className="db-top-btn" onClick={() => navigate("/profile")}>My Profile</button>
-              <button className="db-top-btn db-top-btn--danger" onClick={handleLogout}>
-                <LogOut size={13} />
-                <span>Sign Out</span>
-              </button>
-            </div>
+          <div className="dashboard-actions">
+            <NotificationBell />
+            <button className="dashboard-profile-btn" onClick={() => navigate("/profile")}>
+              <span className="dashboard-avatar">
+                {user.name?.charAt(0) || "U"}
+              </span>
+              <span className="dashboard-profile-name">{user.name?.split(" ")[0]}</span>
+            </button>
+            <button className="dashboard-logout-btn" onClick={handleLogout}>
+              <LogOut size={16} />
+            </button>
           </div>
-        </nav>
+        </div>
+      </header>
 
-        {/* ── Main ── */}
-        <main className="db-main">
-
-          {/* Hero */}
-          <section className="db-hero db-hero--modern">
-            <div className="db-hero__left">
-              <div className="db-hero__sys">{getGreeting()}</div>
-              <h1 className="db-hero__name">{user.name}</h1>
-              <p className="db-hero__sub">
-                All your study tools are centralized here. Track your progress, access resources, and move quickly through your day.
+      {/* Main Content */}
+      <main className="dashboard-main">
+        <div className="dashboard-container">
+          {/* Hero Section */}
+          <section className="dashboard-hero">
+            <div>
+              <div className="dashboard-hero__greeting">{getGreeting()}</div>
+              <h1 className="dashboard-hero__name">{user.name}</h1>
+              <p className="dashboard-hero__desc">
+                Your study hub is ready. Track progress, access tools, and stay on top of your goals.
               </p>
-
-              <div className="db-shortcuts">
-                {shortcuts.map((item) => (
-                  <button key={item.path} className="db-shortcut-btn" onClick={() => navigate(item.path)}>
-                    {item.label}
-                  </button>
-                ))}
+              <div className="dashboard-hero__shortcuts">
+                <button onClick={() => navigate("/timetable")}>Open Timetable</button>
+                <button onClick={() => navigate("/notes")}>View Notes</button>
+                <button onClick={() => navigate("/groups")}>Study Groups</button>
               </div>
             </div>
-            <div className="db-clock">
-              <div className="db-clock__label">Current Time</div>
-              <div className="db-clock__time">
-                {now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })}
+            <div className="dashboard-time">
+              <div className="dashboard-time__label">
+                <Clock size={14} /> Current Time
               </div>
-              <div className="db-clock__date">
+              <div className="dashboard-time__value">
+                {now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+              </div>
+              <div className="dashboard-time__date">
                 {now.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
               </div>
             </div>
           </section>
 
-          {/* Stats */}
-          <section className="db-stats">
-            {stats.map((s, i) => (
-              <div key={i} className="db-stat hover-glow" style={{ "--ac": s.ac }}>
-                <div className="db-stat__icon">{s.icon}</div>
+          {/* Stats Grid */}
+          <div className="dashboard-stats">
+            {stats.map((stat, idx) => (
+              <div key={idx} className="stat-card" style={{ "--accent": stat.color }}>
+                <div className="stat-card__icon">{stat.icon}</div>
                 <div>
-                  <div className="db-stat__val">{s.val}</div>
-                  <div className="db-stat__lbl">{s.lbl}</div>
+                  <div className="stat-card__value">{stat.value}</div>
+                  <div className="stat-card__label">{stat.label}</div>
                 </div>
-                <div className="db-stat__trend"><TrendingUp size={9} />{s.trend}</div>
+                <div className="stat-card__trend">
+                  <TrendingUp size={12} />
+                  {stat.trend}
+                </div>
               </div>
             ))}
-          </section>
+          </div>
 
-          {/* Grid */}
-          <div className="db-grid">
-            <div className="db-grid-left">
-              {/* Primary */}
-              <div className="db-sec-head">
-                <span className="db-sec-title">Core Modules</span>
-                <span className="db-sec-count">{primaryModules.length} Active</span>
+          {/* Two‑column layout */}
+          <div className="dashboard-grid">
+            {/* Left column: Modules */}
+            <div className="dashboard-modules">
+              {/* Primary modules */}
+              <div className="section-header">
+                <h2>Core Tools</h2>
+                <span className="section-badge">{primaryModules.length} active</span>
               </div>
-              <div className="db-cards-p">
-                {primaryModules.map((m, i) => (
-                  <Link key={i} to={m.path} className="db-card-p card-shine hover-glow">
-                    <div className="db-card-p__head">
-                      <div className="db-card-p__icon" style={{ background: m.gradient }}>
-                        {m.icon}
+              <div className="primary-modules">
+                {primaryModules.map((mod, idx) => (
+                  <Link key={idx} to={mod.path} className="primary-card">
+                    <div className="primary-card__icon" style={{ backgroundColor: mod.color + "15", color: mod.color }}>
+                      {mod.icon}
+                    </div>
+                    <div className="primary-card__content">
+                      <div className="primary-card__title">
+                        {mod.title}
+                        {mod.badge && <span className="primary-card__badge">{mod.badge}</span>}
                       </div>
-                      <span className="db-card-p__pill" style={{
-                        color: m.pillColor,
-                        background: m.pillBg,
-                        borderColor: m.pillBorder,
-                      }}>{m.pill}</span>
-                    </div>
-                    <div className="db-card-p__title">{m.title}</div>
-                    <div className="db-card-p__desc">{m.desc}</div>
-                    <div className="db-card-p__chips">
-                      {m.chips.map((c, ci) => (
-                        <span key={ci} className="db-chip"><Zap size={8} /> {c}</span>
-                      ))}
-                    </div>
-                    <div className="db-card-p__foot">
-                      <span className="db-card-p__status">
-                        <span className="bio-dot" /> Ready
-                      </span>
-                      <ArrowRight size={14} className="db-card-p__arrow" />
+                      <p className="primary-card__desc">{mod.desc}</p>
+                      <div className="primary-card__action">
+                        <span>Explore</span>
+                        <ArrowRight size={14} />
+                      </div>
                     </div>
                   </Link>
                 ))}
               </div>
 
-              {/* Secondary */}
-              <div className="db-sec-head" style={{ marginTop: "1.4rem" }}>
-                <span className="db-sec-title">More Tools</span>
+              {/* Secondary modules */}
+              <div className="section-header" style={{ marginTop: "2rem" }}>
+                <h2>More Tools</h2>
               </div>
-              <div className="db-cards-s db-cards-s--modern">
-                {secondaryModules.map((m, i) => (
-                  <Link key={i} to={m.path} className="db-card-row card-shine hover-glow">
-                    <div className="db-card-row__icon" style={{ background: m.gradient }}>{m.icon}</div>
-                    <div style={{ flex: 1 }}>
-                      <div className="db-card-row__title">
-                        {m.title}
-                        {m.pill && (
-                          <span className="db-card-p__pill" style={{
-                            fontSize: "8px", padding: "2px 6px",
-                            color: m.color,
-                            background: `${m.color}18`,
-                            borderColor: `${m.color}35`,
-                          }}>{m.pill}</span>
-                        )}
-                      </div>
-                      <div className="db-card-row__desc">{m.desc}</div>
+              <div className="secondary-modules">
+                {secondaryModules.map((mod, idx) => (
+                  <Link key={idx} to={mod.path} className="secondary-card">
+                    <div className="secondary-card__icon" style={{ backgroundColor: mod.color + "15", color: mod.color }}>
+                      {mod.icon}
                     </div>
-                    <ChevronRight size={14} className="db-card-row__arrow" />
+                    <div className="secondary-card__info">
+                      <div className="secondary-card__title">{mod.title}</div>
+                      <div className="secondary-card__desc">{mod.desc}</div>
+                    </div>
+                    <ChevronRight size={16} className="secondary-card__arrow" />
                   </Link>
                 ))}
               </div>
             </div>
 
-            {/* Sidebar */}
-            <aside className="db-sidebar db-sidebar--modern">
-              <div className="db-side-card uiverse-glass">
-                <div className="db-side-title">Quick Actions</div>
-                <div className="db-qa-list">
-                  {quickActions.map((a, i) => (
-                    <button key={i}
-                      className={`db-qa-btn${a.primary ? " db-qa-btn--primary" : ""}`}
-                      onClick={() => navigate(a.path)}>
-                      {a.icon}<span>{a.label}</span>
+            {/* Right sidebar */}
+            <aside className="dashboard-sidebar">
+              {/* Quick Actions */}
+              <div className="sidebar-card">
+                <div className="sidebar-card__title">Quick Actions</div>
+                <div className="quick-actions">
+                  {quickActions.map((action, idx) => (
+                    <button
+                      key={idx}
+                      className={`quick-action ${action.primary ? "primary" : ""}`}
+                      onClick={() => navigate(action.path)}
+                    >
+                      {action.icon}
+                      <span>{action.label}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className="db-side-card uiverse-glass">
-                <div className="db-side-title">Upcoming Events</div>
-                <div className="db-empty">
-                  <Calendar size={24} strokeWidth={1.2} className="db-empty__icon" />
-                  <div className="db-empty__title">No Upcoming Events</div>
-                  <div className="db-empty__sub">Your schedule is clear</div>
+              {/* Upcoming Events – placeholder */}
+              <div className="sidebar-card">
+                <div className="sidebar-card__title">Upcoming Events</div>
+                <div className="placeholder-state">
+                  <Calendar size={32} strokeWidth={1.2} />
+                  <p>No events scheduled</p>
+                  <span>Your calendar is clear</span>
                 </div>
               </div>
 
-              <div className="db-side-card uiverse-glass">
-                <div className="db-side-head-row">
-                  <div className="db-side-title" style={{ marginBottom: 0 }}>Recent Activity</div>
-                  <Link to="/notifications" className="db-side-link">View All <ChevronRight size={10} /></Link>
+              {/* Recent Activity – placeholder */}
+              <div className="sidebar-card">
+                <div className="sidebar-card__title">Recent Activity</div>
+                <div className="placeholder-state">
+                  <Sparkles size={32} strokeWidth={1.2} />
+                  <p>Nothing new</p>
+                  <span>You're all caught up</span>
                 </div>
-                <div className="db-empty">
-                  <Sparkles size={24} strokeWidth={1.2} className="db-empty__icon" />
-                  <div className="db-empty__title">No Recent Activity</div>
-                  <div className="db-empty__sub">You're all caught up</div>
+              </div>
+
+              {/* Optional: Study streak */}
+              <div className="sidebar-card streak-card">
+                <div className="streak-icon">
+                  <Award size={24} />
+                </div>
+                <div>
+                  <div className="streak-value">7 day streak</div>
+                  <div className="streak-label">Keep it going! 🔥</div>
                 </div>
               </div>
             </aside>
           </div>
-
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }
