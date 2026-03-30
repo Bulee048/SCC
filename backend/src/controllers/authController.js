@@ -33,15 +33,6 @@ export const register = async (req, res) => {
       });
     }
 
-    // Check if user already exists with name (case-insensitive)
-    const existingName = await User.findOne({ name: { $regex: new RegExp(`^${name}$`, "i") } });
-    if (existingName) {
-      return res.status(400).json({ 
-        success: false,
-        message: "Username (Name) already in use. Please choose another." 
-      });
-    }
-
     // Check if phone already registered (if provided)
     if (phone) {
       const existingPhone = await User.findOne({ phone });
