@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { logout } from "../features/auth/authSlice";
 import gsap from "gsap";
@@ -81,6 +81,7 @@ export default function Home() {
   const mobileMenuRef = useRef(null);
 
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
 
   // Initialize enhanced Three.js background (now with green neon)
@@ -1320,7 +1321,7 @@ export default function Home() {
                         <Link to="/notes" onClick={() => setProfileOpen(false)}>📝 My Notes</Link>
                         <Link to="/notifications" onClick={() => setProfileOpen(false)}>🔔 Notifications</Link>
                         <Link to="/profile" onClick={() => setProfileOpen(false)}>⚙️ Profile Settings</Link>
-                        <button className="logout-btn" onClick={() => { dispatch(logout()); setProfileOpen(false); }}>Sign Out</button>
+                        <button className="logout-btn" onClick={() => { dispatch(logout()); setProfileOpen(false); navigate("/"); }}>Sign Out</button>
                       </div>
                     )}
                   </div>
@@ -1371,7 +1372,7 @@ export default function Home() {
             </button>
             <div className="nav-drawer-divider" />
             {isAuthenticated ? (
-              <button className="nav-drawer-link" style={{color:"var(--accent-green)"}} onClick={() => { dispatch(logout()); setMobileOpen(false); }}>
+              <button className="nav-drawer-link" style={{color:"var(--accent-green)"}} onClick={() => { dispatch(logout()); setMobileOpen(false); navigate("/"); }}>
                 <span className="drawer-icon">🚪</span> Sign Out
               </button>
             ) : (

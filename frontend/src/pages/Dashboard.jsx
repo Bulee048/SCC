@@ -24,7 +24,7 @@ export default function Dashboard() {
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
-    if (!isAuthenticated) navigate("/login");
+    if (!isAuthenticated) navigate("/");
   }, [isAuthenticated, navigate]);
 
   useEffect(() => {
@@ -38,7 +38,7 @@ export default function Dashboard() {
     });
     if (!confirmed) return;
     dispatch(logout());
-    navigate("/login");
+    navigate("/");
   };
 
   const getGreeting = () => {

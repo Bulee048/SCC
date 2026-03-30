@@ -177,6 +177,27 @@ export const refreshAccessToken = createAsyncThunk(
   }
 );
 
+export const deleteUserAccount = createAsyncThunk(
+  "auth/deleteAccount",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await authService.deleteAccount();
+      
+      // Clear all localStorage
+      localStorage.removeItem("user");
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      disconnectSocket();
+      
+      return response;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to delete account"
+      );
+    }
+  }
+);
+
 const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -331,6 +352,26 @@ const authSlice = createSlice({
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
         disconnectSocket();
+      })
+      
+      // Delete user account
+      .addCase(deleteUserAccount.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(deleteUserAccount.fulfilled, (state) => {
+        Object.assign(state, {
+          user: null,
+          accessToken: null,
+          refreshToken: null,
+          isAuthenticated: false,
+          isLoading: false,
+          error: null,
+          lastActivity: Date.now()
+        });
+      })
+      .addCase(deleteUserAccount.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
       });
   }
 });

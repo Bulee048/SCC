@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { logout } from "../features/auth/authSlice";
 import { useTheme } from "../context/ThemeContext";
@@ -67,6 +67,7 @@ export default function ResourcesPage() {
   const V = makeV(isDark);
   const S = makeS(V);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const [profileOpen, setProfileOpen] = useState(false);
 
@@ -128,7 +129,7 @@ export default function ResourcesPage() {
                     <Link to="/notes" style={S.navDropdownItem} onClick={() => setProfileOpen(false)}>📝 My Notes</Link>
                     <Link to="/groups" style={S.navDropdownItem} onClick={() => setProfileOpen(false)}>👥 My Groups</Link>
                     <Link to="/profile" style={S.navDropdownItem} onClick={() => setProfileOpen(false)}>⚙️ Profile Settings</Link>
-                    <button style={S.navDropdownLogout} onClick={() => { dispatch(logout()); setProfileOpen(false); }}>Sign Out</button>
+                    <button style={S.navDropdownLogout} onClick={() => { dispatch(logout()); setProfileOpen(false); navigate("/"); }}>Sign Out</button>
                   </div>
                 )}
               </div>

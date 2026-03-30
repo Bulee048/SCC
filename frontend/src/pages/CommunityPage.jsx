@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { logout } from "../features/auth/authSlice";
 import { useTheme } from "../context/ThemeContext";
@@ -34,6 +34,7 @@ export default function CommunityPage() {
   const V = makeV(isDark);
   const styles = makeS(V);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const [profileOpen, setProfileOpen] = useState(false);
 
@@ -91,7 +92,7 @@ export default function CommunityPage() {
                     <Link to="/notes" style={styles.navDropdownItem} onClick={() => setProfileOpen(false)}>📝 My Notes</Link>
                     <Link to="/groups" style={styles.navDropdownItem} onClick={() => setProfileOpen(false)}>👥 My Groups</Link>
                     <Link to="/profile" style={styles.navDropdownItem} onClick={() => setProfileOpen(false)}>⚙️ Profile Settings</Link>
-                    <button style={styles.navDropdownLogout} onClick={() => { dispatch(logout()); setProfileOpen(false); }}>Sign Out</button>
+                    <button style={styles.navDropdownLogout} onClick={() => { dispatch(logout()); setProfileOpen(false); navigate("/"); }}>Sign Out</button>
                   </div>
                 )}
               </div>

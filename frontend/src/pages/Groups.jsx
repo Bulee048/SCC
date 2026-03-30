@@ -327,7 +327,7 @@ const Groups = () => {
   const canvasRefCallback = (node) => { wrapRef.current = node; if (node) setCanvasReady(true); };
   useOceanBackground(wrapRef, canvasReady);
 
-  useEffect(() => { if (!isAuthenticated) navigate("/login"); }, [isAuthenticated, navigate]);
+  useEffect(() => { if (!isAuthenticated) navigate("/"); }, [isAuthenticated, navigate]);
 
   useEffect(() => {
     dispatch(fetchGroups({ search: filters.search, myGroups: filters.myGroups }));
@@ -352,7 +352,7 @@ const Groups = () => {
     const confirmed = await confirmAction("Are you sure you want to log out?", { confirmText: "Log out" });
     if (!confirmed) return;
     dispatch(logout());
-    navigate("/login");
+    navigate("/");
   };
 
   // Computed stats
