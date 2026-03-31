@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { useSelector, useDispatch } from "react-redux";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { logout } from "../features/auth/authSlice";
 import { useTheme } from "../context/ThemeContext";
 import {
@@ -21,33 +21,35 @@ export default function Dashboard() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const dispatch = useDispatch();
+  const location = useLocation();
   const navigate = useNavigate();
-  const [now, setNow] = useState(new Date());
-  // Task 2: Animated stat values with requestAnimationFrame
-  const [animatedStats, setAnimatedStats] = useState([0, 0, 0, 0]);
+  const [ringOffset, setRingOffset] = useState(0);
   const canvasRef = useRef(null);
-
-  // Dynamic stats state
-  const [stats, setStats] = useState([
-    { icon: <BookOpen size={20} />, value: 0, label: "Notes Shared", trend: "", color: "#10b981", rgb: "16, 185, 129" },
-    { icon: <Users size={20} />, value: 0, label: "Study Groups", trend: "", color: "#3b82f6", rgb: "59, 130, 246" },
-    { icon: <Calendar size={20} />, value: 0, label: "Events Today", trend: "", color: "#8b5cf6", rgb: "139, 92, 246" },
-    { icon: <Target size={20} />, value: 0, label: "Active Tasks", trend: "", color: "#f59e0b", rgb: "245, 158, 11" },
-  ]);
-
-  // Dynamic classes, activity, and upcoming event
+  const [stats, setStats] = useState([]);
   const [todayClasses, setTodayClasses] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
   const [upcomingEvent, setUpcomingEvent] = useState(null);
+  const [animatedStats, setAnimatedStats] = useState([0, 0]);
+
+  // Real-time progress ring effect
+  useEffect(() => {
+    const updateRing = () => {
+      const now = new Date();
+      const minutes = now.getMinutes();
+      const seconds = now.getSeconds();
+      const totalSeconds = minutes * 60 + seconds;
+      const circumference = 2 * Math.PI * 48;
+      const offset = circumference * (1 - totalSeconds / 3600);
+      setRingOffset(offset);
+    };
+    updateRing();
+    const interval = setInterval(updateRing, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) navigate("/");
   }, [isAuthenticated, navigate]);
-
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 30000);
-    return () => clearInterval(t);
-  }, []);
 
   // Initialize navigation indicator position
   useEffect(() => {
@@ -61,7 +63,7 @@ export default function Dashboard() {
       //   opacity: 1
       // });
     }
-  }, []);
+  }, [location]);
 
   // Task 7: Canvas particle system
   useEffect(() => {
@@ -91,7 +93,7 @@ export default function Dashboard() {
     ];
 
     const particles = [];
-    for (let i = 0; i < 70; i++) {
+    for (let i = 0; i < 30; i++) {
       particles.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
@@ -196,6 +198,7 @@ export default function Dashboard() {
     }
     fetchDashboardData();
   }, []);
+
   // Upcoming Event component
   const UpcomingEvent = () => (
     <div className="upcoming-event">
@@ -318,10 +321,10 @@ export default function Dashboard() {
     </div>
   );
 
-  // Nav links (used in header)
+  // Nav links - dynamic active state based on location
   const navLinks = [
     { icon: <HomeIcon size={20} strokeWidth={2.5} />, label: "Home", path: "/" },
-    { icon: <LayoutDashboard size={20} strokeWidth={2.5} />, label: "Dashboard", path: "/dashboard", active: true },
+    { icon: <LayoutDashboard size={20} strokeWidth={2.5} />, label: "Dashboard", path: "/dashboard" },
     { icon: <Brain size={20} strokeWidth={2.5} />, label: "Timetable", path: "/timetable" },
     { icon: <BookMarked size={20} strokeWidth={2.5} />, label: "Notes", path: "/notes" },
     { icon: <Video size={20} strokeWidth={2.5} />, label: "Kuppi", path: "/kuppi" },
@@ -342,7 +345,7 @@ export default function Dashboard() {
               <Link
                 key={link.path}
                 to={link.path}
-                className={`dashboard-nav__link ${link.active ? "active" : ""}`}
+                className={`dashboard-nav__link ${location.pathname === link.path ? "active" : ""}`}
                 style={{ "--i": idx }}
               >
                 {link.icon}
@@ -394,19 +397,19 @@ export default function Dashboard() {
                 <button onClick={() => navigate("/groups")}>Study Groups</button>
               </div>
             </div>
-            
+
             {/* Clock Panel */}
             <div className="dashboard-time">
               <div className="dashboard-time__progress">
                 <svg viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="48" />
+                  <circle className="progress-ring-bg" cx="50" cy="50" r="48" />
                   <circle 
                     className="progress-ring" 
                     cx="50" 
                     cy="50" 
                     r="48"
                     strokeDasharray={`${2 * Math.PI * 48}`}
-                    strokeDashoffset={`${2 * Math.PI * 48 * (1 - (new Date().getMinutes() / 60))}`}
+                    strokeDashoffset={ringOffset}
                   />
                 </svg>
               </div>

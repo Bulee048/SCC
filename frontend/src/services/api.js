@@ -15,7 +15,7 @@ let refreshInFlight = null;
 // Request interceptor to add token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("accessToken");
+    const token = sessionStorage.getItem("accessToken");
     config.headers = config.headers || {};
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -38,7 +38,7 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = localStorage.getItem("refreshToken");
+        const refreshToken = sessionStorage.getItem("refreshToken");
         if (refreshToken) {
           // Single-flight refresh: avoid parallel refresh races clearing tokens.
           if (!refreshInFlight) {
@@ -53,7 +53,7 @@ api.interceptors.response.use(
           // Backend returns { success, message, data: { accessToken } }
           if (response.data.success && response.data.data?.accessToken) {
             const { accessToken } = response.data.data;
-            localStorage.setItem("accessToken", accessToken);
+            sessionStorage.setItem("accessToken", accessToken);
 
             // Retry original request with new token
             originalRequest.headers.Authorization = `Bearer ${accessToken}`;

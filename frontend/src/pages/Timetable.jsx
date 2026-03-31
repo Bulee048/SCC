@@ -17,7 +17,9 @@ import {
   Video,
   Users,
   LogOut,
-  Lightbulb
+  Lightbulb,
+  ArrowLeft,
+  ChevronRight
 } from "lucide-react";
 import {
   createRawTimetable,
@@ -241,7 +243,7 @@ const Timetable = () => {
     setError("");
     setSuccess("");
     try {
-      const accessToken = localStorage.getItem("accessToken");
+      const accessToken = sessionStorage.getItem("accessToken");
       if (!accessToken) {
         setError("Please login again to connect Google Calendar.");
         navigate("/login");
@@ -538,481 +540,398 @@ const Timetable = () => {
     () => buildStudySuggestions(universitySchedule, optimizedSchedule),
     [universitySchedule, optimizedSchedule]
   );
+  const [activeTab, setActiveTab] = useState("planner"); // planner, visualizer, sync
 
   if (!user) return <LoadingSpinner text="Loading timetable..." />;
 
+  const isPlanner = activeTab === "planner";
+  const isVisualizer = activeTab === "visualizer";
+  const isSync = activeTab === "sync";
+
   return (
-    <div className="db-root dashboard-page">
-      <div className="temporal-particles">
-        <div className="particle"></div>
-        <div className="particle"></div>
-        <div className="particle"></div>
-        <div className="particle"></div>
-        <div className="particle"></div>
-        <div className="particle"></div>
-      </div>
-      <div className="dashboard-container timetable-uiverse-page" style={{ position: "relative", zIndex: 10 }}>
+    <div className="tt-root">
+      <div className="tt-canvas" />
 
-        {/* HEADER REMOVED for minimal, focused timetable view */}
-
-        {/* ── PAGE CONTENT ─────────────────────────────────────── */}
-        <div className="dashboard-content">
-
-          {/* Hero HUD */}
-          <div className="welcome-section fade-in">
-            <div style={{ position: "relative", zIndex: 1 }}>
-              <div className="dashboard-hero__system-status">
-                <div className="dashboard-hero__system-dot"></div>
-                <span className="dashboard-hero__system-text">Temporal Nexus Online</span>
-              </div>
-              <h1 className="neon-text">STRATEGIC CHRONOS: {user.name.split(" ")[0].toUpperCase()}</h1>
-              <p className="user-info">
-                Welcome to the <strong>Temporal Nexus</strong>. Deploy your university intelligence vectors 
-                and let the <strong>Neural Strategy Engine</strong> calibrate your optimal study trajectory.
-                Sync directly to your primary calendar array.
-              </p>
+      <main className="tt-main">
+        {/* TOP BAR / BREADCRUMBS */}
+        <div className="tt-topbar">
+          <div className="tt-topbar__left">
+            <button className="tt-back-btn" onClick={() => navigate("/dashboard")} title="Go Back">
+              <ArrowLeft size={18} />
+            </button>
+            <div className="tt-breadcrumb">
+              <Link to="/dashboard">Dashboard</Link>
+              <ChevronRight size={14} />
+              <span className="active">Timetable & Strategy</span>
             </div>
           </div>
 
-          {/* Alerts */}
-          {error && (
-            <div className="alert alert-error">
-              <AlertCircle size={16} />
-              <span>{error}</span>
-            </div>
-          )}
-          {success && (
-            <div className="alert alert-success">
-              <Sparkles size={16} />
-              <span>{success}</span>
-            </div>
-          )}
-          {conflicts.length > 0 && (
-            <div className="alert alert-warning">
-              <AlertCircle size={16} />
-              <span>
-                Detected {conflicts.length} overlapping time slot{conflicts.length > 1 ? "s" : ""}.
-                Review your timetable to avoid clashes.
-              </span>
-            </div>
-          )}
+          <div className="tt-status-pill">
+            <div className="tt-status-dot" />
+            <span>AI ENGINE ONLINE</span>
+          </div>
+        </div>
 
-          {/* ── TWO-COLUMN LAYOUT ─────────────────────────────── */}
-          <div className="tt-page-grid">
+        {/* HERO SECTION */}
+        <section className="tt-hero">
+          <div className="tt-hero__content">
+            <span className="tt-hero__tag">Academic Operations</span>
+            <h1 className="tt-hero__title">Smart Strategy Matrix</h1>
+            <p className="tt-hero__desc">
+              Orchestrate your academic trajectory with our <strong>Neural Strategy Engine</strong>. 
+              Input your constraints, calibrate subject difficulty, and deploy a high-efficiency 
+              study plan synchronized across your ecosystem.
+            </p>
+          </div>
 
-            {/* ── LEFT COLUMN ─────────────────────────── */}
-            <div className="tt-col-main">
+          <div className="tt-stats">
+            <div className="tt-stat">
+              <div className="tt-stat__val">{universitySchedule.length}</div>
+              <div className="tt-stat__lbl">Core Lectures</div>
+            </div>
+            <div className="tt-stat">
+              <div className="tt-stat__val">
+                {optimizedSchedule.filter(e => {
+                  const t = String(e?.type || "").toLowerCase();
+                  return t === "study" || String(e?.title || "").toLowerCase().includes("study");
+                }).length}
+              </div>
+              <div className="tt-stat__lbl">Study Blocks</div>
+            </div>
+            <div className="tt-stat">
+              <div className="tt-stat__val">{conflicts.length}</div>
+              <div className="tt-stat__lbl">Conflicts</div>
+            </div>
+          </div>
+        </section>
 
-              {/* NEURAL STRATEGY ENGINE CARD */}
-              <div className="card card--ai fade-in" style={{ animationDelay: "40ms" }}>
-                <div className="card-header">
-                  <h3 className="card-title">
-                    <Brain size={18} />
-                    Neural Strategy Engine
-                  </h3>
-                  <p className="card-description">
-                    Input your temporal constraints or upload your lecture array (OCR support). 
-                    The AI will architect a high-efficiency study plan, prioritizing critical 
-                    subjects while respecting your baseline biological resets (gym, rest).
-                  </p>
+        {/* ALERTS */}
+        {error && (
+          <div className="tt-alert tt-alert-error">
+            <AlertCircle size={20} />
+            <span>{error}</span>
+          </div>
+        )}
+        {success && (
+          <div className="tt-alert tt-alert-success">
+            <Sparkles size={20} />
+            <span>{success}</span>
+          </div>
+        )}
+        {conflicts.length > 0 && (
+          <div className="tt-alert tt-alert-warning">
+            <AlertCircle size={20} />
+            <span>
+              Detected {conflicts.length} overlapping time slot{conflicts.length > 1 ? "s" : ""}. 
+              Calibrate your registry to avoid clashes.
+            </span>
+          </div>
+        )}
+
+        {/* TAB SWITCHER */}
+        <nav className="tt-tabs">
+          <button className={`tt-tab ${isPlanner ? "active" : ""}`} onClick={() => setActiveTab("planner")}>
+            <Brain size={18} />
+            <span>Strategy Planner</span>
+          </button>
+          <button className={`tt-tab ${isVisualizer ? "active" : ""}`} onClick={() => setActiveTab("visualizer")}>
+            <Calendar size={18} />
+            <span>Visual Matrix</span>
+          </button>
+          <button className={`tt-tab ${isSync ? "active" : ""}`} onClick={() => setActiveTab("sync")}>
+            <RefreshCw size={18} />
+            <span>Ecosystem Sync</span>
+          </button>
+        </nav>
+
+        {/* PANEL: PLANNER */}
+        {isPlanner && (
+          <div className="tt-panel tt-planner-grid">
+            <aside className="tt-planner-sidebar">
+              {/* SMART STRATEGY ENGINE CARD */}
+              <div className="tt-card" style={{ marginBottom: "2rem" }}>
+                <h3 className="tt-card__title">
+                  <Sparkles size={20} />
+                  Smart Strategy Engine
+                </h3>
+                <p className="tt-card__desc">
+                  Input your constraints or upload a timetable image. The AI will architect 
+                  an optimized plan prioritizing critical subjects.
+                </p>
+
+                <div className="tt-form-group">
+                  <label className="tt-label">Strategic Prompt</label>
+                  <textarea
+                    className="tt-textarea"
+                    rows={4}
+                    placeholder="e.g. I have gym Mon/Wed/Fri 6–7 pm. Prioritize DBMS. Build a balanced study plan."
+                    value={aiPrompt}
+                    onChange={(e) => setAiPrompt(e.target.value)}
+                  />
                 </div>
-                <div className="card-body">
-                  <div className="form-field">
-                    <label className="form-label">Describe your schedule or request</label>
-                    <textarea
-                      className="form-textarea"
-                      rows={4}
-                      placeholder="e.g. I have gym Mon/Wed/Fri 6–7 pm. Prioritise DBMS and Maths. Build a balanced study plan in my free time."
-                      value={aiPrompt}
-                      onChange={(e) => setAiPrompt(e.target.value)}
-                    />
-                  </div>
-                  <div className="form-field" style={{ marginTop: "1rem" }}>
-                    <label className="form-label">Semester timetable file (optional)</label>
-                    <input
-                      type="file"
-                      accept="image/*,application/pdf"
-                      className="form-input"
-                      onChange={(e) => setImportFile(e.target.files?.[0] || null)}
-                    />
-                    <p className="form-hint">
-                      Upload a screenshot or PDF of your weekly lecture timetable.
-                      {importFile && <strong> "{importFile.name}" ready to import.</strong>}
-                    </p>
-                  </div>
+
+                <div className="tt-form-group">
+                  <label className="tt-label">OCR Registry (File Upload)</label>
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    className="tt-input"
+                    onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                  />
+                  {importFile && <p className="tt-label" style={{ color: "var(--tt-accent)", marginTop: "0.5rem" }}>File: {importFile.name}</p>}
                 </div>
-                <div className="card-footer">
+
+                <div style={{ display: "flex", gap: "1rem", marginTop: "2rem" }}>
                   <button
-                    type="button"
-                    className={`btn btn-success ${(aiLoading || importing) ? "loading" : ""}`}
+                    className={`tt-btn tt-btn-primary ${(aiLoading || importing) ? "loading" : ""}`}
                     onClick={importFile ? handleImportTimetable : handleAiChatGenerate}
                     disabled={aiLoading || importing}
+                    style={{ flex: 1 }}
                   >
-                    <Sparkles size={15} />
-                    {importing ? "Importing…" : aiLoading ? "Generating…" :
-                      importFile ? "Import file & generate timetable" : "Generate timetable from AI"}
+                    <Sparkles size={16} />
+                    {importing ? "Importing..." : aiLoading ? "Generating..." : "Generate Matrix"}
                   </button>
                 </div>
               </div>
 
-              {/* UNIVERSITY REGISTRY ARRAY CARD */}
-              <div className="card card--editor fade-in" style={{ animationDelay: "80ms" }}>
-                <div className="card-header">
-                  <h3 className="card-title">
-                    <Calendar size={18} />
-                    University Registry Array
-                  </h3>
-                  <p className="card-description">
-                    Calibrate your <strong>core lecture data</strong> here. Modifications to the 
-                    registry will trigger a recalculation of the Neural Plan. Use safeguards to 
-                    reset or purge specific temporal layers.
-                  </p>
-                </div>
-
-                {universitySchedule.length === 0 && (
-                  <div className="card-body" style={{ paddingBottom: 0 }}>
-                    <EmptyState title="No timetable yet" description="Add your first subject block to get started." />
-                  </div>
-                )}
-
-                {universitySchedule.length > 0 && (
-                  <div className="card-body">
-                    <div className="tt-editor-table-wrap">
-                      <table className="tt-editor-table">
-                        <thead>
-                          <tr>
-                            <th style={{ minWidth: 220 }}>Title</th>
-                            <th style={{ minWidth: 120 }}>Code</th>
-                            <th style={{ minWidth: 185 }}>Start</th>
-                            <th style={{ minWidth: 185 }}>End</th>
-                            <th style={{ minWidth: 160 }}>Location</th>
-                            <th style={{ minWidth: 120 }}>Difficulty</th>
-                            <th className="tt-editor-col-actions" />
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {universitySchedule.map((event, index) => (
-                            <tr key={index}>
-                              <td>
-                                <input
-                                  className="form-input"
-                                  value={event.title}
-                                  onChange={(e) => handleChangeEventField(index, "title", e.target.value)}
-                                  placeholder="Data Structures Lecture"
-                                />
-                              </td>
-                              <td>
-                                <input
-                                  className="form-input"
-                                  value={event.subjectCode}
-                                  onChange={(e) => handleChangeEventField(index, "subjectCode", e.target.value)}
-                                  placeholder="CS201"
-                                />
-                              </td>
-                              <td>
-                                <input
-                                  type="datetime-local"
-                                  className="form-input"
-                                  value={toDateTimeLocalValue(event.start)}
-                                  onChange={(e) => handleChangeEventField(index, "start", e.target.value)}
-                                />
-                              </td>
-                              <td>
-                                <input
-                                  type="datetime-local"
-                                  className="form-input"
-                                  value={toDateTimeLocalValue(event.end)}
-                                  onChange={(e) => handleChangeEventField(index, "end", e.target.value)}
-                                />
-                              </td>
-                              <td>
-                                <input
-                                  className="form-input"
-                                  value={event.location}
-                                  onChange={(e) => handleChangeEventField(index, "location", e.target.value)}
-                                  placeholder="Room B12"
-                                />
-                              </td>
-                              <td>
-                                <select
-                                  className="form-select"
-                                  value={difficultyLevels[event.subjectCode || event.title] || "medium"}
-                                  onChange={(e) => handleChangeDifficulty(event.subjectCode || event.title, e.target.value)}
-                                >
-                                  <option value="easy">Easy</option>
-                                  <option value="medium">Medium</option>
-                                  <option value="hard">Hard</option>
-                                </select>
-                              </td>
-                              <td className="tt-editor-actions">
-                                <button
-                                  type="button"
-                                  className="btn btn-danger btn-sm"
-                                  onClick={() => handleRemoveEvent(index)}
-                                >
-                                  <Trash2 size={13} />
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-                <div className="card-body" style={{ paddingTop: universitySchedule.length > 0 ? 0 : undefined }}>
-                  <button
-                    type="button"
-                    className="btn btn-outline tt-editor-add-btn"
-                    onClick={handleAddEmptyEvent}
-                  >
-                    <Plus size={15} />
-                    Add subject block
-                  </button>
-                </div>
-
-                <div className="card-footer">
-                  <button
-                    type="button"
-                    className={`btn btn-outline ${saving ? "loading" : ""}`}
-                    onClick={() => persistUniversityTimetable({ isUpdate: true })}
-                    disabled={saving || universitySchedule.length === 0}
-                  >
-                    <RefreshCw size={15} />
-                    {saving ? "Saving…" : "Update timetable"}
-                  </button>
-                  <button
-                    type="button"
-                    className={`btn btn-danger ${deletingTimetable ? "loading" : ""}`}
-                    onClick={handleDeleteEntireTimetable}
-                    disabled={deletingTimetable}
-                  >
-                    <Trash2 size={15} />
-                    Delete SCC timetable
-                  </button>
-                </div>
-                <p className="form-hint" style={{ padding: "0 1.75rem 1.1rem" }}>
-                  "Delete SCC timetable" clears SCC data and removes Google events SCC created.
-                  Use <strong>Reconnect Google</strong> if cleanup fails.
-                </p>
-              </div>
-
-            </div>{/* end tt-col-main */}
-
-            {/* ── RIGHT SIDEBAR ────────────────────────── */}
-            <div className="tt-col-aside">
-
-              {/* TEMPORAL METRICS */}
-              <div className="tt-stat-row">
-                <div className="tt-mini-stat">
-                  <span className="tt-mini-stat__label">Registry Count</span>
-                  <span className={`tt-mini-stat__value ${universitySchedule.length > 0 ? "emerald" : ""}`}>
-                    {universitySchedule.length}
-                  </span>
-                </div>
-                <div className="tt-mini-stat">
-                  <span className="tt-mini-stat__label">Neural Slots</span>
-                  <span className={`tt-mini-stat__value ${optimizedSchedule.length > 0 ? "cyan" : ""}`}>
-                    {optimizedSchedule.filter(e => {
-                      const t = String(e?.type || "").toLowerCase();
-                      return t === "study" || String(e?.title || "").toLowerCase().includes("study");
-                    }).length}
-                  </span>
-                </div>
-                <div className="tt-mini-stat">
-                  <span className="tt-mini-stat__label">Conflict Vectors</span>
-                  <span className={`tt-mini-stat__value ${conflicts.length > 0 ? "amber" : ""}`}>
-                    {conflicts.length}
-                  </span>
-                </div>
-                <div className="tt-mini-stat">
-                  <span className="tt-mini-stat__label">Optimal Paths</span>
-                  <span className={`tt-mini-stat__value ${studySuggestions.length > 0 ? "violet" : ""}`}>
-                    {studySuggestions.length}
-                  </span>
-                </div>
-              </div>
-
-              {/* NEURAL RECOMMENDATIONS CARD */}
-              <div className="card card--advice fade-in" style={{ animationDelay: "120ms" }}>
-                <div className="card-header">
-                  <h3 className="card-title">
-                    <Lightbulb size={18} />
-                    Neural Recommendations
-                  </h3>
-                  <p className="card-description">
-                    Adaptive study vectors derived from current temporal availability.
-                  </p>
-                </div>
-                <div className="card-body">
-                  {studySuggestions.length === 0 ? (
-                    <EmptyState
-                      title="No vectors found"
-                      description="Initialize your registry to generate neural advisories."
-                    />
-                  ) : (
-                    <div className="profile-info">
-                      {studySuggestions.map((item, idx) => (
-                        <div key={idx} className="profile-info-item">
-                          <strong>Vector {idx + 1}</strong>
-                          <span>
-                            {typeof item === "string"
-                              ? item
-                              : `${item.slot}: Focus on ${item.subject}`}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* NEXUS PROTOCOL CARD */}
-              <div className="card card--tip fade-in" style={{ animationDelay: "200ms" }}>
-                <div className="card-header">
-                  <h3 className="card-title">
-                    <Clock size={18} />
-                    Nexus Protocol
-                  </h3>
-                </div>
-                <div className="card-body">
-                  <div className="tt-tip-body">
-                    <div className="tt-tip-icon">💠</div>
-                    <p className="tt-tip-text">
-                      Maintain registry integrity. The projection array synchronizes 
-                      automatically upon neural plan commit. Manual override for Google Matrix 
-                      sync is available below.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-            </div>{/* end tt-col-aside */}
-
-            {/* ── FULL-WIDTH ROWS BELOW GRID ─────────────────── */}
-
-            {/* TEMPORAL PROJECTION ARRAY */}
-            <div className="card card--cal fade-in tt-full-width" style={{ animationDelay: "160ms" }}>
-              <div className="card-header">
-                <h3 className="card-title">
-                  <Clock size={18} />
-                  Temporal Projection Array
+              {/* NEURAL RECOMMENDATIONS */}
+              <div className="tt-card">
+                <h3 className="tt-card__title">
+                  <Lightbulb size={20} />
+                  Neural Advisories
                 </h3>
-                <p className="card-description">
-                  Visualizing <strong>synchronized lecture + neural study blocks</strong>. 
-                  This is your real-time strategy matrix.
-                </p>
-              </div>
-              <div className="card-body">
-                {!hasTimetable && (
-                  <EmptyState
-                    title="No schedule yet"
-                    description="Save a base timetable and generate an optimised plan to see your upcoming events."
-                  />
-                )}
-                {hasTimetable && (
-                  <WeekTimetableCalendar
-                    key={calendarMountKey}
-                    title="Timetable calendar"
-                    events={optimizedSchedule.length > 0 ? optimizedSchedule : universitySchedule}
-                    minHour={6}
-                    maxHour={22}
-                  />
+                <p className="tt-card__desc">Derived from your current temporal availability.</p>
+                
+                {studySuggestions.length === 0 ? (
+                  <EmptyState title="No advisories" description="Initialize your registry to generate vectors." />
+                ) : (
+                  <div className="tt-recs">
+                    {studySuggestions.map((item, idx) => (
+                      <div key={idx} className="tt-rec">
+                        <div className="tt-rec__type">Vector {idx + 1}</div>
+                        <div className="tt-rec__slot">{item.slot}</div>
+                        <div className="tt-rec__subj">Focus: {item.subject}</div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
-              {hasTimetable && optimizedSchedule.length > 0 && (
-                <div className="card-footer">
-                  <button
-                    type="button"
-                    className={`btn btn-danger ${clearingAiPlan ? "loading" : ""}`}
-                    onClick={handleClearAiGeneratedPlan}
-                    disabled={clearingAiPlan}
-                  >
-                    <Trash2 size={15} />
-                    Remove AI / optimized plan
+            </aside>
+
+            <section className="tt-planner-main">
+              {/* UNIVERSITY REGISTRY BOARD */}
+              <div className="tt-card tt-card--full">
+                <div className="tt-card__header">
+                  <div className="tt-card__header-info">
+                    <h3 className="tt-card__title">
+                      <LayoutDashboard size={20} />
+                      University Registry
+                    </h3>
+                    <p className="tt-card__desc">Calibrate your core lecture data here. Recalculates AI plan on change.</p>
+                  </div>
+                  <div className="tt-card__actions">
+                    <button className="tt-btn tt-btn-outline tt-btn-sm" onClick={handleAddEmptyEvent}>
+                      <Plus size={16} /> Add Block
+                    </button>
+                    <button
+                      className="tt-btn tt-btn-primary tt-btn-sm"
+                      onClick={() => persistUniversityTimetable({ isUpdate: true })}
+                      disabled={saving || universitySchedule.length === 0}
+                    >
+                      <RefreshCw size={16} /> {saving ? "Saving..." : "Update"}
+                    </button>
+                  </div>
+                </div>
+
+                {universitySchedule.length === 0 ? (
+                  <EmptyState title="Registry Empty" description="Add your first subject block to initialize." />
+                ) : (
+                  <div className="tt-editor">
+                    <table className="tt-table">
+                      <thead>
+                        <tr>
+                          <th>Title</th>
+                          <th>Code</th>
+                          <th>Start</th>
+                          <th>End</th>
+                          <th>Difficulty</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {universitySchedule.map((event, index) => (
+                          <tr key={index} className="tt-table-row">
+                            <td>
+                              <input
+                                className="tt-input"
+                                value={event.title}
+                                onChange={(e) => handleChangeEventField(index, "title", e.target.value)}
+                                placeholder="Lecture Title"
+                              />
+                            </td>
+                            <td>
+                              <input
+                                className="tt-input"
+                                value={event.subjectCode}
+                                onChange={(e) => handleChangeEventField(index, "subjectCode", e.target.value)}
+                                placeholder="CS201"
+                              />
+                            </td>
+                            <td>
+                              <input
+                                type="datetime-local"
+                                className="tt-input"
+                                value={toDateTimeLocalValue(event.start)}
+                                onChange={(e) => handleChangeEventField(index, "start", e.target.value)}
+                              />
+                            </td>
+                            <td>
+                              <input
+                                type="datetime-local"
+                                className="tt-input"
+                                value={toDateTimeLocalValue(event.end)}
+                                onChange={(e) => handleChangeEventField(index, "end", e.target.value)}
+                              />
+                            </td>
+                            <td>
+                              <select
+                                className="tt-select"
+                                value={difficultyLevels[event.subjectCode || event.title] || "medium"}
+                                onChange={(e) => handleChangeDifficulty(event.subjectCode || event.title, e.target.value)}
+                              >
+                                <option value="easy">Easy</option>
+                                <option value="medium">Medium</option>
+                                <option value="hard">Hard</option>
+                              </select>
+                            </td>
+                            <td>
+                              <button className="tt-btn tt-btn-danger tt-btn-sm" onClick={() => handleRemoveEvent(index)}>
+                                <Trash2 size={14} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                <div className="tt-card__footer">
+                  <button className="tt-btn tt-btn-danger" onClick={handleDeleteEntireTimetable} disabled={deletingTimetable}>
+                    <Trash2 size={16} /> Delete Entire Registry
                   </button>
-                  <p className="form-hint" style={{ margin: 0, flex: "1 1 200px" }}>
-                    Removes the <strong>generated</strong> plan only — not your editable class rows.
-                    SCC will try to delete synced Google events (not unrelated personal events).
-                  </p>
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* PANEL: VISUALIZER */}
+        {isVisualizer && (
+          <div className="tt-panel">
+            <div className="tt-card tt-card--calendar">
+              <div className="tt-card__header">
+                <div className="tt-card__header-info">
+                  <h3 className="tt-card__title tt-card__title--large">
+                    <Calendar size={28} />
+                    Temporal Projection Array
+                  </h3>
+                  <p className="tt-card__desc">Visualizing synchronized lecture and neural study blocks.</p>
+                </div>
+                {hasTimetable && optimizedSchedule.length > 0 && (
+                  <div className="tt-card__actions">
+                    <button className="tt-btn tt-btn-danger" onClick={handleClearAiGeneratedPlan}>
+                      <Trash2 size={16} /> Purge AI Plan
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {!hasTimetable ? (
+                <EmptyState title="No projections found" description="Initialize your registry to generate vectors." />
+              ) : (
+                <WeekTimetableCalendar
+                  key={calendarMountKey}
+                  title="Temporal Projection"
+                  events={optimizedSchedule.length > 0 ? optimizedSchedule : universitySchedule}
+                  minHour={6}
+                  maxHour={22}
+                />
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* PANEL: SYNC */}
+        {isSync && (
+          <div className="tt-panel">
+            <div className="tt-card tt-google-hero">
+              <div style={{ maxWidth: "600px", margin: "0 auto" }}>
+                <div className="tt-google-icon" style={{ margin: "0 auto 2rem" }}>
+                  <svg viewBox="0 0 24 24" width="80" height="80">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="#FBBC05" d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.66-2.84z" />
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                  </svg>
+                </div>
+                <h2 className="tt-hero__title" style={{ fontSize: "2.5rem", marginBottom: "1.5rem" }}>Google Ecosystem Sync</h2>
+                <p className="tt-hero__desc" style={{ marginBottom: "2.5rem" }}>
+                  Establish a secure tunnel to your Google Calendar. Neural plans will synchronize automatically 
+                  upon commitment, creating dedicated temporal entries in your external array.
+                </p>
+                
+                <div style={{ display: "flex", gap: "1rem", justifyContent: "center" }}>
+                  <button className="tt-btn tt-btn-primary" onClick={handleConnectGoogle} disabled={googleLoading}>
+                    {googleStatus.connected ? "Reconnect Ecosystem" : "Establish Link"}
+                  </button>
+                  <div className={`tt-status-pill ${googleStatus.connected ? "success" : "warning"}`} style={{ padding: "0 1.5rem" }}>
+                    <div className="tt-status-dot" style={{ background: googleStatus.connected ? "var(--tt-success)" : "var(--tt-warning)" }} />
+                    <span style={{ color: googleStatus.connected ? "var(--tt-success)" : "var(--tt-warning)" }}>
+                      {googleStatus.connected ? "LINK ESTABLISHED" : "LINK OFFLINE"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {googleStatus.connected && (
+                <div style={{ marginTop: "5rem", borderTop: "1px solid var(--tt-border)", paddingTop: "4rem" }}>
+                  <h3 className="tt-card__title" style={{ marginBottom: "2rem", justifyContent: "center" }}>
+                    <Calendar size={20} />
+                    Active Ecosystem Projection
+                  </h3>
+                  <div className="google-iframe-wrap" style={{ borderRadius: "24px", overflow: "hidden", border: "1px solid var(--tt-border)", boxShadow: "var(--tt-shadow)" }}>
+                    <iframe
+                      title="Google Calendar"
+                      src={import.meta.env.VITE_GOOGLE_CALENDAR_EMBED_URL || "https://calendar.google.com/calendar/embed?mode=WEEK&wkst=1&bgcolor=%23ffffff&ctz=UTC"}
+                      style={{ width: "100%", height: 600, border: 0, display: "block" }}
+                      loading="lazy"
+                    />
+                  </div>
+
+                  <div className="tt-google-events">
+                    {googleEventsLoading ? (
+                      <p className="tt-label">SCANNING EXTERNAL ARRAY...</p>
+                    ) : googleEvents.length === 0 ? (
+                      <EmptyState title="Array Clear" description="No external events detected in this frequency." />
+                    ) : (
+                      googleEvents.map((e) => (
+                        <div key={e.id} className="tt-rec" style={{ textAlign: "left" }}>
+                          <div className="tt-rec__type">External Entry</div>
+                          <div className="tt-rec__slot" style={{ fontSize: "1rem" }}>{e.summary}</div>
+                          <div className="tt-rec__subj">
+                            {e.start ? new Date(e.start).toLocaleString() : "—"}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               )}
             </div>
-
-            {/* EXTERNAL MATRIX LINK (GOOGLE CALENDAR) */}
-            <div className="card card--google fade-in tt-full-width" style={{ animationDelay: "240ms" }}>
-              <div className="card-header">
-                <h3 className="card-title">
-                  <Calendar size={18} />
-                  External Matrix Link
-                </h3>
-                <p className="card-description">
-                  Establish a secure tunnel to <strong>Google Calendar</strong>. Syncing 
-                  neural plans will create verifiable temporal entries in your external array.
-                </p>
-              </div>
-              <div className="card-body">
-                <div className="google-connect-row">
-                  <button
-                    type="button"
-                    className={`btn btn-outline ${googleLoading ? "loading" : ""}`}
-                    onClick={handleConnectGoogle}
-                    disabled={googleLoading}
-                  >
-                    {googleStatus.connected ? "Reconnect Google" : "Connect Google"}
-                  </button>
-                  <span className={`badge ${googleStatus.connected ? "badge-success" : "badge-warning"}`}>
-                    {googleStatus.connected ? "Connected" : "Not connected"}
-                  </span>
-                </div>
-
-                {googleStatus.connected && (
-                  <>
-                    <div className="google-iframe-wrap">
-                      <iframe
-                        title="Google Calendar"
-                        src={
-                          import.meta.env.VITE_GOOGLE_CALENDAR_EMBED_URL ||
-                          "https://calendar.google.com/calendar/embed?mode=WEEK&wkst=1&bgcolor=%23ffffff&ctz=UTC"
-                        }
-                        style={{ width: "100%", height: 560, border: 0, display: "block" }}
-                        loading="lazy"
-                        referrerPolicy="no-referrer-when-downgrade"
-                      />
-                    </div>
-
-                    {googleEventsLoading ? (
-                      <div className="loading-text">Loading Google events…</div>
-                    ) : googleEvents.length === 0 ? (
-                      <EmptyState title="No upcoming Google events" description="Your Google Calendar looks clear for now." />
-                    ) : (
-                      <div className="profile-info">
-                        {googleEvents.map((e) => (
-                          <div key={e.id} className="profile-info-item">
-                            <strong>{e.summary}</strong>
-                            <span>
-                              {e.start ? new Date(e.start).toLocaleString() : "—"} –{" "}
-                              {e.end ? new Date(e.end).toLocaleString() : "—"}
-                            </span>
-                            {e.location && <span>{e.location}</span>}
-                            {e.htmlLink && (
-                              <a href={e.htmlLink} target="_blank" rel="noreferrer" className="nav-link" style={{ padding: 0 }}>
-                                Open in Google Calendar ↗
-                              </a>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-
-          </div>{/* end tt-page-grid */}
-        </div>{/* end dashboard-content */}
-      </div>
+          </div>
+        )}
+      </main>
     </div>
   );
 };

@@ -2,16 +2,16 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import * as authService from "../../services/authService";
 import { initSocket, disconnectSocket } from "../../socket/socket";
 
-// Get user from localStorage with error handling
+// Get user from sessionStorage with error handling
 const getStoredItem = (key) => {
   try {
-    const item = localStorage.getItem(key);
+    const item = sessionStorage.getItem(key);
     if (key === "user" && item) {
       return JSON.parse(item);
     }
     return item;
   } catch (error) {
-    console.error(`Error reading ${key} from localStorage:`, error);
+    console.error(`Error reading ${key} from sessionStorage:`, error);
     return null;
   }
 };
@@ -42,13 +42,13 @@ const handleAuthSuccess = (state, action) => {
   state.error = null;
   state.lastActivity = Date.now();
 
-  // Save to localStorage
+  // Save to sessionStorage
   try {
-    localStorage.setItem("user", JSON.stringify(user));
-    localStorage.setItem("accessToken", accessToken);
-    localStorage.setItem("refreshToken", refreshToken);
+    sessionStorage.setItem("user", JSON.stringify(user));
+    sessionStorage.setItem("accessToken", accessToken);
+    sessionStorage.setItem("refreshToken", refreshToken);
   } catch (error) {
-    console.error("Error saving to localStorage:", error);
+    console.error("Error saving to sessionStorage:", error);
   }
 
   // Initialize socket
@@ -98,17 +98,17 @@ export const logout = createAsyncThunk(
       // Disconnect socket
       disconnectSocket();
       
-      // Clear all localStorage
-      localStorage.removeItem("user");
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
+      // Clear all sessionStorage
+      sessionStorage.removeItem("user");
+      sessionStorage.removeItem("accessToken");
+      sessionStorage.removeItem("refreshToken");
       
       return null;
     } catch (error) {
       // Even if logout API fails, clear local state
-      localStorage.removeItem("user");
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
+      sessionStorage.removeItem("user");
+      sessionStorage.removeItem("accessToken");
+      sessionStorage.removeItem("refreshToken");
       disconnectSocket();
       
       return rejectWithValue(
@@ -132,9 +132,9 @@ export const fetchUserProfile = createAsyncThunk(
     } catch (error) {
       // If token expired, clear auth state
       if (error.response?.status === 401) {
-        localStorage.removeItem("user");
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
+        sessionStorage.removeItem("user");
+        sessionStorage.removeItem("accessToken");
+        sessionStorage.removeItem("refreshToken");
       }
       
       return rejectWithValue(
@@ -183,10 +183,10 @@ export const deleteUserAccount = createAsyncThunk(
     try {
       const response = await authService.deleteAccount();
       
-      // Clear all localStorage
-      localStorage.removeItem("user");
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
+      // Clear all sessionStorage
+      sessionStorage.removeItem("user");
+      sessionStorage.removeItem("accessToken");
+      sessionStorage.removeItem("refreshToken");
       disconnectSocket();
       
       return response;
@@ -213,18 +213,18 @@ const authSlice = createSlice({
       state.isAuthenticated = true;
       state.lastActivity = Date.now();
       
-      localStorage.setItem("user", JSON.stringify(user));
-      localStorage.setItem("accessToken", accessToken);
-      localStorage.setItem("refreshToken", refreshToken);
+      sessionStorage.setItem("user", JSON.stringify(user));
+      sessionStorage.setItem("accessToken", accessToken);
+      sessionStorage.setItem("refreshToken", refreshToken);
     },
     updateLastActivity: (state) => {
       state.lastActivity = Date.now();
     },
     resetAuth: (state) => {
       Object.assign(state, initialState);
-      localStorage.removeItem("user");
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
+      sessionStorage.removeItem("user");
+      sessionStorage.removeItem("accessToken");
+      sessionStorage.removeItem("refreshToken");
     }
   },
   extraReducers: (builder) => {
@@ -288,16 +288,16 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.user = action.payload;
         try {
-          localStorage.setItem("user", JSON.stringify(action.payload));
+          sessionStorage.setItem("user", JSON.stringify(action.payload));
         } catch (error) {
-          console.error("Error saving user to localStorage:", error);
+          console.error("Error saving user to sessionStorage:", error);
         }
       })
       .addCase(fetchUserProfile.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
         // If token was invalid/expired and refresh also failed, reset auth
-        if (!localStorage.getItem("accessToken")) {
+        if (!sessionStorage.getItem("accessToken")) {
           state.user = null;
           state.accessToken = null;
           state.refreshToken = null;
@@ -313,9 +313,9 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.user = action.payload;
         try {
-          localStorage.setItem("user", JSON.stringify(action.payload));
+          sessionStorage.setItem("user", JSON.stringify(action.payload));
         } catch (error) {
-          console.error("Error saving user to localStorage:", error);
+          console.error("Error saving user to sessionStorage:", error);
         }
       })
       .addCase(updateUserProfile.rejected, (state, action) => {
@@ -334,9 +334,9 @@ const authSlice = createSlice({
         }
         state.lastActivity = Date.now();
         
-        localStorage.setItem("accessToken", accessToken);
+        sessionStorage.setItem("accessToken", accessToken);
         if (refreshToken) {
-          localStorage.setItem("refreshToken", refreshToken);
+          sessionStorage.setItem("refreshToken", refreshToken);
         }
       })
       .addCase(refreshAccessToken.rejected, (state) => {
@@ -348,9 +348,9 @@ const authSlice = createSlice({
           isAuthenticated: false
         });
         
-        localStorage.removeItem("user");
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
+        sessionStorage.removeItem("user");
+        sessionStorage.removeItem("accessToken");
+        sessionStorage.removeItem("refreshToken");
         disconnectSocket();
       })
       
