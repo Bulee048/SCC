@@ -22,6 +22,18 @@ import {
   Sparkles,
   GraduationCap,
 } from "lucide-react";
+import { 
+  Modal, 
+  Button, 
+  Form, 
+  Grid, 
+  Input, 
+  TextArea, 
+  Select, 
+  Label, 
+  Icon,
+  Message 
+} from "semantic-ui-react";
 import {
   fetchKuppiPosts,
   createKuppiAction,
@@ -196,18 +208,20 @@ const Kuppi = () => {
           />
         </div>
         <div className="kuppi-tabs">
-          <button
-            className={activeTab === "all" ? "active" : ""}
-            onClick={() => { setActiveTab("all"); setCurrentPage(1); }}
-          >
-            All Sessions
-          </button>
-          <button
-            className={activeTab === "mine" ? "active" : ""}
-            onClick={() => { setActiveTab("mine"); setCurrentPage(1); }}
-          >
-            My Sessions
-          </button>
+          <Button.Group basic size="large">
+            <Button
+              active={activeTab === "all"}
+              onClick={() => { setActiveTab("all"); setCurrentPage(1); }}
+            >
+              All Sessions
+            </Button>
+            <Button
+              active={activeTab === "mine"}
+              onClick={() => { setActiveTab("mine"); setCurrentPage(1); }}
+            >
+              My Sessions
+            </Button>
+          </Button.Group>
         </div>
       </div>
 
@@ -234,22 +248,23 @@ const Kuppi = () => {
           </div>
         ) : (
           <>
-            <div className="kuppi-grid">
+            <Grid columns={3} doubling stackable className="kuppi-grid">
               {filteredPosts.map((post, idx) => (
-                <SessionCard
-                  key={post._id}
-                  post={post}
-                  user={user}
-                  index={idx}
-                  onApply={handleApply}
-                  onAddLink={setShowLinkModal}
-                  onViewApplicants={handleViewApplicants}
-                  onExport={handleExport}
-                  getStatusStyle={getStatusStyle}
-                  setMeetingLinkInput={setMeetingLinkInput}
-                />
+                <Grid.Column key={post._id}>
+                  <SessionCard
+                    post={post}
+                    user={user}
+                    index={idx}
+                    onApply={handleApply}
+                    onAddLink={setShowLinkModal}
+                    onViewApplicants={handleViewApplicants}
+                    onExport={handleExport}
+                    getStatusStyle={getStatusStyle}
+                    setMeetingLinkInput={setMeetingLinkInput}
+                  />
+                </Grid.Column>
               ))}
-            </div>
+            </Grid>
 
             {pagination && pagination.pages > 1 && (
               <div className="kuppi-pagination">
@@ -267,118 +282,130 @@ const Kuppi = () => {
       </main>
 
       {/* Create Modal */}
-      {showCreateModal && (
-        <Modal onClose={() => setShowCreateModal(false)}>
-          <div className="modal-header">
-            <h2>Create New Session</h2>
-            <button className="modal-close" onClick={() => setShowCreateModal(false)}>
-              <X size={20} />
-            </button>
+      <Modal
+        open={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        size="small"
+        className="kuppi-semantic-modal"
+      >
+        <Modal.Header>
+          <div className="modal-header-flex">
+            <span>Create New Session</span>
+            <Icon name="close" onClick={() => setShowCreateModal(false)} link />
           </div>
-          <form onSubmit={handleCreatePost} className="kuppi-form">
-            {formError && <div className="form-error">{formError}</div>}
-            <div className="form-field">
-              <label>Title *</label>
-              <input
-                type="text"
+        </Modal.Header>
+        <Modal.Content>
+          <Form onSubmit={handleCreatePost} Error={!!formError}>
+            {formError && (
+              <Message error content={formError} />
+            )}
+            <Form.Field required>
+              <label>Title</label>
+              <Input
                 placeholder="e.g. Calculus Revision Session"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                required
               />
-            </div>
-            <div className="form-field">
-              <label>Description *</label>
-              <textarea
+            </Form.Field>
+            <Form.Field required>
+              <label>Description</label>
+              <TextArea
                 placeholder="What will you cover in this session?"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e, { value }) => setFormData({ ...formData, description: value })}
                 rows={3}
-                required
               />
-            </div>
-            <div className="form-row">
-              <div className="form-field">
+            </Form.Field>
+            <Form.Group widths="equal">
+              <Form.Field>
                 <label>Subject</label>
-                <select
+                <Select
+                  placeholder="Select Subject"
+                  options={subjects.map(s => ({ key: s, text: s, value: s }))}
                   value={formData.subject}
-                  onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                >
-                  <option value="">Select</option>
-                  {subjects.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </div>
-              <div className="form-field">
-                <label>Date & Time *</label>
-                <input
+                  onChange={(e, { value }) => setFormData({ ...formData, subject: value })}
+                />
+              </Form.Field>
+              <Form.Field required>
+                <label>Date & Time</label>
+                <Input
                   type="datetime-local"
                   min={new Date().toISOString().slice(0, 16)}
                   value={formData.eventDate}
                   onChange={(e) => setFormData({ ...formData, eventDate: e.target.value })}
-                  required
                 />
-              </div>
-            </div>
-            <div className="form-field">
+              </Form.Field>
+            </Form.Group>
+            <Form.Field>
               <label>Meeting Link (optional)</label>
-              <input
+              <Input
+                icon="video"
+                iconPosition="left"
                 type="url"
                 placeholder="https://meet.google.com/..."
                 value={formData.meetingLink}
                 onChange={(e) => setFormData({ ...formData, meetingLink: e.target.value })}
               />
-            </div>
-            <div className="modal-footer">
-              <button type="button" className="btn-secondary" onClick={() => setShowCreateModal(false)}>
-                Cancel
-              </button>
-              <button type="submit" className="btn-primary" disabled={loading}>
-                {loading ? "Creating..." : "Create Session"}
-              </button>
-            </div>
-          </form>
-        </Modal>
-      )}
+            </Form.Field>
+          </Form>
+        </Modal.Content>
+        <Modal.Actions>
+          <Button secondary onClick={() => setShowCreateModal(false)}>
+            Cancel
+          </Button>
+          <Button 
+            primary 
+            loading={loading} 
+            disabled={loading}
+            onClick={handleCreatePost}
+          >
+            Create Session
+          </Button>
+        </Modal.Actions>
+      </Modal>
 
       {/* Link Modal */}
-      {showLinkModal && (
-        <Modal onClose={() => setShowLinkModal(null)}>
-          <div className="modal-header">
-            <h2>Add Meeting Link</h2>
-            <button className="modal-close" onClick={() => setShowLinkModal(null)}>
-              <X size={20} />
-            </button>
-          </div>
-          <div className="kuppi-form">
-            <div className="info-box">
-              <AlertCircle size={18} />
-              <p>Applicants will be notified automatically</p>
-            </div>
-            <div className="form-field">
+      <Modal
+        open={!!showLinkModal}
+        onClose={() => setShowLinkModal(null)}
+        size="mini"
+      >
+        <Modal.Header>Add Meeting Link</Modal.Header>
+        <Modal.Content>
+          <Message info icon>
+            <Icon name="info circle" />
+            <Message.Content>
+              Applicants will be notified automatically
+            </Message.Content>
+          </Message>
+          <Form>
+            <Form.Field>
               <label>Meeting Link</label>
-              <input
+              <Input
+                icon="linkify"
+                iconPosition="left"
                 type="url"
                 placeholder="https://meet.google.com/..."
                 value={meetingLinkInput}
                 onChange={(e) => setMeetingLinkInput(e.target.value)}
               />
-            </div>
-            <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setShowLinkModal(null)}>
-                Cancel
-              </button>
-              <button
-                className="btn-primary"
-                onClick={() => handleAddLink(showLinkModal)}
-                disabled={!meetingLinkInput.trim()}
-              >
-                <Video size={16} />
-                Save & Notify
-              </button>
-            </div>
-          </div>
-        </Modal>
-      )}
+            </Form.Field>
+          </Form>
+        </Modal.Content>
+        <Modal.Actions>
+          <Button basic onClick={() => setShowLinkModal(null)}>
+            Cancel
+          </Button>
+          <Button
+            primary
+            onClick={() => handleAddLink(showLinkModal)}
+            disabled={!meetingLinkInput.trim()}
+          >
+            <Icon name="video" />
+            Save & Notify
+          </Button>
+        </Modal.Actions>
+      </Modal>
 
       {/* Applicants Modal */}
       {showApplicantsModal && (
@@ -393,13 +420,6 @@ const Kuppi = () => {
   );
 };
 
-const Modal = ({ children, onClose }) => (
-  <div className="kuppi-modal-overlay" onClick={onClose}>
-    <div className="kuppi-modal" onClick={(e) => e.stopPropagation()}>
-      {children}
-    </div>
-  </div>
-);
 
 const SessionCard = ({ post, user, index, onApply, onAddLink, onViewApplicants, onExport, getStatusStyle, setMeetingLinkInput }) => {
   const isOwner = post.ownerId?._id === user?._id || post.ownerId === user?._id;
@@ -440,9 +460,9 @@ const SessionCard = ({ post, user, index, onApply, onAddLink, onViewApplicants, 
             <span className="author-dept">{post.ownerId?.department || "Student"}</span>
           </div>
         </div>
-        <span className="status-badge" style={{ background: status.bg, color: status.text }}>
+        <Label style={{ background: status.bg, color: status.text }} size="small">
           {post.status || "Pending"}
-        </span>
+        </Label>
       </div>
 
       <div className="card-body">
@@ -470,48 +490,64 @@ const SessionCard = ({ post, user, index, onApply, onAddLink, onViewApplicants, 
       </div>
 
       {post.meetingLink && (
-        <a href={post.meetingLink} target="_blank" rel="noopener noreferrer" className="meeting-btn">
-          <Video size={18} />
+        <Button 
+          as="a" 
+          href={post.meetingLink} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          fluid 
+          color="blue"
+          className="meeting-btn-semantic"
+        >
+          <Icon name="video" />
           Join Meeting
-          <ExternalLink size={16} />
-        </a>
+          <Icon name="external alternate" style={{ marginLeft: '8px' }} />
+        </Button>
       )}
 
       {!isOwner && !isPast && !post._hasApplied && (
-        <button className="meeting-btn" onClick={() => onApply(post._id)}>
-          <CheckCircle size={18} />
+        <Button 
+          fluid 
+          primary 
+          onClick={() => onApply(post._id)}
+          className="meeting-btn-semantic"
+        >
+          <Icon name="check circle" />
           Join Session
-        </button>
+        </Button>
       )}
 
       {post._hasApplied && !isOwner && (
-        <div className="joined-badge">
-          <CheckCircle size={16} />
+        <Message success size="tiny" className="joined-message">
+          <Icon name="check circle" />
           Successfully Joined
-        </div>
+        </Message>
       )}
 
       <div className="card-actions">
         {isOwner && (
-          <>
+          <Button.Group widths={3} size="tiny" basic>
             {!post.meetingLink && (
-              <button 
-                className="action-btn primary"
+              <Button 
                 onClick={() => { onAddLink(post._id); setMeetingLinkInput(post.meetingLink || ""); }}
+                title="Add Link"
               >
-                <LinkIcon size={14} />
-                Add Link
-              </button>
+                <Icon name="linkify" />
+              </Button>
             )}
-            <button className="action-btn" onClick={() => onViewApplicants(post._id)}>
-              <Users size={14} />
-              Applicants
-            </button>
-            <button className="action-btn" onClick={() => onExport(post._id)}>
-              <FileSpreadsheet size={14} />
-              Export
-            </button>
-          </>
+            <Button 
+              onClick={() => onViewApplicants(post._id)}
+              title="View Applicants"
+            >
+              <Icon name="users" />
+            </Button>
+            <Button 
+              onClick={() => onExport(post._id)}
+              title="Export to Excel"
+            >
+              <Icon name="file excel" />
+            </Button>
+          </Button.Group>
         )}
       </div>
     </div>
@@ -524,60 +560,81 @@ const ApplicantsModal = ({ postId, posts, onClose, onExport }) => {
   const post = posts.find((p) => p._id === postId);
 
   return (
-    <Modal onClose={onClose}>
-      <div className="modal-header">
-        <div>
-          <h2>Session Applicants</h2>
-          {post && <p className="modal-subtitle">{post.title}</p>}
-        </div>
-        <button className="modal-close" onClick={onClose}>
-          <X size={20} />
-        </button>
-      </div>
-      
-      <div className="applicants-header-bar">
-        <span>{postApplicants.length} applicants</span>
-        <button className="action-btn primary" onClick={() => onExport(postId)}>
-          <Download size={18} />
-          Export Excel
-        </button>
-      </div>
-
-      {applicantsLoading ? (
-        <div className="kuppi-loading">
-          <div className="spinner" />
-          <span>Loading...</span>
-        </div>
-      ) : postApplicants.length === 0 ? (
-        <div className="no-applicants">
-          <Users size={48} />
-          <p>No applicants yet</p>
-        </div>
-      ) : (
-        <div className="applicants-table">
-          <div className="table-header">
-            <span>#</span>
-            <span>Name</span>
-            <span>Email</span>
-            <span>Department</span>
-            <span>Applied</span>
+    <Modal open onClose={onClose} size="large">
+      <Modal.Header>
+        <div className="modal-header-flex">
+          <div>
+            <Header as="h2">Session Applicants</Header>
+            {post && <p style={{ fontSize: '0.9rem', color: 'var(--color-text-tertiary)', fontWeight: 'normal' }}>{post.title}</p>}
           </div>
-          {postApplicants.map((applicant, idx) => (
-            <div key={applicant._id} className="table-row">
-              <span className="row-num">{idx + 1}</span>
-              <span className="row-name">
-                <div className="row-avatar">{applicant.name?.charAt(0)?.toUpperCase() || "U"}</div>
-                {applicant.name}
-              </span>
-              <span className="row-email">{applicant.email}</span>
-              <span className="row-dept">{applicant.applicantId?.department || "—"}</span>
-              <span className="row-date">
-                {new Date(applicant.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-              </span>
-            </div>
-          ))}
+          <Icon name="close" onClick={onClose} link />
         </div>
-      )}
+      </Modal.Header>
+      <Modal.Content scrolling>
+        <div className="applicants-header-bar-semantic">
+          <Label color="blue" size="large">
+            <Icon name="users" /> {postApplicants.length} Applicants
+          </Label>
+          <Button primary onClick={() => onExport(postId)}>
+            <Icon name="file excel" /> Export Excel
+          </Button>
+        </div>
+
+        {applicantsLoading ? (
+          <div className="kuppi-loading-semantic">
+            <Icon loading name="spinner" size="large" />
+            <span>Loading applicants...</span>
+          </div>
+        ) : postApplicants.length === 0 ? (
+          <div className="no-applicants-semantic">
+            <Icon name="users" size="huge" disabled />
+            <Header as="h3">No applicants yet</Header>
+          </div>
+        ) : (
+          <Table celled padded striped className="applicants-table-semantic">
+            <Table.Header>
+              <Table.Row>
+                <Table.HeaderCell width={1}>#</Table.HeaderCell>
+                <Table.HeaderCell>Name</Table.HeaderCell>
+                <Table.HeaderCell>Email</Table.HeaderCell>
+                <Table.HeaderCell>Department</Table.HeaderCell>
+                <Table.HeaderCell>Applied Date</Table.HeaderCell>
+              </Table.Row>
+            </Table.Header>
+
+            <Table.Body>
+              {postApplicants.map((applicant, idx) => (
+                <Table.Row key={applicant._id}>
+                  <Table.Cell>{idx + 1}</Table.Cell>
+                  <Table.Cell>
+                    <Header as="h4" image>
+                      <div className="row-avatar-semantic">
+                        {applicant.name?.charAt(0)?.toUpperCase() || "U"}
+                      </div>
+                      <Header.Content>
+                        {applicant.name}
+                        <Header.Subheader>Student</Header.Subheader>
+                      </Header.Content>
+                    </Header>
+                  </Table.Cell>
+                  <Table.Cell>{applicant.email}</Table.Cell>
+                  <Table.Cell>{applicant.applicantId?.department || "—"}</Table.Cell>
+                  <Table.Cell>
+                    {new Date(applicant.createdAt).toLocaleDateString("en-US", { 
+                      month: "short", 
+                      day: "numeric",
+                      year: "numeric"
+                    })}
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table>
+        )}
+      </Modal.Content>
+      <Modal.Actions>
+        <Button onClick={onClose}>Close</Button>
+      </Modal.Actions>
     </Modal>
   );
 };

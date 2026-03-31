@@ -403,10 +403,10 @@ export default function Dashboard() {
               <div className="dashboard-time__progress">
                 <svg viewBox="0 0 100 100">
                   <circle className="progress-ring-bg" cx="50" cy="50" r="48" />
-                  <circle 
-                    className="progress-ring" 
-                    cx="50" 
-                    cy="50" 
+                  <circle
+                    className="progress-ring"
+                    cx="50"
+                    cy="50"
                     r="48"
                     strokeDasharray={`${2 * Math.PI * 48}`}
                     strokeDashoffset={ringOffset}

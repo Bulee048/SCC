@@ -193,7 +193,7 @@ const Notes = () => {
                 <button
                   className="search-clear"
                   onClick={(e) => { e.stopPropagation(); setLocalSearch(""); }}
-                  style={{ background: 'transparent', border: 'none', color: 'var(--n-text-muted)', cursor: 'pointer', paddingRight: '1rem' }}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--n-text-muted)', cursor: 'pointer', paddingRight: '1rem', borderRadius: '50%' }}
                 >
                   <X size={14} />
                 </button>
@@ -393,9 +393,9 @@ const NoteCard = ({ note, currentUserId, onReaction, onViewComments }) => {
 
   return (
     <div className={`note-card ${isPinned ? "pinned" : ""}`} onClick={onViewComments}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
-        <h3 className="note-title" style={{ flex: 1 }}>{note.title}</h3>
-        {isPinned && <Pin size={16} color="var(--n-accent)" fill="currentColor" style={{ marginTop: '4px', flexShrink: 0 }} />}
+      <div className="note-card-header">
+        <h3 className="note-title">{note.title}</h3>
+        {isPinned && <Pin size={16} color="var(--n-accent)" fill="currentColor" className="pin-icon" />}
       </div>
       <p className="note-body">{note.description}</p>
 
@@ -416,11 +416,11 @@ const NoteCard = ({ note, currentUserId, onReaction, onViewComments }) => {
             title="Like"
           >
             <ThumbsUp size={16} />
-            {likeCount > 0 && <span style={{ marginLeft: '4px', fontSize: '0.75rem' }}>{likeCount}</span>}
+            {likeCount > 0 && <span className="action-count">{likeCount}</span>}
           </button>
           <button className="action-btn" onClick={(e) => { e.stopPropagation(); onViewComments(); }} title="Comments">
             <MessageSquare size={16} />
-            {commentCount > 0 && <span style={{ marginLeft: '4px', fontSize: '0.75rem' }}>{commentCount}</span>}
+            {commentCount > 0 && <span className="action-count">{commentCount}</span>}
           </button>
           <button className="action-btn" onClick={handleCopyLink} title="Copy Link">
             {copied ? <Check size={16} color="var(--n-accent)" /> : <LinkIcon size={16} />}
