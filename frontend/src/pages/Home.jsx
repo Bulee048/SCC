@@ -10,12 +10,7 @@ import { useCyberpunkBackground } from "../hooks/useCyberpunkBackground";
 gsap.registerPlugin(ScrollTrigger);
 
 // ========== DATA (same) ==========
-const stats = [
-  { value: "50K+", label: "Active Students" },
-  { value: "10K+", label: "Study Groups" },
-  { value: "99.9%", label: "Uptime" },
-  { value: "4.9★", label: "Avg Rating" },
-];
+// ...existing code...
 
 const features = [
   { icon: "📝", tag: "Notes", title: "Smart Notes Sharing", desc: "Upload, organize, and share lecture notes with your peers. AI-powered summaries help you study smarter." },
@@ -72,6 +67,7 @@ const faqs = [
 
 export default function Home() {
   const [scrolled, setScrolled] = useState(false);
+  const [navHidden, setNavHidden] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [canvasReady, setCanvasReady] = useState(false);
@@ -109,7 +105,25 @@ export default function Home() {
 
   // Navbar scroll effect
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
+    let lastY = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      setScrolled(y > 20);
+
+      // Hide when scrolling down, reveal when scrolling up.
+      // Small hysteresis to avoid flicker around the threshold.
+      const scrollingDown = y > lastY + 6;
+      const scrollingUp = y < lastY - 6;
+      if (y < 60) {
+        setNavHidden(false);
+      } else if (scrollingDown) {
+        setNavHidden(true);
+      } else if (scrollingUp) {
+        setNavHidden(false);
+      }
+
+      lastY = y;
+    };
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
@@ -261,6 +275,10 @@ export default function Home() {
           --bg-dark: #1b2a43;
           --bg-card: rgba(36, 50, 74, 0.8);
           --bg-surface: #253651;
+          --glass-header: rgba(15, 23, 42, 0.92);
+          --glass-header-top: rgba(15, 23, 42, 0.38);
+          --glass-bg: rgba(30, 41, 59, 0.22);
+          --glass-hover: rgba(51, 65, 85, 0.45);
           --border: rgba(255, 255, 255, 0.11);
           --accent-cyan: #2dd4bf;
           --accent-green: #10b981;
@@ -316,24 +334,30 @@ export default function Home() {
           position: fixed;
           top: 0; left: 0; right: 0;
           z-index: 200;
-          height: 88px;
-          transition: height 0.35s ease, background 0.35s ease, box-shadow 0.35s ease;
+          width: 100%;
+          background: var(--glass-header-top);
+          backdrop-filter: blur(20px);
+          border-bottom: 1px solid var(--border);
+          transition: background 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease, transform 0.22s ease, opacity 0.22s ease;
         }
         nav.scrolled {
-          height: 74px;
-          background: rgba(28, 44, 70, 0.86);
-          backdrop-filter: blur(20px) saturate(180%);
-          box-shadow: 0 1px 0 rgba(255,255,255,0.08), 0 10px 34px rgba(0,0,0,0.42);
+          background: var(--glass-header);
+          border-bottom-color: rgba(255, 255, 255, 0.16);
+          box-shadow: 0 10px 34px rgba(0, 0, 0, 0.42);
+        }
+        nav.nav-hidden {
+          transform: translateY(-110%);
+          opacity: 0;
+          pointer-events: none;
         }
         .nav-inner {
           width: 100%;
-          max-width: 1480px;
-          height: 100%;
+          max-width: 1600px;
           margin: 0 auto;
-          padding: 0 clamp(1.5rem, 4vw, 4rem);
-          display: grid;
-          grid-template-columns: 1fr auto 1fr;
+          padding: 1.2rem 2.4rem;
+          display: flex;
           align-items: center;
+          justify-content: space-between;
           gap: 1rem;
         }
 
@@ -365,27 +389,25 @@ export default function Home() {
           box-shadow: 0 10px 28px rgba(16,185,129,0.4), 0 0 20px rgba(45,212,191,0.3);
         }
         .nav-brand-name {
+          font-family: 'Inter', sans-serif;
           font-weight: 800;
-          font-size: 1.34rem;
+          font-size: 1.62rem;
           letter-spacing: -0.03em;
-          color: var(--text-primary);
+          background: linear-gradient(135deg, var(--text-primary), var(--accent-green));
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
           line-height: 1;
         }
         .nav-brand-name span {
-          color: var(--accent-green);
+          color: inherit;
         }
 
         /* ---- Center Links ---- */
         .nav-center {
           display: flex;
           align-items: center;
-          gap: 0;
-          background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
-          border: 1px solid rgba(255,255,255,0.12);
-          border-radius: 100px;
-          padding: 6px;
-          backdrop-filter: blur(14px);
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 8px 26px rgba(0,0,0,0.24);
+          gap: 10px;
         }
         .nav-link {
           /* complete reset for both <a> and <button> */
@@ -395,25 +417,36 @@ export default function Home() {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          height: 42px;
-          padding: 0 1.2rem;
-          border-radius: 100px;
-          font-size: 0.95rem;
-          font-weight: 600;
+          gap: 10px;
+          min-height: 48px;
+          padding: 14px 26px;
+          border-radius: 18px;
+          font-size: 1.08rem;
+          font-weight: 700;
           line-height: 1;
-          color: #b5c4da;
-          transition: color 0.2s, background 0.2s;
+          color: #e2e8f0;
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          transition: all 0.25s ease;
           white-space: nowrap;
           text-decoration: none;
           -webkit-font-smoothing: antialiased;
         }
+        .nav-link:visited,
+        .nav-link:active {
+          color: #e2e8f0;
+        }
         .nav-link:hover {
-          color: var(--text-primary);
-          background: rgba(255,255,255,0.14);
+          color: #f8fafc;
+          background: rgba(255, 255, 255, 0.16);
+          border-color: rgba(255, 255, 255, 0.24);
+          transform: translateY(-2px);
         }
         .nav-link.active-link {
-          color: var(--text-primary);
-          background: linear-gradient(135deg, rgba(16,185,129,0.24), rgba(45,212,191,0.2));
+          color: #ffffff;
+          background: linear-gradient(135deg, var(--accent-green), #059669);
+          border-color: transparent;
+          box-shadow: 0 10px 20px -6px rgba(16, 185, 129, 0.45), inset 0 2px 4px rgba(255, 255, 255, 0.2);
         }
 
         /* ---- Right side ---- */
@@ -429,21 +462,23 @@ export default function Home() {
           box-sizing: border-box;
           display: inline-flex;
           align-items: center;
-          height: 42px;
-          padding: 0 1.25rem;
-          font-size: 0.95rem;
-          font-weight: 600;
+          padding: 11px 20px;
+          font-size: 0.98rem;
+          font-weight: 700;
           line-height: 1;
-          color: var(--text-muted);
-          border-radius: 100px;
-          transition: color 0.2s, background 0.2s;
+          color: #cbd5e1;
+          border-radius: 14px;
+          border: 1px solid var(--border);
+          background: var(--glass-bg);
+          transition: all 0.25s ease;
           text-decoration: none;
           white-space: nowrap;
         }
-        .home-signin-btn:visited { color: var(--text-muted); }
+        .home-signin-btn:visited { color: #cbd5e1; }
         .home-signin-btn:hover {
-          color: var(--text-primary);
-          background: rgba(255,255,255,0.1);
+          color: #f8fafc;
+          background: var(--glass-hover);
+          transform: translateY(-2px);
         }
         .btn-solid {
           all: unset;
@@ -451,22 +486,21 @@ export default function Home() {
           box-sizing: border-box;
           display: inline-flex;
           align-items: center;
-          height: 42px;
-          padding: 0 1.4rem;
-          font-size: 0.95rem;
-          font-weight: 600;
+          padding: 11px 22px;
+          font-size: 0.98rem;
+          font-weight: 700;
           line-height: 1;
           color: #fff;
-          background: var(--accent-green);
-          border-radius: 100px;
+          background: linear-gradient(135deg, var(--accent-green), #059669);
+          border-radius: 14px;
           text-decoration: none;
           white-space: nowrap;
-          box-shadow: 0 8px 22px -6px rgba(16,185,129,0.75);
+          box-shadow: 0 10px 20px -6px rgba(16, 185, 129, 0.5);
           transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
         }
         .btn-solid:visited, .btn-solid:active { color: #fff; }
         .btn-solid:hover {
-          background: #12c98d;
+          background: linear-gradient(135deg, #12c98d, #0d9a69);
           transform: translateY(-2px);
           box-shadow: 0 8px 24px -4px rgba(16,185,129,0.85);
           color: #fff;
@@ -1124,13 +1158,12 @@ export default function Home() {
         }
 
         [data-theme="light"] nav.scrolled {
-          background: rgba(238, 246, 255, 0.92);
-          border-bottom: 1px solid rgba(15, 23, 42, 0.14);
+          background: rgba(255, 255, 255, 0.95);
+          border-bottom: 1px solid rgba(15, 23, 42, 0.12);
         }
 
-        [data-theme="light"] .nav-center {
-          background: rgba(244, 249, 255, 0.86);
-          border: 1px solid rgba(59, 130, 246, 0.24);
+        [data-theme="light"] nav {
+          background: rgba(255, 255, 255, 0.55);
         }
 
         [data-theme="light"] .nav-mobile-drawer {
@@ -1165,6 +1198,29 @@ export default function Home() {
         [data-theme="light"] .footer-copy,
         [data-theme="light"] .nav-link {
           color: #334155;
+        }
+
+        [data-theme="light"] .nav-link:hover {
+          color: #0f172a;
+          background: rgba(37, 99, 235, 0.1);
+          border-color: rgba(37, 99, 235, 0.2);
+        }
+
+        [data-theme="light"] .nav-link,
+        [data-theme="light"] .nav-link:visited,
+        [data-theme="light"] .nav-link:active {
+          color: #334155;
+          background: rgba(255, 255, 255, 0.75);
+        }
+
+        [data-theme="light"] .home-signin-btn:visited {
+          color: #0f172a;
+        }
+
+        [data-theme="light"] .home-signin-btn {
+          color: #0f172a;
+          background: rgba(255, 255, 255, 0.92);
+          border-color: rgba(100, 116, 139, 0.28);
         }
 
         [data-theme="light"] .stat-label,
@@ -1262,7 +1318,7 @@ export default function Home() {
           .nav-link { padding: 0 0.85rem; font-size: 0.85rem; }
         }
         @media (max-width: 860px) {
-          .nav-inner { grid-template-columns: 1fr auto; }
+          .nav-inner { padding: 1rem 1.2rem; }
           .nav-center { display: none; }
           .nav-hamburger { display: flex; }
           .nav-right .home-signin-btn,
@@ -1287,10 +1343,11 @@ export default function Home() {
         <div className="overlay" />
 
         <div className="content">
-          <nav className={scrolled ? "scrolled" : ""}>
+          <nav className={[scrolled ? "scrolled" : "", navHidden ? "nav-hidden" : ""].filter(Boolean).join(" ")}>
             <div className="nav-inner">
               {/* Brand */}
               <Link to="/" className="nav-brand">
+                {/* Removed app icon as requested */}
                 <span className="nav-brand-name">Smart<span> Campus Companion</span></span>
               </Link>
 
@@ -1405,14 +1462,7 @@ export default function Home() {
                     Explore Features
                   </button>
                 </div>
-                <div className="stats-row" data-hero-stats>
-                  {stats.map((s) => (
-                    <div className="stat-item" key={s.label}>
-                      <div className="stat-val">{s.value}</div>
-                      <div className="stat-label">{s.label}</div>
-                    </div>
-                  ))}
-                </div>
+                {/* Stats removed as requested */}
               </div>
             </section>
 
@@ -1467,12 +1517,7 @@ export default function Home() {
                   <h3 className="glow-card-title">Join 50,000+ students already thriving</h3>
                   <p className="glow-card-sub">The average student reports 40% better time management and significantly less exam stress within the first month.</p>
                   <div className="mini-stats">
-                    {stats.map((s) => (
-                      <div className="mini-stat" key={s.label}>
-                        <div className="mini-stat-val">{s.value}</div>
-                        <div className="mini-stat-lbl">{s.label}</div>
-                      </div>
-                    ))}
+                    {/* Mini stats removed as requested */}
                   </div>
                   <Link to="/register" className="glow-card-btn">Create Free Account →</Link>
                 </div>

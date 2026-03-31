@@ -1,46 +1,35 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import "./SessionEnd.css";
 
 function SessionEnd({ onClose }) {
   const navigate = useNavigate();
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsVisible(true), 10);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleGoHome = () => {
-    if (onClose) onClose();
-    navigate("/");
+    setIsVisible(false);
+    setTimeout(() => {
+      if (onClose) onClose();
+      navigate("/");
+    }, 300);
   };
 
   return (
-    <div className="session-end-modal" style={{
-      position: "fixed",
-      top: 0,
-      left: 0,
-      width: "100vw",
-      height: "100vh",
-      background: "rgba(0,0,0,0.5)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      zIndex: 9999
-    }}>
-      <div style={{
-        background: "#fff",
-        padding: 32,
-        borderRadius: 12,
-        boxShadow: "0 2px 16px rgba(0,0,0,0.2)",
-        textAlign: "center"
-      }}>
-        <h2>Session Ended</h2>
-        <p>Your session has expired due to inactivity.</p>
-        <button onClick={handleGoHome} style={{
-          marginTop: 16,
-          padding: "8px 24px",
-          fontSize: 16,
-          borderRadius: 6,
-          border: "none",
-          background: "#2563eb",
-          color: "#fff",
-          cursor: "pointer"
-        }}>
+    <div className={`session-end-overlay ${isVisible ? "visible" : ""}`}>
+      <div className={`session-end-modal ${isVisible ? "visible" : ""}`}>
+        <div className="session-end-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h2 className="session-end-title">Session Ended</h2>
+        <p className="session-end-message">Your session has expired due to inactivity.</p>
+        <button onClick={handleGoHome} className="session-end-button">
           Go to Homepage
         </button>
       </div>

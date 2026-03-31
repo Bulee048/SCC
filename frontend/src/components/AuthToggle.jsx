@@ -420,7 +420,7 @@ const AuthToggle = () => {
         <div className="auth-brand-modern">
           <div className="brand-content-modern">
             <div className="brand-logo">
-              <GraduationCap size={48} className="logo-icon" />
+              {/* Removed app icon as requested */}
               <span className="logo-text">Smart  Campus<span className="logo-highlight">   Companion</span></span>
             </div>
             
@@ -433,18 +433,7 @@ const AuthToggle = () => {
             </p>
 
             <div className="brand-stats">
-              <div className="stat-item">
-                <span className="stat-value">10k+</span>
-                <span className="stat-label">Active Students</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-value">500+</span>
-                <span className="stat-label">Faculty Members</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-value">24/7</span>
-                <span className="stat-label">Support</span>
-              </div>
+              {/* Stats removed as requested */}
             </div>
 
             <div className="brand-features-modern">

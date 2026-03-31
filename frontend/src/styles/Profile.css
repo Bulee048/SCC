@@ -251,10 +251,59 @@ html[data-theme="light"] .pr-root {
   backdrop-filter: blur(4px);
 }
 
+.pr-topbar__left {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.pr-back-btn {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+  box-shadow: var(--shadow-soft);
+}
+
+.pr-back-btn:hover {
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  border-color: transparent;
+  transform: translateY(-2px);
+}
+
+.pr-back-btn:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
 .pr-topbar__breadcrumb {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.pr-topbar__breadcrumb a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.pr-topbar__breadcrumb a:hover {
+  color: var(--accent-primary);
+  transform: translateY(-1px);
+}
+
+.pr-topbar__breadcrumb svg {
+  color: var(--text-muted);
 }
 
 .pr-topbar__page {
@@ -1065,7 +1114,7 @@ html[data-theme="light"] .pr-root {
 .pr-danger-title {
   font-size: 1.8rem;
   font-weight: 800;
-  background: linear-gradient(135deg, var(--text-primary), var(--danger));
+  background: linear-gradient(135deg, var(--text-primary), #ef4444);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -1090,14 +1139,14 @@ html[data-theme="light"] .pr-root {
   left: 0;
   width: 4px;
   height: 100%;
-  background: var(--danger);
+  background: #ef4444;
 }
 
 .pr-caution-icon-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--danger);
+  color: #ef4444;
   filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.4));
 }
 
@@ -1143,8 +1192,8 @@ html[data-theme="light"] .pr-root {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--danger);
-  box-shadow: 0 0 8px var(--danger);
+  background: #ef4444;
+  box-shadow: 0 0 8px #ef4444;
 }
 
 .pr-impact-text {
@@ -1174,7 +1223,7 @@ html[data-theme="light"] .pr-root {
 }
 
 .pr-btn-delete-final {
-  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  background: linear-gradient(135deg, #ef4444, #dc2626);
   border: none;
   padding: 1.25rem 2.5rem;
   border-radius: 60px;
@@ -1469,6 +1518,15 @@ html[data-theme="light"] .pr-root {
 
   .pr-main {
     padding: 1.2rem;
+  }
+
+  .pr-topbar {
+    flex-wrap: wrap;
+    gap: 0.8rem;
+  }
+
+  .pr-topbar__meta {
+    margin-left: auto;
   }
 
   .pr-hero {

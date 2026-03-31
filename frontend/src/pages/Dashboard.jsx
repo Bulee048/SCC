@@ -1,5 +1,6 @@
 // Dashboard.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import axios from "axios";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate, Link } from "react-router-dom";
 import { logout } from "../features/auth/authSlice";
@@ -22,6 +23,22 @@ export default function Dashboard() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [now, setNow] = useState(new Date());
+  // Task 2: Animated stat values with requestAnimationFrame
+  const [animatedStats, setAnimatedStats] = useState([0, 0, 0, 0]);
+  const canvasRef = useRef(null);
+
+  // Dynamic stats state
+  const [stats, setStats] = useState([
+    { icon: <BookOpen size={20} />, value: 0, label: "Notes Shared", trend: "", color: "#10b981", rgb: "16, 185, 129" },
+    { icon: <Users size={20} />, value: 0, label: "Study Groups", trend: "", color: "#3b82f6", rgb: "59, 130, 246" },
+    { icon: <Calendar size={20} />, value: 0, label: "Events Today", trend: "", color: "#8b5cf6", rgb: "139, 92, 246" },
+    { icon: <Target size={20} />, value: 0, label: "Active Tasks", trend: "", color: "#f59e0b", rgb: "245, 158, 11" },
+  ]);
+
+  // Dynamic classes, activity, and upcoming event
+  const [todayClasses, setTodayClasses] = useState([]);
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [upcomingEvent, setUpcomingEvent] = useState(null);
 
   useEffect(() => {
     if (!isAuthenticated) navigate("/");
@@ -31,6 +48,170 @@ export default function Dashboard() {
     const t = setInterval(() => setNow(new Date()), 30000);
     return () => clearInterval(t);
   }, []);
+
+  // Initialize navigation indicator position
+  useEffect(() => {
+    const activeLink = document.querySelector('.dashboard-nav__link.active');
+    if (activeLink) {
+      const rect = activeLink.getBoundingClientRect();
+      const parentRect = activeLink.parentElement.getBoundingClientRect();
+      // setIndicatorStyle({
+      //   left: rect.left - parentRect.left,
+      //   width: rect.width,
+      //   opacity: 1
+      // });
+    }
+  }, []);
+
+  // Task 7: Canvas particle system
+  useEffect(() => {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    const canvas = document.createElement('canvas');
+    canvas.className = 'dashboard-particles-canvas';
+    document.body.appendChild(canvas);
+    canvasRef.current = canvas;
+
+    const ctx = canvas.getContext('2d');
+    let animationId;
+
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    resize();
+    window.addEventListener('resize', resize);
+
+    const accentColors = [
+      'rgba(16, 185, 129, 0.15)',   // Emerald
+      'rgba(59, 130, 246, 0.15)',   // Azure
+      'rgba(168, 85, 247, 0.15)',   // Amethyst
+      'rgba(245, 158, 11, 0.15)',   // Amber
+    ];
+
+    const particles = [];
+    for (let i = 0; i < 70; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        radius: 1 + Math.random(),
+        dx: (Math.random() - 0.5) * 0.4,
+        dy: (Math.random() - 0.5) * 0.4,
+        color: accentColors[Math.floor(Math.random() * accentColors.length)],
+      });
+    }
+
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      particles.forEach(p => {
+        p.x += p.dx;
+        p.y += p.dy;
+
+        if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.fill();
+      });
+
+      animationId = requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    return () => {
+      cancelAnimationFrame(animationId);
+      window.removeEventListener('resize', resize);
+      if (canvas.parentNode) {
+        canvas.parentNode.removeChild(canvas);
+      }
+    };
+  }, []);
+
+  // Fetch dashboard data from backend
+  useEffect(() => {
+    async function fetchDashboardData() {
+      try {
+        // Fetch notes count
+        const notesRes = await axios.get("/api/notes");
+        const notesCount = notesRes.data?.data?.length || 0;
+
+        // Fetch groups count
+        const groupsRes = await axios.get("/api/groups?myGroups=true");
+        const groupsCount = groupsRes.data?.data?.length || 0;
+
+        // Fetch all timetable events (not just ongoing)
+        const allTimetableRes = await axios.get("/api/timetable");
+        const allEvents = allTimetableRes.data?.data || [];
+
+        // Find today's events
+        const today = new Date();
+        const todayEvents = allEvents.filter(ev => {
+          const evDate = new Date(ev.start);
+          return evDate.toDateString() === today.toDateString();
+        });
+
+        // Find upcoming event (next event after now)
+        const nowTime = new Date();
+        const futureEvents = allEvents.filter(ev => new Date(ev.start) > nowTime);
+        futureEvents.sort((a, b) => new Date(a.start) - new Date(b.start));
+        setUpcomingEvent(futureEvents.length > 0 ? futureEvents[0] : null);
+
+        // Fetch active tasks (for demo, use events count)
+        const tasksCount = todayEvents.length;
+
+        // Optionally, fetch recent activity (notes, groups, kuppi, etc.)
+        const activity = [];
+        if (notesRes.data?.data?.length > 0) {
+          activity.push({ type: "note", text: `Shared a note: ${notesRes.data.data[0].title || "Untitled"}`, time: "Just now" });
+        }
+        if (groupsRes.data?.data?.length > 0) {
+          activity.push({ type: "group", text: `Joined group: ${groupsRes.data.data[0].name || "Unnamed"}`, time: "Today" });
+        }
+
+        setStats([
+          { icon: <BookOpen size={20} />, value: notesCount, label: "Notes Shared", trend: "", color: "#10b981", rgb: "16, 185, 129" },
+          { icon: <Users size={20} />, value: groupsCount, label: "Study Groups", trend: "", color: "#3b82f6", rgb: "59, 130, 246" },
+          { icon: <Calendar size={20} />, value: todayEvents.length, label: "Events Today", trend: "", color: "#8b5cf6", rgb: "139, 92, 246" },
+          { icon: <Target size={20} />, value: tasksCount, label: "Active Tasks", trend: "", color: "#f59e0b", rgb: "245, 158, 11" },
+        ]);
+        setTodayClasses(todayEvents);
+        setRecentActivity(activity);
+      } catch (err) {
+        // fallback to zeros
+        setStats([
+          { icon: <BookOpen size={20} />, value: 0, label: "Notes Shared", trend: "", color: "#10b981", rgb: "16, 185, 129" },
+          { icon: <Users size={20} />, value: 0, label: "Study Groups", trend: "", color: "#3b82f6", rgb: "59, 130, 246" },
+          { icon: <Calendar size={20} />, value: 0, label: "Events Today", trend: "", color: "#8b5cf6", rgb: "139, 92, 246" },
+          { icon: <Target size={20} />, value: 0, label: "Active Tasks", trend: "", color: "#f59e0b", rgb: "245, 158, 11" },
+        ]);
+        setTodayClasses([]);
+        setRecentActivity([]);
+        setUpcomingEvent(null);
+      }
+    }
+    fetchDashboardData();
+  }, []);
+  // Upcoming Event component
+  const UpcomingEvent = () => (
+    <div className="upcoming-event">
+      {upcomingEvent ? (
+        <>
+          <div className="upcoming-event-title">{upcomingEvent.title || upcomingEvent.name || "Event"}</div>
+          <div className="upcoming-event-time">
+            {upcomingEvent.start ? new Date(upcomingEvent.start).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ""}
+          </div>
+          {upcomingEvent.location && <div className="upcoming-event-location">{upcomingEvent.location}</div>}
+        </>
+      ) : (
+        <div className="upcoming-event-none">No upcoming events</div>
+      )}
+    </div>
+  );
 
   const handleLogout = async () => {
     const confirmed = await confirmAction("Are you sure you want to log out?", {
@@ -57,26 +238,26 @@ export default function Dashboard() {
   // Core modules – primary tools
   const primaryModules = [
     {
-      icon: <Brain size={24} />,
+      icon: <Brain size={28} />,
       title: "AI Timetable",
       desc: "Generate adaptive weekly plans, avoid clashes, and sync with deadlines.",
-      color: "#2a9d8f",
+      color: "#10b981", // Emerald
       path: "/timetable",
       badge: "AI Powered",
     },
     {
-      icon: <BookMarked size={24} />,
+      icon: <BookMarked size={28} />,
       title: "Notes & Kuppi",
       desc: "Organise personal notes, share resources, and run peer sessions.",
-      color: "#3b82f6",
+      color: "#3b82f6", // Azure
       path: "/notes",
       badge: "Collaborative",
     },
     {
-      icon: <Users size={24} />,
+      icon: <Users size={28} />,
       title: "Study Groups",
       desc: "Chat, share files, and coordinate tasks with your group members.",
-      color: "#8b5cf6",
+      color: "#a855f7", // Amethyst
       path: "/groups",
       badge: "Active",
     },
@@ -89,14 +270,6 @@ export default function Dashboard() {
     { icon: <Share2 size={18} />, title: "File Share", desc: "Fast resource sharing", color: "#10b981", path: "/files" },
   ];
 
-  // Stats – key metrics
-  const stats = [
-    { icon: <BookOpen size={20} />, value: "24", label: "Notes Shared", trend: "+12% this week", color: "#10b981" },
-    { icon: <Users size={20} />, value: "5", label: "Study Groups", trend: "2 active now", color: "#3b82f6" },
-    { icon: <Calendar size={20} />, value: "8", label: "Events Today", trend: "Next at 2 PM", color: "#8b5cf6" },
-    { icon: <Target size={20} />, value: "12", label: "Active Tasks", trend: "3 due soon", color: "#f59e0b" },
-  ];
-
   // Quick actions
   const quickActions = [
     { icon: <Plus size={16} />, label: "New Timetable", path: "/timetable", primary: true },
@@ -105,14 +278,54 @@ export default function Dashboard() {
     { icon: <Share2 size={16} />, label: "Share Notes", path: "/notes" },
   ];
 
+  // Task 5: TodayClasses static component
+  // Dynamic TodayClasses
+  const TodayClasses = () => (
+    <div className="today-classes">
+      {todayClasses.length === 0 ? (
+        <div className="today-class-row">
+          <span className="today-class-name">No classes today</span>
+        </div>
+      ) : (
+        todayClasses.map((event, idx) => (
+          <div className="today-class-row" key={idx}>
+            <span className={`today-class-dot emerald`}></span>
+            <span className="today-class-name">{event.title || event.name || "Class"}</span>
+            <span className="today-class-time">{event.start ? new Date(event.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}</span>
+          </div>
+        ))
+      )}
+    </div>
+  );
+
+  // Task 5: RecentActivity static component
+  // Dynamic RecentActivity
+  const RecentActivity = () => (
+    <div className="recent-activity">
+      {recentActivity.length === 0 ? (
+        <div className="activity-row">
+          <span className="activity-text">No recent activity</span>
+        </div>
+      ) : (
+        recentActivity.map((act, idx) => (
+          <div className="activity-row" key={idx}>
+            <span className={`activity-dot ${act.type === "note" ? "azure" : act.type === "group" ? "amethyst" : "amber"}`}></span>
+            <span className="activity-text">{act.text}</span>
+            <span className="activity-time">{act.time}</span>
+          </div>
+        ))
+      )}
+    </div>
+  );
+
   // Nav links (used in header)
   const navLinks = [
-    { icon: <HomeIcon size={16} />, label: "Home", path: "/" },
-    { icon: <LayoutDashboard size={16} />, label: "Dashboard", path: "/dashboard", active: true },
-    { icon: <Brain size={16} />, label: "Timetable", path: "/timetable" },
-    { icon: <BookMarked size={16} />, label: "Notes", path: "/notes" },
-    { icon: <Video size={16} />, label: "Kuppi", path: "/kuppi" },
-    { icon: <Users size={16} />, label: "Groups", path: "/groups" },
+    { icon: <HomeIcon size={20} strokeWidth={2.5} />, label: "Home", path: "/" },
+    { icon: <LayoutDashboard size={20} strokeWidth={2.5} />, label: "Dashboard", path: "/dashboard", active: true },
+    { icon: <Brain size={20} strokeWidth={2.5} />, label: "Timetable", path: "/timetable" },
+    { icon: <BookMarked size={20} strokeWidth={2.5} />, label: "Notes", path: "/notes" },
+    { icon: <Video size={20} strokeWidth={2.5} />, label: "Kuppi", path: "/kuppi" },
+    { icon: <Users size={20} strokeWidth={2.5} />, label: "Groups", path: "/groups" },
   ];
 
   return (
@@ -121,16 +334,16 @@ export default function Dashboard() {
       <header className="dashboard-header">
         <div className="dashboard-header__inner">
           <Link to="/dashboard" className="dashboard-logo">
-            <span className="dashboard-logo__icon">🧠</span>
-            <span className="dashboard-logo__text">Smart Campus</span>
+            <span className="dashboard-logo__text">User Dashboard</span>
           </Link>
 
           <nav className="dashboard-nav">
-            {navLinks.map((link) => (
+            {navLinks.map((link, idx) => (
               <Link
                 key={link.path}
                 to={link.path}
                 className={`dashboard-nav__link ${link.active ? "active" : ""}`}
+                style={{ "--i": idx }}
               >
                 {link.icon}
                 <span>{link.label}</span>
@@ -138,7 +351,7 @@ export default function Dashboard() {
             ))}
           </nav>
 
-          <div className="dashboard-actions">
+          <div className="dashboard-actions" style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
             <NotificationBell />
             <button className="dashboard-profile-btn" onClick={() => navigate("/profile")}>
               <span className="dashboard-avatar">
@@ -146,8 +359,8 @@ export default function Dashboard() {
               </span>
               <span className="dashboard-profile-name">{user.name?.split(" ")[0]}</span>
             </button>
-            <button className="dashboard-logout-btn" onClick={handleLogout}>
-              <LogOut size={16} />
+            <button className="dashboard-logout-btn" onClick={handleLogout} aria-label="Log Out">
+              <LogOut size={22} strokeWidth={2.5} />
             </button>
           </div>
         </div>
@@ -159,8 +372,19 @@ export default function Dashboard() {
           {/* Hero Section */}
           <section className="dashboard-hero">
             <div>
-              <div className="dashboard-hero__greeting">{getGreeting()}</div>
+              {/* Task 1: SYSTEM ONLINE status row */}
+              <div className="dashboard-hero__system-status">
+                <span className="dashboard-hero__system-dot"></span>
+                <span className="dashboard-hero__system-text">SYSTEM ONLINE</span>
+              </div>
+              <div className="dashboard-hero__greeting">
+                <span className="dashboard-hero__status-dot"></span>
+                {getGreeting()}
+              </div>
               <h1 className="dashboard-hero__name">{user.name}</h1>
+              <div className="dashboard-hero__status">
+                {animatedStats[0] || 0} notes · {animatedStats[1] || 0} groups · 7-day streak active
+              </div>
               <p className="dashboard-hero__desc">
                 Your study hub is ready. Track progress, access tools, and stay on top of your goals.
               </p>
@@ -170,15 +394,30 @@ export default function Dashboard() {
                 <button onClick={() => navigate("/groups")}>Study Groups</button>
               </div>
             </div>
+            
+            {/* Clock Panel */}
             <div className="dashboard-time">
+              <div className="dashboard-time__progress">
+                <svg viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="48" />
+                  <circle 
+                    className="progress-ring" 
+                    cx="50" 
+                    cy="50" 
+                    r="48"
+                    strokeDasharray={`${2 * Math.PI * 48}`}
+                    strokeDashoffset={`${2 * Math.PI * 48 * (1 - (new Date().getMinutes() / 60))}`}
+                  />
+                </svg>
+              </div>
               <div className="dashboard-time__label">
                 <Clock size={14} /> Current Time
               </div>
               <div className="dashboard-time__value">
-                {now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+                {new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })}
               </div>
               <div className="dashboard-time__date">
-                {now.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
               </div>
             </div>
           </section>
@@ -186,9 +425,13 @@ export default function Dashboard() {
           {/* Stats Grid */}
           <div className="dashboard-stats">
             {stats.map((stat, idx) => (
-              <div key={idx} className="stat-card" style={{ "--accent": stat.color }}>
+              <div
+                key={idx}
+                className="stat-card"
+                style={{ "--accent": stat.color, "--accent-rgb": stat.rgb, "--i": idx + 5 }}
+              >
                 <div className="stat-card__icon">{stat.icon}</div>
-                <div>
+                <div className="stat-card__content">
                   <div className="stat-card__value">{stat.value}</div>
                   <div className="stat-card__label">{stat.label}</div>
                 </div>
@@ -211,7 +454,12 @@ export default function Dashboard() {
               </div>
               <div className="primary-modules">
                 {primaryModules.map((mod, idx) => (
-                  <Link key={idx} to={mod.path} className="primary-card">
+                  <Link
+                    key={idx}
+                    to={mod.path}
+                    className="primary-card"
+                    style={{ "--color": mod.color, "--i": idx + 10 }}
+                  >
                     <div className="primary-card__icon" style={{ backgroundColor: mod.color + "15", color: mod.color }}>
                       {mod.icon}
                     </div>
@@ -222,7 +470,8 @@ export default function Dashboard() {
                       </div>
                       <p className="primary-card__desc">{mod.desc}</p>
                       <div className="primary-card__action">
-                        <span>Explore</span>
+                        <span>Explore Tool</span>
+                        <span className="primary-card__arrow">→</span>
                         <ArrowRight size={14} />
                       </div>
                     </div>
@@ -236,7 +485,12 @@ export default function Dashboard() {
               </div>
               <div className="secondary-modules">
                 {secondaryModules.map((mod, idx) => (
-                  <Link key={idx} to={mod.path} className="secondary-card">
+                  <Link
+                    key={idx}
+                    to={mod.path}
+                    className="secondary-card"
+                    style={{ "--color": mod.color, "--i": idx + 15 }}
+                  >
                     <div className="secondary-card__icon" style={{ backgroundColor: mod.color + "15", color: mod.color }}>
                       {mod.icon}
                     </div>
@@ -269,24 +523,23 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Upcoming Events – placeholder */}
+
+              {/* Upcoming Event Section */}
               <div className="sidebar-card">
-                <div className="sidebar-card__title">Upcoming Events</div>
-                <div className="placeholder-state">
-                  <Calendar size={32} strokeWidth={1.2} />
-                  <p>No events scheduled</p>
-                  <span>Your calendar is clear</span>
-                </div>
+                <div className="sidebar-card__title">Upcoming Event</div>
+                <UpcomingEvent />
               </div>
 
-              {/* Recent Activity – placeholder */}
+              {/* Task 5: Today's Classes */}
+              <div className="sidebar-card">
+                <div className="sidebar-card__title">Today's Classes</div>
+                <TodayClasses />
+              </div>
+
+              {/* Task 5: Recent Activity */}
               <div className="sidebar-card">
                 <div className="sidebar-card__title">Recent Activity</div>
-                <div className="placeholder-state">
-                  <Sparkles size={32} strokeWidth={1.2} />
-                  <p>Nothing new</p>
-                  <span>You're all caught up</span>
-                </div>
+                <RecentActivity />
               </div>
 
               {/* Optional: Study streak */}
@@ -304,5 +557,6 @@ export default function Dashboard() {
         </div>
       </main>
     </div>
+
   );
 }

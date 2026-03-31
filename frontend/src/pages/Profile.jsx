@@ -7,7 +7,7 @@ import {
   Settings, User as UserIcon, Home as HomeIcon, Video, Activity,
   Shield, LayoutDashboard, Mail, MapPin, Github, Twitter, Linkedin,
   Edit3, Clock, Globe, Trash2, CheckCircle2, Archive, Sparkles, X,
-  ChevronRight, AlertTriangle, ShieldAlert,
+  ChevronRight, AlertTriangle, ShieldAlert, ArrowLeft,
 } from "lucide-react";
 import NotificationBell from "../components/NotificationBell";
 import "../styles/Dashboard.css";
@@ -178,10 +178,15 @@ const Profile = () => {
 
         {/* TOP BAR / BREADCRUMBS */}
         <div className="pr-topbar">
-          <div className="pr-topbar__breadcrumb">
-            <Link to="/dashboard">Dashboard</Link>
-            <ChevronRight size={14} />
-            <span className="pr-topbar__page">My Profile</span>
+          <div className="pr-topbar__left">
+            <button className="pr-back-btn" onClick={() => navigate(-1)} title="Go Back">
+              <ArrowLeft size={20} />
+            </button>
+            <div className="pr-topbar__breadcrumb">
+              <Link to="/dashboard">Dashboard</Link>
+              <ChevronRight size={16} />
+              <span className="pr-topbar__page">My Profile</span>
+            </div>
           </div>
           <div className="pr-topbar__meta">
             <div className="pr-online-dot" />

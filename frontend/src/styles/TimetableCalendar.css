@@ -214,7 +214,7 @@
   gap: 12px;
   padding: 14px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.22), rgba(79, 70, 229, 0.18));
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.3), rgba(59, 130, 246, 0.2));
 }
 
 .ttcal__modalTitle {
@@ -251,18 +251,19 @@
   color: rgba(255, 255, 255, 0.9);
 }
 
-/* Event color variants */
+/* Event color variants (Amethyst Theme) */
 .ttcal__event--lecture {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.95), rgba(45, 212, 191, 0.82));
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.9), rgba(59, 130, 246, 0.8));
 }
 .ttcal__event--tutorial {
-  background: linear-gradient(135deg, rgba(45, 212, 191, 0.95), rgba(16, 185, 129, 0.82));
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(6, 182, 212, 0.8));
 }
 .ttcal__event--lab {
-  background: linear-gradient(135deg, rgba(167, 139, 250, 0.95), rgba(45, 212, 191, 0.82));
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.9), rgba(168, 85, 247, 0.8));
 }
 .ttcal__event--study {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.95), rgba(167, 139, 250, 0.82));
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.95), rgba(71, 85, 105, 0.8));
+  border-left: 4px solid var(--tt-amber);
 }
 
 /* Mobile: turn into stacked days */

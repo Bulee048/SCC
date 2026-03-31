@@ -65,7 +65,7 @@ const NotificationBell = () => {
   return (
     <div className="notification-bell-wrapper" ref={ref}>
       <button className="uiverse-bell-btn" onClick={handleToggle} aria-label="Notifications">
-        <Bell size={20} />
+        <Bell size={24} strokeWidth={2.5} />
         {unreadCount > 0 && (
           <span className="uiverse-badge">{unreadCount > 9 ? "9+" : unreadCount}</span>
         )}

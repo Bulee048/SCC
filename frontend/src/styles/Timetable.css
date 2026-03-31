@@ -1,0 +1,747 @@
+/* =====================================================
+   UNIBRIDGE — TIMETABLE PAGE
+   Tactical Intelligence Edition
+   Aesthetic: Command-center glassmorphism, Syne + DM Sans
+   ===================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* ─── TIMETABLE PAGE TOKENS (Temporal Nexus Edition) ─── */
+.timetable-uiverse-page {
+  --tt-font-display:  'Orbitron', sans-serif;
+  --tt-font-body:     'Inter', sans-serif;
+  --tt-font-mono:     'JetBrains Mono', monospace;
+
+  /* MCU AMETHYST PALETTE */
+  --tt-bg-deep:       #0d0221; /* Deep space purple */
+  --tt-bg-mid:        #150833;
+  --tt-surface:       rgba(21, 8, 51, 0.45);
+  --tt-surface-hover: rgba(30, 10, 70, 0.65);
+  --tt-border:        rgba(168, 85, 247, 0.15);
+  --tt-border-active: rgba(168, 85, 247, 0.4);
+
+  --tt-amethyst:      #a855f7;
+  --tt-amethyst-glow: rgba(168, 85, 247, 0.4);
+  --tt-azure:         #3b82f6;
+  --tt-emerald:       #10b981;
+  --tt-amber:         #f59e0b;
+  --tt-rose:          #f43f5e;
+  --tt-cyan:          #06b6d4;
+
+  --tt-text:          #f8fafc;
+  --tt-text-dim:      #94a3b8;
+  --tt-text-muted:    #475569;
+
+  --tt-blur:          blur(24px);
+  --tt-radius-card:   24px;
+  --tt-radius-inner:  14px;
+  --tt-radius-btn:    12px;
+  --tt-shadow:        0 12px 40px rgba(0, 0, 0, 0.6);
+  --tt-shadow-glow:   0 0 30px rgba(168, 85, 247, 0.2);
+
+  font-family: var(--tt-font-body);
+}
+
+/* ─── DARK / LIGHT ADAPTATION ──────────────────────── */
+[data-theme="light"] .timetable-uiverse-page {
+  --tt-bg-deep:       #f8fafc;
+  --tt-bg-mid:        #f1f5f9;
+  --tt-surface:       rgba(255, 255, 255, 0.7);
+  --tt-surface-hover: rgba(255, 255, 255, 0.9);
+  --tt-border:        rgba(168, 85, 247, 0.15);
+  --tt-border-active: rgba(168, 85, 247, 0.4);
+  --tt-text:          #0f172a;
+  --tt-text-dim:      #475569;
+  --tt-text-muted:    #94a3b8;
+  --tt-shadow:        0 8px 30px rgba(0, 0, 0, 0.05);
+  --tt-shadow-glow:   0 0 20px rgba(168, 85, 247, 0.1);
+}
+
+/* ─── CONTENT WRAPPER ───────────────────────────────── */
+.timetable-uiverse-page .dashboard-content {
+  max-width: 1460px;
+  margin: 0 auto;
+  padding: 2.5rem 3rem 5rem;
+}
+
+/* ─── HERO / WELCOME SECTION ────────────────────────── */
+.timetable-uiverse-page .welcome-section {
+  position: relative;
+  background: radial-gradient(circle at 0% 0%, rgba(168, 85, 247, 0.15) 0%, transparent 50%),
+              radial-gradient(circle at 100% 100%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+              var(--tt-surface);
+  border: 1px solid var(--tt-border);
+  border-top: 2px solid var(--tt-amethyst);
+  border-radius: var(--tt-radius-card);
+  padding: 3rem 3.5rem;
+  margin-bottom: 2.5rem;
+  overflow: hidden;
+  backdrop-filter: var(--tt-blur);
+  box-shadow: var(--tt-shadow), var(--tt-shadow-glow);
+}
+
+.timetable-uiverse-page .welcome-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--tt-amethyst), transparent);
+  animation: scanningLine 4s linear infinite;
+  opacity: 0.3;
+  z-index: 2;
+}
+
+@keyframes scanningLine {
+  0% { transform: translateY(-100px); opacity: 0; }
+  10% { opacity: 0.5; }
+  90% { opacity: 0.5; }
+  100% { transform: translateY(400px); opacity: 0; }
+}
+
+.timetable-uiverse-page .welcome-section .neon-text {
+  font-family: var(--tt-font-display);
+  font-size: 2.8rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--tt-text);
+  margin: 0 0 0.8rem;
+  background: linear-gradient(to right, #fff 20%, var(--tt-amethyst) 80%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 0 30px rgba(168, 85, 247, 0.3);
+}
+
+.timetable-uiverse-page .welcome-section .user-info {
+  font-family: var(--tt-font-body);
+  font-size: 1.05rem;
+  color: var(--tt-text-dim);
+  line-height: 1.7;
+  max-width: 700px;
+  margin: 0;
+  position: relative;
+  z-index: 1;
+}
+
+/* ─── ALERTS ────────────────────────────────────────── */
+.timetable-uiverse-page .alert {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1.2rem;
+  border-radius: var(--tt-radius-inner);
+  font-family: var(--tt-font-body);
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+  border: 1px solid;
+  backdrop-filter: var(--tt-blur);
+}
+
+.timetable-uiverse-page .alert-error {
+  background: rgba(244, 63, 94, 0.10);
+  border-color: rgba(244, 63, 94, 0.30);
+  color: #fca5a5;
+}
+
+.timetable-uiverse-page .alert-success {
+  background: rgba(16, 185, 129, 0.10);
+  border-color: rgba(16, 185, 129, 0.30);
+  color: #6ee7b7;
+}
+
+.timetable-uiverse-page .alert-warning {
+  background: rgba(245, 158, 11, 0.10);
+  border-color: rgba(245, 158, 11, 0.30);
+  color: #fcd34d;
+}
+
+/* ─── MAIN LAYOUT GRID ──────────────────────────────── */
+.tt-page-grid {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 1.6rem;
+  align-items: start;
+}
+
+.tt-col-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.6rem;
+}
+
+.tt-col-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 1.6rem;
+  position: sticky;
+  top: 90px;
+}
+
+.tt-full-width {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 1100px) {
+  .tt-page-grid {
+    grid-template-columns: 1fr;
+  }
+  .tt-col-aside {
+    position: static;
+  }
+}
+
+/* ─── CARDS ──────────────────────────────────────────── */
+.timetable-uiverse-page .card {
+  background: var(--tt-surface);
+  border: 1px solid var(--tt-border);
+  border-radius: var(--tt-radius-card);
+  backdrop-filter: var(--tt-blur);
+  box-shadow: var(--tt-shadow);
+  overflow: hidden;
+  transition: border-color 0.3s, box-shadow 0.3s;
+  /* cancel the inherited animation-delay issues */
+  animation: ttFadeUp 0.5s ease both;
+}
+
+@keyframes systemPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.2); }
+}
+
+/* ─── TEMPORAL PARTICLES ──────────────────────────── */
+.temporal-particles {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.particle {
+  position: absolute;
+  background: var(--tt-amethyst);
+  border-radius: 50%;
+  filter: blur(1px);
+  opacity: 0.2;
+  animation: float 20s infinite linear;
+}
+
+@keyframes float {
+  0% { transform: translateY(100vh) scale(0); opacity: 0; }
+  20% { opacity: 0.4; }
+  80% { opacity: 0.4; }
+  100% { transform: translateY(-100px) scale(1.5); opacity: 0; }
+}
+
+.particle:nth-child(1) { width: 4px; height: 4px; left: 10%; animation-duration: 25s; animation-delay: 0s; }
+.particle:nth-child(2) { width: 6px; height: 6px; left: 25%; animation-duration: 18s; animation-delay: 2s; }
+.particle:nth-child(3) { width: 3px; height: 3px; left: 45%; animation-duration: 30s; animation-delay: 5s; }
+.particle:nth-child(4) { width: 5px; height: 5px; left: 70%; animation-duration: 22s; animation-delay: 1s; }
+.particle:nth-child(5) { width: 2px; height: 2px; left: 85%; animation-duration: 28s; animation-delay: 7s; }
+.particle:nth-child(6) { width: 7px; height: 7px; left: 15%; animation-duration: 20s; animation-delay: 3s; }
+
+.timetable-uiverse-page .card:hover {
+  border-color: var(--tt-border-active);
+  box-shadow: var(--tt-shadow), var(--tt-shadow-glow);
+}
+
+@keyframes ttFadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+
+/* remove conflicting inherited card styles */
+.timetable-uiverse-page .card.card-shine,
+.timetable-uiverse-page .card.hover-glow,
+.timetable-uiverse-page .card.fade-in {
+  animation: ttFadeUp 0.5s ease both;
+}
+
+/* Card header */
+.timetable-uiverse-page .card-header {
+  padding: 1.4rem 1.75rem 0;
+  border-bottom: none;
+}
+
+.timetable-uiverse-page .card-title {
+  font-family: var(--tt-font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--tt-text);
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin: 0 0 0.5rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.timetable-uiverse-page .card-title svg {
+  color: var(--tt-amethyst);
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 8px var(--tt-amethyst-glow));
+}
+
+.timetable-uiverse-page .card-description {
+  font-family: var(--tt-font-body);
+  font-size: 0.84rem;
+  color: var(--tt-text-dim);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Card body */
+.timetable-uiverse-page .card-body {
+  padding: 1.25rem 1.75rem;
+}
+
+/* Card footer */
+.timetable-uiverse-page .card-footer {
+  padding: 0.9rem 1.75rem 1.25rem;
+  border-top: 1px solid var(--tt-border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+/* ─── CARD COLOUR STRIPS (top accent per section) ─── */
+.card--ai     { border-top: 2px solid var(--tt-amethyst); }
+.card--editor { border-top: 2px solid var(--tt-azure); }
+.card--cal    { border-top: 2px solid var(--tt-emerald); }
+.card--advice { border-top: 2px solid var(--tt-amber); }
+.card--google { border-top: 2px solid #4285F4; }
+.card--tip    { border-top: 2px solid var(--tt-text-muted); }
+
+/* ─── FORMS ──────────────────────────────────────────── */
+.timetable-uiverse-page .form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.timetable-uiverse-page .form-label {
+  font-family: var(--tt-font-body);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--tt-text-dim);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.timetable-uiverse-page .form-textarea,
+.timetable-uiverse-page .form-input,
+.timetable-uiverse-page .form-select {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--tt-border);
+  border-radius: var(--tt-radius-inner);
+  color: var(--tt-text);
+  font-family: var(--tt-font-body);
+  font-size: 0.9rem;
+  padding: 0.6rem 0.85rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.timetable-uiverse-page .form-textarea {
+  resize: vertical;
+  min-height: 90px;
+  line-height: 1.6;
+}
+
+.timetable-uiverse-page .form-textarea:focus,
+.timetable-uiverse-page .form-input:focus,
+.timetable-uiverse-page .form-select:focus {
+  border-color: var(--tt-cyan);
+  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.10);
+}
+
+.timetable-uiverse-page .form-textarea::placeholder,
+.timetable-uiverse-page .form-input::placeholder {
+  color: var(--tt-text-muted);
+}
+
+.timetable-uiverse-page input[type="file"].form-input {
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+}
+
+.timetable-uiverse-page .form-hint {
+  font-size: 0.78rem;
+  color: var(--tt-text-muted);
+  line-height: 1.5;
+  margin: 0.2rem 0 0;
+}
+
+[data-theme="light"] .timetable-uiverse-page .form-textarea,
+[data-theme="light"] .timetable-uiverse-page .form-input,
+[data-theme="light"] .timetable-uiverse-page .form-select {
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--tt-text);
+}
+
+/* ─── BUTTONS ────────────────────────────────────────── */
+.timetable-uiverse-page .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--tt-radius-btn);
+  font-family: var(--tt-font-body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  white-space: nowrap;
+  text-decoration: none;
+  line-height: 1;
+}
+
+.timetable-uiverse-page .btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.timetable-uiverse-page .btn.loading {
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+.timetable-uiverse-page .btn-success {
+  background: linear-gradient(135deg, var(--tt-emerald), #059669);
+  color: #fff;
+  border-color: var(--tt-emerald);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.30);
+}
+
+.timetable-uiverse-page .btn-success:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+  background: linear-gradient(135deg, #13d49a, #059669);
+}
+
+.timetable-uiverse-page .btn-outline {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--tt-text-dim);
+  border-color: var(--tt-border);
+}
+
+.timetable-uiverse-page .btn-outline:hover:not(:disabled) {
+  background: rgba(0, 212, 255, 0.08);
+  color: var(--tt-cyan);
+  border-color: var(--tt-cyan);
+  transform: translateY(-1px);
+}
+
+.timetable-uiverse-page .btn-danger {
+  background: rgba(244, 63, 94, 0.12);
+  color: #fca5a5;
+  border-color: rgba(244, 63, 94, 0.25);
+}
+
+.timetable-uiverse-page .btn-danger:hover:not(:disabled) {
+  background: rgba(244, 63, 94, 0.22);
+  border-color: rgba(244, 63, 94, 0.50);
+  color: #fecdd3;
+  transform: translateY(-1px);
+}
+
+.timetable-uiverse-page .btn-sm {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.78rem;
+  border-radius: 8px;
+}
+
+/* ─── TABLE EDITOR ───────────────────────────────────── */
+.timetable-uiverse-page .tt-editor-table-wrap {
+  overflow-x: auto;
+  border-radius: var(--tt-radius-inner);
+  border: 1px solid var(--tt-border);
+  margin-bottom: 1rem;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.timetable-uiverse-page .tt-editor-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--tt-font-body);
+  font-size: 0.875rem;
+}
+
+.timetable-uiverse-page .tt-editor-table thead {
+  background: rgba(0, 212, 255, 0.06);
+  border-bottom: 1px solid var(--tt-border-active);
+}
+
+.timetable-uiverse-page .tt-editor-table th {
+  padding: 1rem 1.25rem;
+  text-align: left;
+  font-family: var(--tt-font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--tt-amethyst);
+  white-space: nowrap;
+}
+
+.timetable-uiverse-page .tt-editor-table tbody tr {
+  border-bottom: 1px solid var(--tt-border);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.timetable-uiverse-page .tt-editor-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.timetable-uiverse-page .tt-editor-table tbody tr:hover {
+  background: rgba(168, 85, 247, 0.06);
+  transform: scale(1.002) translateX(4px);
+}
+
+.timetable-uiverse-page .tt-editor-table td {
+  padding: 0.5rem 0.7rem;
+  vertical-align: middle;
+}
+
+/* Inputs inside table — inherit table-specific overrides */
+.timetable-uiverse-page .tt-editor-table .form-input,
+.timetable-uiverse-page .tt-editor-table .form-select {
+  padding: 0.42rem 0.65rem;
+  font-size: 0.84rem;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+/* Difficulty badge colours */
+.timetable-uiverse-page .tt-editor-table .form-select option[value="easy"]   { background: #052e1c; }
+.timetable-uiverse-page .tt-editor-table .form-select option[value="medium"] { background: #1c1505; }
+.timetable-uiverse-page .tt-editor-table .form-select option[value="hard"]   { background: #1e0510; }
+
+.timetable-uiverse-page .tt-editor-add-btn {
+  margin-top: 0.4rem;
+}
+
+.timetable-uiverse-page .tt-editor-actions {
+  text-align: right;
+}
+
+/* ─── STUDY SUGGESTIONS / PROFILE INFO ──────────────── */
+.timetable-uiverse-page .profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.timetable-uiverse-page .profile-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--tt-border);
+}
+
+.timetable-uiverse-page .profile-info-item:last-child {
+  border-bottom: none;
+}
+
+.timetable-uiverse-page .profile-info-item strong {
+  font-family: var(--tt-font-display);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--tt-amber);
+}
+
+.timetable-uiverse-page .profile-info-item span {
+  font-family: var(--tt-font-mono);
+  font-size: 0.82rem;
+  color: var(--tt-text-dim);
+  line-height: 1.5;
+}
+
+/* ─── BADGE ──────────────────────────────────────────── */
+.timetable-uiverse-page .badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.7rem;
+  border-radius: 50px;
+  font-family: var(--tt-font-body);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.timetable-uiverse-page .badge-success {
+  background: rgba(16, 185, 129, 0.15);
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.30);
+}
+
+.timetable-uiverse-page .badge-warning {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fcd34d;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+/* ─── EMPTY STATE ────────────────────────────────────── */
+.timetable-uiverse-page .empty-state {
+  text-align: center;
+  padding: 2.5rem 1rem;
+}
+
+.timetable-uiverse-page .empty-state h3 {
+  font-family: var(--tt-font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--tt-text-dim);
+  margin: 0 0 0.4rem;
+}
+
+.timetable-uiverse-page .empty-state p {
+  font-size: 0.84rem;
+  color: var(--tt-text-muted);
+  margin: 0;
+}
+
+/* ─── GOOGLE CALENDAR SECTION ────────────────────────── */
+.timetable-uiverse-page .google-connect-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.timetable-uiverse-page .google-iframe-wrap {
+  border: 1px solid var(--tt-border);
+  border-radius: var(--tt-radius-inner);
+  overflow: hidden;
+  background: #fff;
+  margin-bottom: 1.25rem;
+}
+
+.timetable-uiverse-page .loading-text {
+  font-size: 0.875rem;
+  color: var(--tt-text-muted);
+  padding: 1rem 0;
+}
+
+/* ─── TIP CARD ───────────────────────────────────────── */
+.timetable-uiverse-page .tt-tip-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.timetable-uiverse-page .tt-tip-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--tt-cyan-dim);
+  color: var(--tt-cyan);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1.1rem;
+}
+
+.timetable-uiverse-page .tt-tip-text {
+  font-size: 0.875rem;
+  color: var(--tt-text-dim);
+  line-height: 1.65;
+}
+
+/* ─── STAT ROW (Aside mini-stats) ────────────────────── */
+.tt-stat-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.tt-mini-stat {
+  background: rgba(0, 0, 0, 0.20);
+  border: 1px solid var(--tt-border);
+  border-radius: var(--tt-radius-inner);
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.tt-mini-stat__label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--tt-text-muted);
+}
+
+.tt-mini-stat__value {
+  font-family: var(--tt-font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--tt-text);
+  line-height: 1;
+}
+
+.tt-mini-stat__value.cyan    { color: var(--tt-amethyst); }
+.tt-mini-stat__value.emerald { color: var(--tt-emerald); }
+.tt-mini-stat__value.amber   { color: var(--tt-amber); }
+.tt-mini-stat__value.violet  { color: var(--tt-amethyst); }
+
+/* ─── RESPONSIVE ─────────────────────────────────────── */
+@media (max-width: 900px) {
+  .timetable-uiverse-page .dashboard-content {
+    padding: 1.5rem 1.25rem 4rem;
+  }
+
+  .timetable-uiverse-page .welcome-section {
+    padding: 1.75rem 1.5rem;
+  }
+
+  .timetable-uiverse-page .welcome-section::before {
+    display: none;
+  }
+
+  .timetable-uiverse-page .welcome-section .neon-text {
+    font-size: 1.7rem;
+  }
+
+  .tt-stat-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .timetable-uiverse-page .card-header,
+  .timetable-uiverse-page .card-body,
+  .timetable-uiverse-page .card-footer {
+    padding-left: 1.1rem;
+    padding-right: 1.1rem;
+  }
+}
+
+/* ─── OVERRIDE SOME GLOBAL CARD STYLES ──────────────── */
+/* Cancel the overly bright box-shadows from Timetable.css */
+.timetable-uiverse-page .card-shine,
+.timetable-uiverse-page .hover-glow {
+  box-shadow: var(--tt-shadow) !important;
+}
+
+.timetable-uiverse-page .card-shine:hover,
+.timetable-uiverse-page .hover-glow:hover {
+  box-shadow: var(--tt-shadow), var(--tt-shadow-glow) !important;
+  transform: none !important;
+}

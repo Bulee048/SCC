@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { logout } from "../features/auth/authSlice";
 import {
   Plus,
   Calendar,
@@ -19,6 +20,11 @@ import {
   AlertCircle,
   FileSpreadsheet,
   BookOpen,
+  Home as HomeIcon,
+  LayoutDashboard,
+  Brain,
+  BookMarked,
+  LogOut,
 } from "lucide-react";
 import {
   fetchKuppiPosts,
@@ -31,7 +37,9 @@ import { exportApplicants } from "../services/kuppiService";
 import LoadingSpinner from "../components/LoadingSpinner";
 import EmptyState from "../components/EmptyState";
 import ErrorMessage from "../components/ErrorMessage";
+import NotificationBell from "../components/NotificationBell";
 import { notifyError, notifySuccess } from "../utils/toast";
+import "../styles/Dashboard.css";
 import "../styles/Kuppi.css";
 
 const Kuppi = () => {
@@ -162,9 +170,18 @@ const Kuppi = () => {
     "English", "History",
   ];
 
+  const navLinks = [
+    { icon: <HomeIcon size={18} strokeWidth={2.3} />, label: "Home", path: "/" },
+    { icon: <LayoutDashboard size={18} strokeWidth={2.3} />, label: "Dashboard", path: "/dashboard" },
+    { icon: <Brain size={18} strokeWidth={2.3} />, label: "Timetable", path: "/timetable" },
+    { icon: <BookMarked size={18} strokeWidth={2.3} />, label: "Notes", path: "/notes" },
+    { icon: <Video size={18} strokeWidth={2.3} />, label: "Kuppi", path: "/kuppi", active: true },
+    { icon: <Users size={18} strokeWidth={2.3} />, label: "Groups", path: "/groups" },
+  ];
+
   return (
-    <div className="kuppi-page">
-      {/* Header */}
+    <div className="dashboard kuppi-page">
+      {/* Page Header */}
       <header className="kuppi-header">
         <div className="kuppi-header-left">
           <button onClick={() => navigate("/dashboard")} className="back-btn">

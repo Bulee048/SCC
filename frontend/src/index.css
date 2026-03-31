@@ -160,13 +160,13 @@ html[data-theme="dark"] {
   --color-text-secondary: #cbd5e1;
   --color-text-tertiary: #94a3b8;
   --color-text-inverse: #ffffff;
-  --color-bg-primary: #111e35;
-  --color-bg-secondary: #0a1427;
-  --color-bg-tertiary: #1e2f45;
-  --color-border: #334155;
-  --color-border-focus: #7c3aed;
+  --color-bg-primary: #64748b;
+  --color-bg-secondary: #475569;
+  --color-bg-tertiary: #94a3b8;
+  --color-border: #94a3b8;
+  --color-border-focus: #8b5cf6;
 
-  --toast-bg: #1e293b;
+  --toast-bg: #475569;
   --toast-text: #f8fafc;
   --toast-border: rgba(148, 163, 184, 0.35);
   color-scheme: dark;

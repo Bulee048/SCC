@@ -619,16 +619,16 @@
 
 .form-input-modern.error,
 .form-select-modern.error {
-  border-color: #ef4444;
+  border-color: #22C55E;
 }
 
 .form-group-modern.error label {
-  color: #ef4444;
+  color: #22C55E;
 }
 
 .field-error {
   font-size: 12px;
-  color: #ef4444;
+  color: #22C55E;
   margin-top: 4px;
 }
 
