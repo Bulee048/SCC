@@ -1299,7 +1299,6 @@ export default function Home() {
                 <Link className="nav-link" to="/community">Community</Link>
                 <Link className="nav-link" to="/resources">Resources</Link>
                 <Link className="nav-link" to="/tutors">Tutors</Link>
-                {isAuthenticated && <Link className="nav-link" to="/dashboard">🏠 Dashboard</Link>}
                 <button className="nav-link" onClick={() => document.querySelector(".steps-section")?.scrollIntoView({ behavior: "smooth" })}>How it works</button>
               </div>
 
