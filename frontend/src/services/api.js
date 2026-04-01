@@ -10,6 +10,9 @@ const api = axios.create({
   }
 });
 
+// Token refresh single-flight to prevent concurrent refresh requests
+let refreshInFlight = null;
+
 /**
  * Wrong credentials on login/register return 401 — must not trigger refresh flow
  * (same issue `main` avoids when no refresh token exists; this guards when a stale token exists).
@@ -72,11 +75,13 @@ api.interceptors.response.use(
             const { accessToken } = response.data.data;
             sessionStorage.setItem("accessToken", accessToken);
 
-          originalRequest.headers = originalRequest.headers || {};
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-          return api(originalRequest);
+            originalRequest.headers = originalRequest.headers || {};
+            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+            return api(originalRequest);
+          }
+          throw new Error("Invalid refresh token response");
         }
-        throw new Error("Invalid refresh token response");
+        throw new Error("No refresh token found");
       } catch (refreshError) {
         console.error("Token refresh failed:", refreshError);
         localStorage.removeItem("accessToken");
