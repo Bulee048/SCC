@@ -75,7 +75,21 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// API Routes (DB required — same as main: server only listens after connectDB succeeds)
+// Block DB-backed API routes until DB is connected (dev-friendly)
+app.use("/api", (req, res, next) => {
+  if (req.path === "/health") return next();
+  if (app.locals.dbConnected) return next();
+  const payload = {
+    success: false,
+    message: "Database not connected. Check /api/health for details.",
+  };
+  if ((process.env.NODE_ENV || "development") !== "production" && app.locals.dbError) {
+    payload.dbError = app.locals.dbError;
+  }
+  return res.status(503).json(payload);
+});
+
+// API Routes (require DB)
 app.use("/api/auth", authRoutes);
 app.use("/api/groups", groupRoutes);
 app.use("/api", messageRoutes);
