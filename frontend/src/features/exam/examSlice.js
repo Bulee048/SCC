@@ -1,18 +1,35 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../services/api'; // ✅ Use the existing interceptor (adjust path if needed)
-import { refreshAccessToken } from '../auth/authSlice';
 
 // Send request to Backend API 
 export const createExamPlan = createAsyncThunk(
     'exam/createExamPlan',
     async (formData, thunkAPI) => {
         try {
-           //Axios Automatically creationg Content-Type & boundary while sending formdata
-            
+            //Axios Automatically creationg Content-Type & boundary while sending formdata
             const response = await api.post('/api/exams/setup', formData);
             return response.data;
         } catch (error) {
             return thunkAPI.rejectWithValue(error.response?.data || "Something went wrong");
+        }
+    }
+);
+
+//Study Pilot - Updated with proper headers and error handling
+export const generateStudyMaterials = createAsyncThunk(
+    'exam/generateStudyMaterials',
+    async (formData, thunkAPI) => {
+        try {
+            const response = await api.post('/api/study-pilot/generate', formData, {
+                // මෙතන අනිවාර්යයෙන්ම multipart/form-data තිබිය යුතුයි
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+            return response.data;
+        } catch (error) {
+            // දෝෂය අල්ලාගෙන ඒක එහෙම්මම UI එකට යවනවා
+            return thunkAPI.rejectWithValue(error.response?.data || { message: "Network Error - Unable to connect to the server." });
         }
     }
 );

@@ -10,7 +10,6 @@ import connectDB from "./config/db.js";
 import KuppiPost from "./models/KuppiPost.js";
 
 // Import routes
-
 import authRoutes from "./routes/authRoutes.js";
 import groupRoutes from "./routes/groupRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
@@ -20,6 +19,8 @@ import kuppiRoutes from "./routes/kuppiRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import examRoutes from "./routes/examRoutes.js";
 
+// --- අලුතින් එකතු කළ Study Pilot Routes ---
+import studyPilotRoutes from "./routes/studyPilotRoutes.js"; 
 
 
 const app = express();
@@ -48,8 +49,7 @@ app.get("/", (req, res) => {
   });
 });
 
-// API Routes
-
+// Registering Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/groups", groupRoutes);
 app.use("/api", messageRoutes);
@@ -58,6 +58,10 @@ app.use("/api", notesRoutes);
 app.use("/api", kuppiRoutes);
 app.use("/api", notificationRoutes);
 app.use('/api/exams', examRoutes);
+
+// --- අලුතින් එකතු කළ Study Pilot Route එක ලියාපදිංචි කිරීම ---
+app.use('/api/study-pilot', studyPilotRoutes);
+
 
 // 404 handler
 app.use((req, res) => {
@@ -104,19 +108,16 @@ const io = new Server(server, {
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  // Handle user joining their personal room
   socket.on("join-room", (userId) => {
     socket.join(userId);
     console.log(`User ${userId} joined personal room`);
   });
 
-  // Handle user joining a group
   socket.on("join-group", (groupId) => {
     socket.join(`group-${groupId}`);
     console.log(`User joined group: ${groupId}`);
   });
 
-  // Handle user leaving a group
   socket.on("leave-group", (groupId) => {
     socket.leave(`group-${groupId}`);
     console.log(`User left group: ${groupId}`);
@@ -127,7 +128,6 @@ io.on("connection", (socket) => {
   });
 });
 
-// Make io accessible in routes
 app.set("io", io);
 
 const startServer = async () => {
