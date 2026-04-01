@@ -16,6 +16,7 @@ import * as THREE from "three";
 import LoadingSpinner from "../components/LoadingSpinner";
 import NotificationBell from "../components/NotificationBell";
 import GroupCard from "../components/groups/GroupCard";
+import MyInvitesBanner from "../components/groups/MyInvitesBanner";
 import { confirmAction } from "../utils/toast";
 import "../styles/Dashboard.css";
 import "../styles/Groups.css";
@@ -477,6 +478,9 @@ const Groups = () => {
 
           {/* ── MAIN AREA ── */}
           <main className="grp-main-area">
+            {/* Pending invites banner */}
+            <MyInvitesBanner />
+
             {/* Page heading */}
             <div className="grp-page-heading" style={{ animation: "riseIn .65s .05s ease both" }}>
               <h1 className="grp-page-title">Study & Project Groups</h1>

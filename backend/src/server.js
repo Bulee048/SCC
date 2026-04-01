@@ -25,27 +25,29 @@ import { startMeetupCancellationJob } from "./jobs/meetupJobs.js";
 
 const app = express();
 const server = http.createServer(app);
-app.locals.dbConnected = false;
-app.locals.dbError = null;
 
-// Middleware
 const allowedOrigins = [
   process.env.CLIENT_URL || "http://localhost:5173",
   "http://localhost:5173",
   "http://localhost:5174",
   "http://localhost:5175",
 ];
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  credentials: true
-}));
 
+const corsOriginHandler = (origin, callback) => {
+  if (!origin || allowedOrigins.includes(origin)) {
+    callback(null, true);
+  } else {
+    callback(new Error("Not allowed by CORS"));
+  }
+};
+
+// Middleware
+app.use(
+  cors({
+    origin: corsOriginHandler,
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -60,32 +62,20 @@ app.get("/", (req, res) => {
   res.json({
     success: true,
     message: "Smart Campus Companion API",
-    version: "1.0.0"
+    version: "1.0.0",
   });
 });
 
-// Health endpoint (doesn't require DB)
 app.get("/api/health", (req, res) => {
   res.json({
     success: true,
     server: "ok",
-    dbConnected: Boolean(app.locals.dbConnected),
-    dbError: app.locals.dbConnected ? null : app.locals.dbError,
+    database: "connected",
     environment: process.env.NODE_ENV || "development",
   });
 });
 
-// Block DB-backed API routes until DB is connected (dev-friendly)
-app.use("/api", (req, res, next) => {
-  if (req.path === "/health") return next();
-  if (app.locals.dbConnected) return next();
-  return res.status(503).json({
-    success: false,
-    message: "Database not connected. Check /api/health for details.",
-  });
-});
-
-// API Routes (require DB)
+// API Routes (DB required — same as main: server only listens after connectDB succeeds)
 app.use("/api/auth", authRoutes);
 app.use("/api/groups", groupRoutes);
 app.use("/api", messageRoutes);
@@ -102,7 +92,7 @@ app.use("/api/admin", adminRoutes);
 app.use((req, res) => {
   res.status(404).json({
     success: false,
-    message: "Route not found"
+    message: "Route not found",
   });
 });
 
@@ -110,52 +100,47 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error("Error:", err);
 
-  // Multer errors
   if (err instanceof multer.MulterError) {
     if (err.code === "LIMIT_FILE_SIZE") {
       return res.status(400).json({
         success: false,
-        message: "File too large. Maximum size is 50MB"
+        message: "File too large. Maximum size is 50MB",
       });
     }
     return res.status(400).json({
       success: false,
-      message: err.message
+      message: err.message,
     });
   }
 
   res.status(err.status || 500).json({
     success: false,
-    message: err.message || "Internal server error"
+    message: err.message || "Internal server error",
   });
 });
 
-// Socket.io setup
+// Socket.io — same origin policy as Express (works with multiple dev ports)
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: corsOriginHandler,
     credentials: true,
-    methods: ["GET", "POST"]
-  }
+    methods: ["GET", "POST"],
+  },
 });
 
-// Socket.io connection handling
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  // Handle user joining their personal room
   socket.on("join-room", (userId) => {
     socket.join(userId);
     console.log(`User ${userId} joined personal room`);
   });
 
-  // Handle user joining a group
   socket.on("join-group", (groupId) => {
     socket.join(`group-${groupId}`);
     console.log(`User joined group: ${groupId}`);
   });
 
-  // Handle user leaving a group
   socket.on("leave-group", (groupId) => {
     socket.leave(`group-${groupId}`);
     console.log(`User left group: ${groupId}`);
@@ -166,7 +151,6 @@ io.on("connection", (socket) => {
   });
 });
 
-// Make io accessible in routes
 app.set("io", io);
 
 const startJobs = async () => {
@@ -176,14 +160,14 @@ const startJobs = async () => {
       const result = await KuppiPost.updateMany(
         {
           isArchived: false,
-          eventDate: { $lt: now }
+          eventDate: { $lt: now },
         },
         {
           $set: {
             isArchived: true,
             archivedAt: now,
-            archivedReason: "event-expired"
-          }
+            archivedReason: "event-expired",
+          },
         }
       );
 
@@ -198,49 +182,38 @@ const startJobs = async () => {
   await archiveExpiredKuppiPostsJob();
   setInterval(archiveExpiredKuppiPostsJob, 60 * 1000);
 
-  // Start meetup auto-cancellation job
   startMeetupCancellationJob();
 };
 
-const initDb = async () => {
-  const requireDb =
-    process.env.REQUIRE_DB === "true" || (process.env.NODE_ENV || "development") === "production";
-  const retryMs = Number(process.env.DB_RETRY_MS || 30000);
-
+/**
+ * Same lifecycle as `main`: connect MongoDB first, then listen (no API without DB).
+ */
+const startServer = async () => {
   try {
     await connectDB();
-    app.locals.dbConnected = true;
-    app.locals.dbError = null;
-    console.log("Database connected.");
+
     await startJobs();
+
+    const PORT = process.env.PORT || 5000;
+    server
+      .listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+        console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
+      })
+      .on("error", (err) => {
+        if (err.code === "EADDRINUSE") {
+          console.error(
+            `Port ${PORT} is already in use. Kill the other process or change PORT in .env`
+          );
+        } else {
+          console.error("Server error:", err.message);
+        }
+        process.exit(1);
+      });
   } catch (error) {
-    app.locals.dbConnected = false;
-    app.locals.dbError = error?.message || String(error);
-
-    if (requireDb) {
-      console.error(app.locals.dbError);
-      process.exit(1);
-    }
-
-    console.error("DB connection failed; starting server without DB. It will keep retrying.");
-    setTimeout(initDb, retryMs);
+    console.error(error.message);
+    process.exit(1);
   }
 };
 
-const PORT = process.env.PORT || 5000;
-server
-  .listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
-  })
-  .on("error", (err) => {
-    if (err.code === "EADDRINUSE") {
-      console.error(`Port ${PORT} is already in use. Kill the other process or change PORT in .env`);
-    } else {
-      console.error("Server error:", err.message);
-    }
-    process.exit(1);
-  });
-
-// Connect DB in background (and start DB-backed jobs when ready)
-initDb();
+startServer();

@@ -15,7 +15,7 @@ import {
     Plus, X, Clock, Zap, Globe, Navigation, Shuffle,
     Award, Lock, Trash2, LogOut, Waves,
     Home as HomeIcon, Brain, BookMarked, Video, LayoutDashboard,
-    ChevronDown, ChevronUp, AlertTriangle,
+    ChevronDown, ChevronUp, AlertTriangle, Mail, Activity,
 } from "lucide-react";
 import LoadingSpinner from "../components/LoadingSpinner";
 import NotificationBell from "../components/NotificationBell";
@@ -23,6 +23,8 @@ import ChatTab from "../components/groups/ChatTab";
 import MeetupCard from "../components/groups/MeetupCard";
 import FilesTab from "../components/groups/FilesTab";
 import MemberList from "../components/groups/MemberList";
+import InvitesTab from "../components/groups/InvitesTab";
+import ActivityTab from "../components/groups/ActivityTab";
 import { confirmAction } from "../utils/toast";
 import "../styles/Dashboard.css";
 import "../styles/Groups.css";
@@ -367,6 +369,8 @@ const GroupDetail = () => {
         { id: "meetups", label: "Meetups", Icon: Calendar, badge: activeMeetups },
         { id: "files", label: "Files", Icon: File, badge: 0 },
         { id: "members", label: "Members", Icon: Users, badge: memberCount },
+        ...(isAdmin ? [{ id: "invites", label: "Invites", Icon: Mail, badge: 0 }] : []),
+        { id: "activity", label: "Activity", Icon: Activity, badge: 0 },
     ];
 
     // Upcoming meetups summary for sidebar
@@ -467,6 +471,18 @@ const GroupDetail = () => {
                             groupId={groupId}
                             isAdmin={isAdmin}
                         />
+                    )}
+
+                    {activeTab === "invites" && (
+                        <InvitesTab
+                            groupId={groupId}
+                            isAdmin={isAdmin}
+                            currentUser={user}
+                        />
+                    )}
+
+                    {activeTab === "activity" && (
+                        <ActivityTab groupId={groupId} />
                     )}
                 </div>
 
