@@ -10,8 +10,8 @@
     "seed:groups": "npm run seed:groups --prefix backend"
   },
   "dependencies": {
-    "mongodb": "^7.1.0",
-    "react-hot-toast": "^2.6.0"
+    "react-hot-toast": "^2.6.0",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

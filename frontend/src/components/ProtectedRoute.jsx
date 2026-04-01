@@ -6,12 +6,12 @@ const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, isLoading } = useSelector((state) => state.auth);
 
   // While verifying auth on page refresh, show loading instead of redirecting
-  if (isLoading && !isAuthenticated && localStorage.getItem("accessToken")) {
+  if (isLoading && !isAuthenticated && sessionStorage.getItem("accessToken")) {
     return <LoadingSpinner />;
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return children;

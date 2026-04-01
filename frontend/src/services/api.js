@@ -28,7 +28,8 @@ const isOnAuthRoute = () => {
 // Request interceptor to add token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("accessToken");
+    const token = sessionStorage.getItem("accessToken");
+    config.headers = config.headers || {};
     if (token) {
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
@@ -53,20 +54,23 @@ api.interceptors.response.use(
     ) {
       originalRequest._retry = true;
 
-      const refreshToken = localStorage.getItem("refreshToken");
-      if (!refreshToken) {
-        return Promise.reject(error);
-      }
-
       try {
-        // Direct axios call to avoid interceptor loop (same as main)
-        const response = await axios.post(`${API_URL}/api/auth/refresh`, {
-          refreshToken
-        });
+        const refreshToken = sessionStorage.getItem("refreshToken");
+        if (refreshToken) {
+          // Single-flight refresh: avoid parallel refresh races clearing tokens.
+          if (!refreshInFlight) {
+            refreshInFlight = axios
+              .post(`${API_URL}/api/auth/refresh`, { refreshToken })
+              .finally(() => {
+                refreshInFlight = null;
+              });
+          }
+          const response = await refreshInFlight;
 
-        if (response.data.success && response.data.data?.accessToken) {
-          const { accessToken } = response.data.data;
-          localStorage.setItem("accessToken", accessToken);
+          // Backend returns { success, message, data: { accessToken } }
+          if (response.data.success && response.data.data?.accessToken) {
+            const { accessToken } = response.data.data;
+            sessionStorage.setItem("accessToken", accessToken);
 
           originalRequest.headers = originalRequest.headers || {};
           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
