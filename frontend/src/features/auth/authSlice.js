@@ -79,8 +79,15 @@ export const login = createAsyncThunk(
       const response = await authService.login(credentials);
       return response.data;
     } catch (error) {
+      const data = error.response?.data;
+      const fromErrors =
+        Array.isArray(data?.errors) && data.errors.length
+          ? data.errors.join(". ")
+          : null;
       return rejectWithValue(
-        error.response?.data?.message || "Login failed. Please check your credentials."
+        fromErrors ||
+          data?.message ||
+          "Login failed. Please check your credentials."
       );
     }
   }
@@ -200,7 +207,15 @@ const authSlice = createSlice({
       state.lastActivity = Date.now();
     },
     resetAuth: (state) => {
-      Object.assign(state, initialState);
+      // Do not reuse `initialState` — it was snapshotted at module load and can still
+      // contain persisted tokens from the first page load, which would break logout/timeout.
+      state.user = null;
+      state.accessToken = null;
+      state.refreshToken = null;
+      state.isAuthenticated = false;
+      state.isLoading = false;
+      state.error = null;
+      state.lastActivity = Date.now();
       localStorage.removeItem("user");
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
