@@ -1,34 +1,33 @@
 /* ═══════════════════════════════════════════════════════
-   SMART CAMPUS — Deep Ocean Bioluminescent · Sci-Fi HUD
+   SMART CAMPUS — Deep Ocean Bioluminescent · Green Accent
    Fonts: Rajdhani (display) · Share Tech Mono (body)
 ═══════════════════════════════════════════════════════ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
-/* ── Design Tokens ─────────────────────────────────── */
+/* ── Design Tokens (Green/Teal Only) ────────────────── */
 :root {
-  --abyss:        #010810;
-  --abyss-mid:    #020f1c;
-  --abyss-lift:   #041828;
-  --bio:          #2a9d8f;
-  --bio-dim:      rgba(42,157,143,.1);
-  --bio-glow:     rgba(42,157,143,.16);
-  --bio-line:     rgba(42,157,143,.22);
-  --cyan:         #3b82f6;
-  --cyan-dim:     rgba(59,130,246,.1);
-  --cyan-glow:    rgba(59,130,246,.2);
-  --aqua:         #7dd3fc;
+  --abyss:        #0b1a1a;      /* softer dark base */
+  --abyss-mid:    #102727;
+  --abyss-lift:   #183434;
+  --bio:          #2a9d8f;      /* main green-teal */
+  --bio-dim:      rgba(42,157,143,.12);
+  --bio-glow:     rgba(42,157,143,.2);
+  --bio-line:     rgba(42,157,143,.28);
+  --green-accent: #2a9d8f;
+  --green-dim:    rgba(42,157,143,.1);
+  --green-glow:   rgba(42,157,143,.2);
+  --aqua:         #7dd3fc;      /* kept for light mode? – replaced with green variant */
   --aqua-dim:     rgba(125,211,252,.08);
-  --deep-blue:    #0033aa;
-  --surface-1:    rgba(15,23,42,.64);
-  --surface-2:    rgba(30,41,59,.72);
-  --surface-3:    rgba(51,65,85,.78);
-  --border:       rgba(148,163,184,.2);
-  --border-lit:   rgba(148,163,184,.36);
-  --border-hot:   rgba(148,163,184,.5);
-  --text:         #f8fafc;
-  --text-mid:     rgba(248,250,252,.84);
-  --text-dim:     rgba(248,250,252,.64);
+  --surface-1:    rgba(30, 40, 40, 0.7);
+  --surface-2:    rgba(40, 55, 55, 0.78);
+  --surface-3:    rgba(55, 70, 70, 0.84);
+  --border:       rgba(148,163,184,.18);
+  --border-lit:   rgba(148,163,184,.3);
+  --border-hot:   rgba(148,163,184,.45);
+  --text:         #f0f5f5;
+  --text-mid:     rgba(240, 245, 245, 0.88);
+  --text-dim:     rgba(240, 245, 245, 0.68);
   --font-display: 'Inter', sans-serif;
   --font-mono:    'JetBrains Mono', monospace;
   --r-sm:   6px;
@@ -54,6 +53,23 @@
 .db-root a { color: inherit; text-decoration: none; }
 
 /* ── Canvas & Overlays ─────────────────────────────── */
+/* Lightweight CSS gradient background — replaces heavy WebGL */
+.db-bg-gradient {
+  position: fixed; inset: 0;
+  z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 50% at 20% 30%, rgba(42,157,143,.12) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 40% at 80% 70%, rgba(42,157,143,.08) 0%, transparent 70%),
+    linear-gradient(180deg, #0b1a1a 0%, #0f2222 50%, #142b2b 100%);
+}
+
+html[data-theme="light"] .db-bg-gradient {
+  background:
+    radial-gradient(ellipse 60% 50% at 20% 30%, rgba(42,157,143,.06) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 40% at 80% 70%, rgba(42,157,143,.04) 0%, transparent 70%),
+    linear-gradient(180deg, #f0f4f8 0%, #e8ecf2 50%, #dfe6ee 100%);
+}
+
 .db-canvas-wrap {
   position: fixed; inset: 0;
   z-index: 0; pointer-events: none;
@@ -63,7 +79,7 @@
 .db-overlay-vignette {
   position: fixed; inset: 0; z-index: 1; pointer-events: none;
   background: radial-gradient(ellipse 85% 85% at 50% 50%,
-    transparent 20%, rgba(1,8,16,.8) 100%);
+    transparent 20%, rgba(11,26,26,.5) 100%);
 }
 
 /* Scanlines — hidden for clean look */
@@ -83,22 +99,22 @@
 .db-nav {
   position: sticky; top: 0; z-index: 100;
   height: 58px;
-  background: rgba(2,6,23,.94);
+  background: rgba(6, 18, 18, 0.94);
   backdrop-filter: blur(24px) saturate(120%);
   border-bottom: 1px solid var(--border);
 }
 
-/* Bioluminescent top edge */
+/* Bioluminescent top edge (green only) */
 .db-nav::after {
   content: '';
   position: absolute; top: 0; left: 0; right: 0; height: 1px;
   background: linear-gradient(90deg,
-    transparent 0%, var(--bio) 30%, var(--cyan) 60%, transparent 100%);
-  opacity: .5;
+    transparent 0%, var(--bio) 30%, var(--bio) 60%, transparent 100%);
+  opacity: .6;
   animation: nav-pulse 4s ease-in-out infinite;
 }
 @keyframes nav-pulse {
-  0%,100% { opacity: .3; } 50% { opacity: .7; }
+  0%,100% { opacity: .4; } 50% { opacity: .8; }
 }
 
 .db-nav__inner {
@@ -120,7 +136,7 @@
 }
 @keyframes mark-breathe {
   0%,100% { box-shadow: 0 0 14px var(--bio-glow), inset 0 0 8px var(--bio-dim); }
-  50%      { box-shadow: 0 0 24px rgba(0,245,196,.5), inset 0 0 14px rgba(0,245,196,.15); }
+  50%      { box-shadow: 0 0 24px rgba(42,157,143,.5), inset 0 0 14px rgba(42,157,143,.15); }
 }
 
 .db-brand__name {
@@ -204,7 +220,7 @@
 
 .db-avatar {
   width: 26px; height: 26px; border-radius: 5px;
-  background: linear-gradient(135deg, var(--bio), var(--cyan));
+  background: linear-gradient(135deg, var(--bio), var(--bio));
   display: flex; align-items: center; justify-content: center;
   font-family: var(--font-display); font-size: 12px; font-weight: 700;
   color: var(--abyss); overflow: hidden; flex-shrink: 0;
@@ -228,11 +244,11 @@
 .db-dropdown {
   position: absolute; top: calc(100% + 8px); right: 0;
   min-width: 210px;
-  background: rgba(2,15,28,.97);
+  background: rgba(6, 18, 18, .97);
   backdrop-filter: blur(28px);
   border: 1px solid var(--border-lit);
   border-radius: var(--r-md);
-  box-shadow: 0 20px 50px rgba(0,0,0,.9), 0 0 30px rgba(0,245,196,.06);
+  box-shadow: 0 20px 50px rgba(0,0,0,.9), 0 0 30px rgba(42,157,143,.06);
   padding: 6px;
   animation: ddFade .18s ease; z-index: 200;
 }
@@ -716,7 +732,7 @@
 }
 
 .db-nav__right .notification-dropdown {
-  background: rgba(2,15,28,.97);
+  background: rgba(6,18,18,.97);
   backdrop-filter: blur(28px);
   border: 1px solid var(--border-lit);
   border-radius: var(--r-md);
@@ -737,7 +753,7 @@
   font-family: var(--font-mono);
 }
 .db-nav__right .mark-all-btn:hover {
-  background: rgba(0,245,196,.2);
+  background: rgba(42,157,143,.2);
 }
 
 .db-nav__right .notification-dropdown-item {
@@ -747,7 +763,7 @@
   background: var(--bio-dim);
 }
 .db-nav__right .notification-dropdown-item.unread {
-  background: rgba(0,245,196,.04);
+  background: rgba(42,157,143,.04);
 }
 
 .db-nav__right .notif-dot {
@@ -820,20 +836,20 @@
 
 /* Dashboard-only readability tuning */
 .dashboard-page {
-  --surface-1: rgba(15, 23, 42, 0.84);
-  --surface-2: rgba(30, 41, 59, 0.88);
-  --surface-3: rgba(51, 65, 85, 0.9);
-  --text-mid: rgba(248, 250, 252, 0.92);
-  --text-dim: rgba(248, 250, 252, 0.78);
+  --surface-1: rgba(30, 40, 40, 0.8);
+  --surface-2: rgba(45, 60, 60, 0.85);
+  --surface-3: rgba(60, 75, 75, 0.9);
+  --text-mid: rgba(240, 245, 245, 0.92);
+  --text-dim: rgba(240, 245, 245, 0.78);
 }
 
 .dashboard-page .db-overlay-vignette {
   background: radial-gradient(ellipse 85% 85% at 50% 50%,
-    transparent 26%, rgba(1, 8, 16, 0.68) 100%);
+    transparent 26%, rgba(11, 26, 26, 0.68) 100%);
 }
 
 .dashboard-page .db-nav {
-  background: rgba(2, 10, 26, 0.97);
+  background: rgba(6, 18, 18, 0.97);
 }
 
 .dashboard-page .db-hero,
@@ -852,7 +868,7 @@
 }
 
 .dashboard-page .db-chip {
-  background: rgba(30, 41, 59, 0.86);
+  background: rgba(45, 60, 60, 0.86);
   border-color: rgba(148, 163, 184, 0.3);
   color: var(--text-mid);
 }
@@ -860,7 +876,7 @@
 .db-hero--modern {
   border-radius: 16px;
   padding: 1.5rem 1.7rem;
-  background: linear-gradient(180deg, rgba(15,23,42,.86) 0%, rgba(15,23,42,.72) 100%);
+  background: linear-gradient(180deg, rgba(30,40,40,.86) 0%, rgba(30,40,40,.72) 100%);
 }
 
 .db-hero__left {
@@ -876,7 +892,7 @@
 
 .db-shortcut-btn {
   border: 1px solid var(--border);
-  background: rgba(30,41,59,.75);
+  background: rgba(45,60,60,.75);
   color: var(--text-mid);
   border-radius: 8px;
   padding: 7px 11px;
@@ -889,7 +905,7 @@
 .db-shortcut-btn:hover {
   border-color: var(--border-lit);
   color: var(--text);
-  background: rgba(30,41,59,.95);
+  background: rgba(45,60,60,.95);
 }
 
 .db-grid-left {
@@ -943,7 +959,7 @@
   .db-shortcut-btn { font-size: 11px; padding: 6px 9px; }
 }
 
-/* ── Light mode readability tuning ─────────────────── */
+/* ── Light mode readability tuning (green accent) ── */
 html[data-theme="light"] .dashboard-page {
   --surface-1: rgba(255, 255, 255, 0.44);
   --surface-2: rgba(255, 255, 255, 0.56);
@@ -1014,12 +1030,12 @@ html[data-theme="light"] .dashboard-page .db-nav {
 
 html[data-theme="light"] .dashboard-page .db-brand__mark {
   background: #eef5ff;
-  border-color: rgba(15, 118, 110, 0.28);
+  border-color: rgba(42,157,143,0.28);
   box-shadow: 0 0 0 transparent;
 }
 
 html[data-theme="light"] .dashboard-page .db-brand__name {
-  color: #0f766e;
+  color: #2a9d8f;
   font-size: 18px;
   font-weight: 800;
 }
@@ -1045,9 +1061,9 @@ html[data-theme="light"] .dashboard-page .db-nav__link {
 }
 
 html[data-theme="light"] .dashboard-page .db-nav__link--active {
-  color: #0f766e;
-  background: rgba(15, 118, 110, 0.15);
-  border-color: rgba(15, 118, 110, 0.34);
+  color: #2a9d8f;
+  background: rgba(42,157,143,0.15);
+  border-color: rgba(42,157,143,0.34);
 }
 
 html[data-theme="light"] .dashboard-page .db-top-btn {
@@ -1097,8 +1113,8 @@ html[data-theme="light"] .dashboard-page .db-icon-btn {
 
 html[data-theme="light"] .dashboard-page .db-nav__right .notification-bell-btn:hover,
 html[data-theme="light"] .dashboard-page .db-icon-btn:hover {
-  color: #0f766e;
-  background: rgba(15, 118, 110, 0.12);
+  color: #2a9d8f;
+  background: rgba(42,157,143,0.12);
 }
 
 html[data-theme="light"] .dashboard-page .db-nav__link {
@@ -1106,14 +1122,14 @@ html[data-theme="light"] .dashboard-page .db-nav__link {
 }
 
 html[data-theme="light"] .dashboard-page .db-nav__link:hover {
-  color: #0f766e;
-  background: rgba(15, 118, 110, 0.12);
+  color: #2a9d8f;
+  background: rgba(42,157,143,0.12);
 }
 
 html[data-theme="light"] .dashboard-page .db-nav__link--active {
-  color: #0f766e;
-  background: rgba(15, 118, 110, 0.14);
-  border-color: rgba(15, 118, 110, 0.3);
+  color: #2a9d8f;
+  background: rgba(42,157,143,0.14);
+  border-color: rgba(42,157,143,0.3);
 }
 
 html[data-theme="light"] .dashboard-page .db-hero--modern {
@@ -1168,7 +1184,7 @@ html[data-theme="light"] .dashboard-page .db-nav__right .notification-empty {
 html[data-theme="light"] .dashboard-page .db-dd-item:hover,
 html[data-theme="light"] .dashboard-page .db-nav__right .notification-dropdown-item:hover,
 html[data-theme="light"] .dashboard-page .db-nav__right .notification-dropdown-item.unread {
-  background: rgba(15, 118, 110, 0.1);
+  background: rgba(42,157,143,0.1);
 }
 
 /* Final top-nav polish (light mode) */
@@ -1218,14 +1234,14 @@ html[data-theme="light"] .dashboard-page .db-nav__link {
 }
 
 html[data-theme="light"] .dashboard-page .db-nav__link:hover {
-  background: rgba(15, 118, 110, 0.14);
-  color: #0f766e;
+  background: rgba(42,157,143,0.14);
+  color: #2a9d8f;
 }
 
 html[data-theme="light"] .dashboard-page .db-nav__link--active {
-  background: rgba(15, 118, 110, 0.16);
-  color: #0f766e;
-  border: 1px solid rgba(15, 118, 110, 0.36);
+  background: rgba(42,157,143,0.16);
+  color: #2a9d8f;
+  border: 1px solid rgba(42,157,143,0.36);
 }
 
 html[data-theme="light"] .dashboard-page .db-nav__right {
@@ -1253,9 +1269,9 @@ html[data-theme="light"] .dashboard-page .db-top-btn:hover,
 html[data-theme="light"] .dashboard-page .db-icon-btn:hover,
 html[data-theme="light"] .dashboard-page .db-nav__right .notification-bell-btn:hover,
 html[data-theme="light"] .dashboard-page .db-profile-btn:hover {
-  background: rgba(15, 118, 110, 0.14);
-  color: #0f766e;
-  border-color: rgba(15, 118, 110, 0.34);
+  background: rgba(42,157,143,0.14);
+  color: #2a9d8f;
+  border-color: rgba(42,157,143,0.34);
 }
 
 /* Final extra transparency pass (light mode) */

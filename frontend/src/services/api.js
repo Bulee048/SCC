@@ -10,11 +10,27 @@ const api = axios.create({
   }
 });
 
+/**
+ * Wrong credentials on login/register return 401 — must not trigger refresh flow
+ * (same issue `main` avoids when no refresh token exists; this guards when a stale token exists).
+ */
+const isAuthCredentials401 = (config) => {
+  if (!config?.url) return false;
+  const path = String(config.url).split("?")[0];
+  return path.includes("/api/auth/login") || path.includes("/api/auth/register");
+};
+
+const isOnAuthRoute = () => {
+  const p = window.location.pathname;
+  return p.includes("/login") || p.includes("/register") || p.includes("/auth");
+};
+
 // Request interceptor to add token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("accessToken");
     if (token) {
+      config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -24,49 +40,49 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle token refresh
+// Response interceptor — token refresh pattern aligned with `main`
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // If error is 401 and we haven't tried to refresh yet
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !isAuthCredentials401(originalRequest)
+    ) {
       originalRequest._retry = true;
 
+      const refreshToken = localStorage.getItem("refreshToken");
+      if (!refreshToken) {
+        return Promise.reject(error);
+      }
+
       try {
-        const refreshToken = localStorage.getItem("refreshToken");
-        if (refreshToken) {
-          // Use direct axios call to avoid interceptor loop
-          const response = await axios.post(`${API_URL}/api/auth/refresh`, {
-            refreshToken
-          });
+        // Direct axios call to avoid interceptor loop (same as main)
+        const response = await axios.post(`${API_URL}/api/auth/refresh`, {
+          refreshToken
+        });
 
-          // Backend returns { success, message, data: { accessToken } }
-          if (response.data.success && response.data.data?.accessToken) {
-            const { accessToken } = response.data.data;
-            localStorage.setItem("accessToken", accessToken);
+        if (response.data.success && response.data.data?.accessToken) {
+          const { accessToken } = response.data.data;
+          localStorage.setItem("accessToken", accessToken);
 
-            // Retry original request with new token
-            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-            return api(originalRequest);
-          } else {
-            throw new Error("Invalid refresh token response");
-          }
+          originalRequest.headers = originalRequest.headers || {};
+          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          return api(originalRequest);
         }
+        throw new Error("Invalid refresh token response");
       } catch (refreshError) {
-        // Refresh token failed, logout user
         console.error("Token refresh failed:", refreshError);
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
         localStorage.removeItem("user");
-        
-        // Only redirect if not already on auth page
-        if (!window.location.pathname.includes('/login') && 
-            !window.location.pathname.includes('/register')) {
+
+        if (!isOnAuthRoute()) {
           window.location.href = "/login";
         }
-        
+
         return Promise.reject(refreshError);
       }
     }

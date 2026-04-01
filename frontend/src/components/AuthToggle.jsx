@@ -57,20 +57,22 @@ const AuthToggle = () => {
 
   const [justLoggedIn, setJustLoggedIn] = useState(false);
 
+  const { user } = useSelector((state) => state.auth);
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && user) {
+      const target = user.role === "admin" ? "/admin" : "/dashboard";
       if (justLoggedIn) {
         // Show success message briefly after fresh login/register
         const timer = setTimeout(() => {
-          navigate("/dashboard", { replace: true });
+          navigate(target, { replace: true });
         }, 1200);
         return () => clearTimeout(timer);
       } else {
-        // Already had a valid session — go straight to dashboard
-        navigate("/dashboard", { replace: true });
+        // Already had a valid session — go straight to correct dashboard
+        navigate(target, { replace: true });
       }
     }
-  }, [isAuthenticated, justLoggedIn, navigate]);
+  }, [isAuthenticated, justLoggedIn, navigate, user]);
 
   useEffect(() => {
     return () => {
@@ -166,13 +168,26 @@ const AuthToggle = () => {
     setSuccessMessage("");
     dispatch(clearError());
 
+    // Browser password managers / autofill update the DOM but often skip React's onChange,
+    // leaving controlled state empty. Read from the form so saved credentials still submit.
+    const formEl = e.currentTarget;
+    const domEmail = (formEl.elements.namedItem("email")?.value ?? "").trim();
+    const domPassword = formEl.elements.namedItem("password")?.value ?? "";
+    const effectiveEmail = domEmail || formData.email.trim();
+    const effectivePassword = domPassword || formData.password;
+
     if (!validateForm()) return;
+
+    if (isLogin && (!effectiveEmail || !effectivePassword)) {
+      setValidationError("Please enter your email and password.");
+      return;
+    }
 
     try {
       if (isLogin) {
         const result = await dispatch(login({ 
-          email: formData.email, 
-          password: formData.password,
+          email: effectiveEmail, 
+          password: effectivePassword,
           rememberMe 
         }));
         
@@ -395,8 +410,10 @@ const AuthToggle = () => {
                 type="email"
                 id="email"
                 name="email"
+                autoComplete="email"
                 value={formData.email}
                 onChange={handleChange}
+                onInput={handleChange}
                 onBlur={() => handleBlur('email')}
                 required
                 placeholder="you@university.edu"
@@ -472,7 +489,6 @@ const AuthToggle = () => {
                       <option value="2">2nd Year</option>
                       <option value="3">3rd Year</option>
                       <option value="4">4th Year</option>
-                      <option value="5">5th Year</option>
                     </select>
                   </div>
                 </div>
@@ -541,8 +557,10 @@ const AuthToggle = () => {
                   type={showPassword ? "text" : "password"}
                   id="password"
                   name="password"
+                  autoComplete={isLogin ? "current-password" : "new-password"}
                   value={formData.password}
                   onChange={handleChange}
+                  onInput={handleChange}
                   onBlur={() => handleBlur('password')}
                   required
                   placeholder="Enter your password"

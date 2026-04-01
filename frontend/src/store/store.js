@@ -5,6 +5,7 @@ import chatReducer from "../features/chat/chatSlice";
 import notesReducer from "../features/notes/notesSlice";
 import kuppiReducer from "../features/kuppi/kuppiSlice";
 import notificationsReducer from "../features/notifications/notificationsSlice";
+import meetupReducer from "../features/meetups/meetupSlice";
 
 //Exam mode by mithun features 
 import examReducer from "../features/exam/examSlice";
@@ -18,11 +19,12 @@ export const store = configureStore({
     kuppi: kuppiReducer,
     notifications: notificationsReducer,
     exam: examReducer
+    meetups: meetupReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
-      serializableCheck: false
-    })
+      serializableCheck: false,
+    }),
 });
 
 export default store;
