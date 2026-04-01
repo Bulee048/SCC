@@ -4,8 +4,8 @@ import { useNavigate } from "react-router-dom";
 import {
     fetchMyInvites, acceptInviteAction, declineInviteAction,
     selectMyInvites,
-} from "../features/groups/groupSlice";
-import { notifySuccess, notifyError } from "../utils/toast.jsx";
+} from "../../features/groups/groupSlice";
+import { notifySuccess, notifyError } from "../../utils/toast";
 import { Mail, CheckCircle, XCircle, ChevronDown, ChevronUp } from "lucide-react";
 
 export default function MyInvitesBanner() {
