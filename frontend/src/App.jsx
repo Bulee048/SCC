@@ -101,134 +101,134 @@ function App() {
   return (
     <Provider store={store}>
       <AuthInitializer>
-      <ThemeProvider>
-        <Router>
-          <div className="app">
-            <Toaster
-              position="top-right"
-              toastOptions={{
-                duration: 3000,
-                style: {
-                  background: "var(--toast-bg)",
-                  color: "var(--toast-text)",
-                  border: "1px solid var(--toast-border)",
-                },
-                success: {
-                  iconTheme: {
-                    primary: "#10b981",
-                    secondary: "#052e1b",
+        <ThemeProvider>
+          <Router>
+            <div className="app">
+              <Toaster
+                position="top-right"
+                toastOptions={{
+                  duration: 3000,
+                  style: {
+                    background: "var(--toast-bg)",
+                    color: "var(--toast-text)",
+                    border: "1px solid var(--toast-border)",
                   },
-                },
-                error: {
-                  iconTheme: {
-                    primary: "#ef4444",
-                    secondary: "#450a0a",
+                  success: {
+                    iconTheme: {
+                      primary: "#10b981",
+                      secondary: "#052e1b",
+                    },
                   },
-                },
-              }}
-            />
-            <ThemeToggle />
-            {sessionEnded && <SessionEnd onClose={handleSessionEndClose} />}
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/auth" element={<AuthPage />} />
-              <Route path="/login" element={<AuthPage />} />
-              <Route path="/register" element={<AuthPage />} />
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
+                  error: {
+                    iconTheme: {
+                      primary: "#ef4444",
+                      secondary: "#450a0a",
+                    },
+                  },
+                }}
               />
-              <Route
-                path="/profile"
-                element={
-                  <ProtectedRoute>
-                    <Profile />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/groups"
-                element={
-                  <ProtectedRoute>
-                    <Groups />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/groups/:groupId"
-                element={
-                  <ProtectedRoute>
-                    <GroupDetail />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/notes"
-                element={
-                  <ProtectedRoute>
-                    <Notes />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/notes/:noteId"
-                element={
-                  <ProtectedRoute>
-                    <NoteDetail />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/kuppi"
-                element={
-                  <ProtectedRoute>
-                    <Kuppi />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/notifications"
-                element={
-                  <ProtectedRoute>
-                    <Notifications />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/timetable"
-                element={
-                  <ProtectedRoute>
-                    <Timetable />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/ai-chat"
-                element={
-                  <ProtectedRoute>
-                    <AiChat />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="/community" element={<CommunityPage />} />
-              <Route path="/resources" element={<ResourcesPage />} />
-              <Route path="/tutors" element={<TutorsPage />} />
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute>
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
-          </div>
-        </Router>
-      </ThemeProvider>
+              <ThemeToggle />
+              {sessionEnded && <SessionEnd onClose={handleSessionEndClose} />}
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/login" element={<AuthPage />} />
+                <Route path="/register" element={<AuthPage />} />
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/profile"
+                  element={
+                    <ProtectedRoute>
+                      <Profile />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/groups"
+                  element={
+                    <ProtectedRoute>
+                      <Groups />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/groups/:groupId"
+                  element={
+                    <ProtectedRoute>
+                      <GroupDetail />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/notes"
+                  element={
+                    <ProtectedRoute>
+                      <Notes />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/notes/:noteId"
+                  element={
+                    <ProtectedRoute>
+                      <NoteDetail />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/kuppi"
+                  element={
+                    <ProtectedRoute>
+                      <Kuppi />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/notifications"
+                  element={
+                    <ProtectedRoute>
+                      <Notifications />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/timetable"
+                  element={
+                    <ProtectedRoute>
+                      <Timetable />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/ai-chat"
+                  element={
+                    <ProtectedRoute>
+                      <AiChat />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="/community" element={<CommunityPage />} />
+                <Route path="/resources" element={<ResourcesPage />} />
+                <Route path="/tutors" element={<TutorsPage />} />
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedRoute>
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
+            </div>
+          </Router>
+        </ThemeProvider>
       </AuthInitializer>
     </Provider>
   );

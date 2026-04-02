@@ -59,6 +59,31 @@ html[data-theme="light"] .tt-root {
   --tt-shadow: 0 20px 40px rgba(6, 78, 59, 0.06);
 }
 
+/* Light Mode Transitions */
+html[data-theme="light"] .tt-hero {
+  background: linear-gradient(165deg, #f0fdfa 0%, #ffffff 100%) !important;
+  border-color: rgba(16, 185, 129, 0.15);
+  box-shadow: 0 20px 60px rgba(6, 78, 59, 0.05);
+}
+
+html[data-theme="light"] .tt-hero::before {
+  background: radial-gradient(circle at 100% 0%, rgba(16, 185, 129, 0.05) 0%, transparent 60%);
+}
+
+html[data-theme="light"] .tt-hero__title {
+  background: linear-gradient(135deg, #064e3b 40%, #059669);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+html[data-theme="light"] .tt-stat__val {
+  color: #064e3b;
+}
+
+html[data-theme="light"] .tt-stat__lbl {
+  color: #64748b;
+}
+
 /* Base Layout */
 .tt-root {
   font-family: 'Inter', sans-serif;
