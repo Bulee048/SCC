@@ -10,6 +10,9 @@ const api = axios.create({
   }
 });
 
+// Token refresh single-flight to prevent concurrent refresh requests
+let refreshInFlight = null;
+
 /**
  * Wrong credentials on login/register return 401 — must not trigger refresh flow
  * (same issue `main` avoids when no refresh token exists; this guards when a stale token exists).
@@ -28,7 +31,8 @@ const isOnAuthRoute = () => {
 // Request interceptor to add token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("accessToken");
+    const token = sessionStorage.getItem("accessToken");
+    config.headers = config.headers || {};
     if (token) {
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
@@ -53,26 +57,31 @@ api.interceptors.response.use(
     ) {
       originalRequest._retry = true;
 
-      const refreshToken = localStorage.getItem("refreshToken");
-      if (!refreshToken) {
-        return Promise.reject(error);
-      }
-
       try {
-        // Direct axios call to avoid interceptor loop (same as main)
-        const response = await axios.post(`${API_URL}/api/auth/refresh`, {
-          refreshToken
-        });
+        const refreshToken = sessionStorage.getItem("refreshToken");
+        if (refreshToken) {
+          // Single-flight refresh: avoid parallel refresh races clearing tokens.
+          if (!refreshInFlight) {
+            refreshInFlight = axios
+              .post(`${API_URL}/api/auth/refresh`, { refreshToken })
+              .finally(() => {
+                refreshInFlight = null;
+              });
+          }
+          const response = await refreshInFlight;
 
-        if (response.data.success && response.data.data?.accessToken) {
-          const { accessToken } = response.data.data;
-          localStorage.setItem("accessToken", accessToken);
+          // Backend returns { success, message, data: { accessToken } }
+          if (response.data.success && response.data.data?.accessToken) {
+            const { accessToken } = response.data.data;
+            sessionStorage.setItem("accessToken", accessToken);
 
-          originalRequest.headers = originalRequest.headers || {};
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-          return api(originalRequest);
+            originalRequest.headers = originalRequest.headers || {};
+            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+            return api(originalRequest);
+          }
+          throw new Error("Invalid refresh token response");
         }
-        throw new Error("Invalid refresh token response");
+        throw new Error("No refresh token found");
       } catch (refreshError) {
         console.error("Token refresh failed:", refreshError);
         localStorage.removeItem("accessToken");

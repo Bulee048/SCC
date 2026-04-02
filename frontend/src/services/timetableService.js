@@ -108,16 +108,16 @@ export const getOngoingEvent = async () => {
 export const getGoogleAuthUrl = async () => {
   // This endpoint is protected by JWT auth.
   // If accessToken is missing/expired, try refresh once before failing.
-  let token = localStorage.getItem("accessToken");
+  let token = sessionStorage.getItem("accessToken");
   if (!token) {
-    const refreshToken = localStorage.getItem("refreshToken");
+    const refreshToken = sessionStorage.getItem("refreshToken");
     if (refreshToken) {
       // Use direct axios to avoid interceptor races while bootstrapping OAuth.
       const refreshRes = await axios.post(`${API_URL}/api/auth/refresh`, { refreshToken });
       const next = refreshRes?.data?.data?.accessToken;
       if (next) {
         token = next;
-        localStorage.setItem("accessToken", next);
+        sessionStorage.setItem("accessToken", next);
       }
     }
   }

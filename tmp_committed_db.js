@@ -1,17 +1,16 @@
-import dns from "node:dns";
-import mongoose from "mongoose";
+﻿import mongoose from "mongoose";
 
-// Helps mongodb+srv SRV lookups on some Windows / restrictive DNS setups.
-dns.setDefaultResultOrder("ipv4first");
-
-
+/** "remote" = real MONGO_URI (Atlas cluster only) */
+export let dbConnectionMode = "none";
 
 const toSafeMongoUriForLogs = (mongoUri) => {
   if (!mongoUri) return "";
   try {
     const u = new URL(mongoUri);
+    // Keep only protocol + host + path; drop credentials and query.
     return `${u.protocol}//${u.host}${u.pathname}`;
   } catch {
+    // Fallback: redact credentials if present.
     return mongoUri.replace(/\/\/[^@]+@/i, "//***:***@");
   }
 };
@@ -20,13 +19,6 @@ const toSafeMongoUriForLogs = (mongoUri) => {
  * Connect to MongoDB Atlas cluster only. No local/in-memory database fallback.
  */
 const connectDB = async () => {
-  // Fix Node.js resolving to 127.0.0.1 for DNS on some Windows setups that breaks mongodb+srv
-  const extraDns = (process.env.MONGO_DNS_SERVERS || "").trim();
-  if (extraDns) {
-    const servers = extraDns.split(",").map((s) => s.trim()).filter(Boolean);
-    if (servers.length) dns.setServers(servers);
-  }
-
   let mongoUri = (process.env.MONGO_URI || process.env.MONGODB_URI || "").trim();
 
   if (!mongoUri) {
@@ -45,33 +37,29 @@ const connectDB = async () => {
 
   const connect = async (uri) => {
     const conn = await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 15000,
-      connectTimeoutMS: 15000,
-      family: 4, // Force IPv4 — avoids issues on dual-stack Windows
+      serverSelectionTimeoutMS: 10000, // 10 second timeout instead of hanging
+      connectTimeoutMS: 10000,
     });
     return conn;
   };
 
   try {
     const conn = await connect(mongoUri);
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    dbConnectionMode = "remote";
+    console.log(`MongoDB Connected (persistent): ${conn.connection.host}`);
     return conn;
   } catch (error) {
-    console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.error("ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü");
     console.error("  MongoDB Atlas Connection FAILED");
-    console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.error("ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü");
     console.error("  Error:", error.message);
     console.error("  Fix checklist:");
-    console.error("  1. Go to MongoDB Atlas → Network Access");
+    console.error("  1. Go to MongoDB Atlas ΓåÆ Network Access");
     console.error("     Add your current IP address (or 0.0.0.0/0 for dev)");
     console.error("  2. Check your MONGO_URI credentials in backend/.env");
     console.error("     Current URI (redacted):", toSafeMongoUriForLogs(mongoUri));
-    if (/querySrv|ECONNREFUSED|ENOTFOUND|getaddrinfo/i.test(String(error.message))) {
-      console.error("  3. DNS/SRV fix: add to backend/.env → MONGO_DNS_SERVERS=8.8.8.8,1.1.1.1");
-      console.error("     Or use Atlas → Connect → Drivers → Standard connection string (no mongodb+srv).");
-    }
     console.error("  3. Ensure your MongoDB cluster is active and running");
-    console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.error("ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü");
     throw new Error(`MongoDB Atlas connection failed: ${error.message}`);
   }
 };

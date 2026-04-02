@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, Link } from "react-router-dom";
 import {
@@ -12,7 +12,6 @@ import {
   GraduationCap, Activity, Radio, Shield,
   Filter, TrendingUp, Hash,
 } from "lucide-react";
-import * as THREE from "three";
 import LoadingSpinner from "../components/LoadingSpinner";
 import NotificationBell from "../components/NotificationBell";
 import GroupCard from "../components/groups/GroupCard";
@@ -23,113 +22,6 @@ import "../styles/Groups.css";
 import "../styles/GroupsExtra.css";
 import "../styles/Notifications.css";
 
-/* ═══════════════════════════════════════════════════════════
-   Ocean Background (reused from Dashboard)
-═══════════════════════════════════════════════════════════ */
-function useOceanBackground(wrapRef, canvasReady) {
-  useEffect(() => {
-    if (!canvasReady || !wrapRef.current) return;
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.9;
-    wrapRef.current.appendChild(renderer.domElement);
-
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0a2134);
-    scene.fog = new THREE.FogExp2(0x0d2940, 0.0165);
-
-    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 400);
-    camera.position.set(0, 8, 55);
-    camera.lookAt(0, 0, 0);
-
-    const floorGeo = new THREE.PlaneGeometry(300, 300, 40, 40);
-    const fPos = floorGeo.attributes.position;
-    for (let i = 0; i < fPos.count; i++) {
-      const x = fPos.getX(i), z = fPos.getZ(i);
-      fPos.setY(i, Math.sin(x * 0.08) * 0.8 + Math.cos(z * 0.06) * 0.6);
-    }
-    fPos.needsUpdate = true;
-    floorGeo.computeVertexNormals();
-    const floor = new THREE.Mesh(floorGeo, new THREE.MeshBasicMaterial({ color: 0x102d42 }));
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = -18;
-    scene.add(floor);
-
-    const raysGroup = new THREE.Group();
-    for (let r = 0; r < 7; r++) {
-      const ray = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.05, 3 + Math.random() * 4, 60, 6, 1, true),
-        new THREE.MeshBasicMaterial({ color: 0x7dd3fc, transparent: true, opacity: 0.03 + Math.random() * 0.03, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false })
-      );
-      ray.position.set((Math.random() - 0.5) * 60, 10, (Math.random() - 0.5) * 30 - 10);
-      ray.rotation.z = (Math.random() - 0.5) * 0.15;
-      raysGroup.add(ray);
-    }
-    scene.add(raysGroup);
-
-    const PLANKTON = 4500;
-    const plankGeo = new THREE.BufferGeometry();
-    const pPos = new Float32Array(PLANKTON * 3);
-    const pCol = new Float32Array(PLANKTON * 3);
-    const pPhase = new Float32Array(PLANKTON);
-    const cc = new THREE.Color();
-    for (let i = 0; i < PLANKTON; i++) {
-      pPos[i * 3] = (Math.random() - 0.5) * 100;
-      pPos[i * 3 + 1] = -18 + Math.random() * 45;
-      pPos[i * 3 + 2] = (Math.random() - 0.5) * 80;
-      pPhase[i] = Math.random() * Math.PI * 2;
-      cc.setHSL(Math.random() > 0.4 ? 0.47 : 0.58, 1, 0.55 + Math.random() * 0.25);
-      pCol[i * 3] = cc.r; pCol[i * 3 + 1] = cc.g; pCol[i * 3 + 2] = cc.b;
-    }
-    plankGeo.setAttribute("position", new THREE.BufferAttribute(pPos, 3));
-    plankGeo.setAttribute("color", new THREE.BufferAttribute(pCol, 3));
-    const plankMat = new THREE.PointsMaterial({ size: 0.18, vertexColors: true, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.7, sizeAttenuation: true });
-    const plankton = new THREE.Points(plankGeo, plankMat);
-    scene.add(plankton);
-
-    let frame = 0, animId;
-    const plankPos = plankton.geometry.attributes.position;
-    const animate = () => {
-      frame++;
-      const t = frame * 0.001;
-      camera.position.x = Math.sin(t * 0.15) * 10;
-      camera.position.z = 55 + Math.sin(t * 0.09) * 8;
-      camera.position.y = 8 + Math.sin(t * 0.2) * 3;
-      camera.lookAt(0, 2, 0);
-      for (let i = 0; i < PLANKTON; i++) {
-        plankPos.array[i * 3] += Math.sin(t * 1.2 + pPhase[i]) * 0.004;
-        plankPos.array[i * 3 + 1] += 0.006;
-        if (plankPos.array[i * 3 + 1] > 28) {
-          plankPos.array[i * 3 + 1] = -18;
-          plankPos.array[i * 3] = (Math.random() - 0.5) * 100;
-        }
-      }
-      plankPos.needsUpdate = true;
-      raysGroup.children.forEach((ray, ri) => {
-        ray.material.opacity = 0.02 + Math.sin(t * 0.8 + ri * 0.9) * 0.018;
-      });
-      renderer.render(scene, camera);
-      animId = requestAnimationFrame(animate);
-    };
-    animate();
-
-    const onResize = () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    };
-    window.addEventListener("resize", onResize);
-    return () => {
-      cancelAnimationFrame(animId);
-      window.removeEventListener("resize", onResize);
-      renderer.dispose();
-      if (wrapRef.current?.contains(renderer.domElement))
-        wrapRef.current.removeChild(renderer.domElement);
-    };
-  }, [canvasReady]);
-}
 
 /* ═══════════════════════════════════════════════════════════
    CREATE GROUP MODAL
@@ -323,12 +215,8 @@ const Groups = () => {
   const [joining, setJoining] = useState({});
   const [activeTag, setActiveTag] = useState(null);
 
-  const wrapRef = useRef(null);
-  const [canvasReady, setCanvasReady] = useState(false);
-  const canvasRefCallback = (node) => { wrapRef.current = node; if (node) setCanvasReady(true); };
-  useOceanBackground(wrapRef, canvasReady);
 
-  useEffect(() => { if (!isAuthenticated) navigate("/login"); }, [isAuthenticated, navigate]);
+  useEffect(() => { if (!isAuthenticated) navigate("/"); }, [isAuthenticated, navigate]);
 
   useEffect(() => {
     dispatch(fetchGroups({ search: filters.search, myGroups: filters.myGroups }));
@@ -353,7 +241,7 @@ const Groups = () => {
     const confirmed = await confirmAction("Are you sure you want to log out?", { confirmText: "Log out" });
     if (!confirmed) return;
     dispatch(logout());
-    navigate("/login");
+    navigate("/");
   };
 
   // Computed stats
@@ -384,168 +272,119 @@ const Groups = () => {
   );
 
   return (
-    <div className="db-root dashboard-page">
-      {/* Ocean canvas */}
-      <div className="db-canvas-wrap" ref={canvasRefCallback} />
-      <div className="db-overlay-vignette" />
+    <div className="db-root dashboard-page grp-root">
 
       <div className="db-layout">
         {/* ── Navbar ── */}
-        <nav className="db-nav">
-          <div className="db-nav__inner">
-            <Link to="/dashboard" className="db-brand">
-              <div className="db-brand__mark"><Waves size={16} color="#00f5c4" /></div>
-              <div>
-                <div className="db-brand__name">Smart Campus</div>
-                <div className="db-brand__sub">Collaboration Hub</div>
-              </div>
+        <header className="dashboard-header">
+          <div className="dashboard-header__inner">
+            <Link to="/dashboard" className="dashboard-logo">
+              <span className="dashboard-logo__text">User Dashboard</span>
             </Link>
-            <div className="db-nav__links">
+
+            <nav className="dashboard-nav">
               {navLinks.map((l, i) => (
-                <Link key={i} to={l.path} className={`db-nav__link${l.active ? " db-nav__link--active" : ""}`}>
-                  {l.icon}<span>{l.label}</span>
+                <Link
+                  key={i}
+                  to={l.path}
+                  className={`dashboard-nav__link ${l.active ? "active" : ""}`}
+                  style={{ "--i": i }}
+                >
+                  {l.icon}
+                  <span>{l.label}</span>
                 </Link>
               ))}
-            </div>
-            <div className="db-nav__right">
+            </nav>
+
+            <div className="dashboard-actions" style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
               <NotificationBell />
-              <button className="db-top-btn" onClick={() => navigate("/profile")}>My Profile</button>
-              <button className="db-top-btn db-top-btn--danger" onClick={handleLogout}>
-                <LogOut size={13} /><span>Sign Out</span>
+              <button className="dashboard-profile-btn" onClick={() => navigate("/profile")}>
+                <span className="dashboard-avatar">{user?.name?.charAt(0) || "U"}</span>
+                <span className="dashboard-profile-name">{user?.name?.split(" ")[0] || "User"}</span>
+              </button>
+              <button className="dashboard-logout-btn" onClick={handleLogout}>
+                <LogOut size={20} strokeWidth={2.4} />
               </button>
             </div>
           </div>
-        </nav>
+        </header>
 
-        {/* ── Page body: sidebar + main ── */}
-        <div style={{ display: "flex", position: "relative", zIndex: 10 }}>
+        {/* ── Page body: unified layout ── */}
+        <div className="grp-unified-layout fade-in">
 
-          {/* ── LEFT SIDEBAR ── */}
-          <div className="grp-sidebar" style={{ paddingTop: 20 }}>
-            {/* Quick stats */}
-            <div className="grp-sidebar-section">
-              <div className="grp-sidebar-title">Overview</div>
-              <div className="grp-sidebar-stat">
-                <span className="grp-sidebar-stat-label">Total Groups</span>
-                <span className="grp-sidebar-stat-val" style={{ color: "var(--bio)" }}>{groups.length}</span>
+          {/* ── HERO BANNER ── */}
+          <section className="grp-hero-banner">
+            <div className="grp-hero-content">
+              <div className="grp-hero-text-block">
+                <div className="grp-hero-badge">
+                  <span className="grp-live-dot"></span> Collaborative Spaces
+                </div>
+                <h1 className="grp-hero-title">Study & Project Groups</h1>
+                <p className="grp-hero-sub">
+                  Join forces with your peers. Manage group assignments, schedule hybrid meetups, and share resources easily.
+                </p>
+                <div className="grp-hero-stats">
+                  <div className="grp-h-stat"><Users size={14} /> <span><b>{groups.length}</b> Groups</span></div>
+                  <div className="grp-h-stat" style={{ color: "var(--cyan)" }}><Shield size={14} /> <span><b>{myGroupCount}</b> Joined</span></div>
+                  <div className="grp-h-stat" style={{ color: "var(--color-success, #10b981)" }}><Globe size={14} /> <span><b>{publicCount}</b> Public</span></div>
+                </div>
               </div>
-              <div className="grp-sidebar-stat">
-                <span className="grp-sidebar-stat-label">My Groups</span>
-                <span className="grp-sidebar-stat-val" style={{ color: "#818cf8" }}>{myGroupCount}</span>
-              </div>
-              <div className="grp-sidebar-stat">
-                <span className="grp-sidebar-stat-label">Public</span>
-                <span className="grp-sidebar-stat-val" style={{ color: "#34d399" }}>{publicCount}</span>
-              </div>
-              <div className="grp-sidebar-stat">
-                <span className="grp-sidebar-stat-label">Private</span>
-                <span className="grp-sidebar-stat-val" style={{ color: "#fbbf24" }}>{groups.length - publicCount}</span>
+              <div className="grp-hero-right">
+                <button className="grp-hero-create-btn" onClick={() => setShowCreate(true)}>
+                  <Plus size={18} />
+                  <span>Start a Group</span>
+                </button>
               </div>
             </div>
+            {/* Background elements */}
+            <div className="grp-hero-shape-1"></div>
+            <div className="grp-hero-shape-2"></div>
+          </section>
 
-            {/* Filters */}
-            <div className="grp-sidebar-section">
-              <div className="grp-sidebar-title">Filters</div>
-              <button
-                className={`grp-toggle-btn ${filters.myGroups ? "active" : ""}`}
-                style={{ width: "100%", marginBottom: 10 }}
-                onClick={() => dispatch(setFilters({ myGroups: !filters.myGroups }))}
-              >
-                <Shield size={14} />
-                {filters.myGroups ? "My Groups" : "All Groups"}
-              </button>
-            </div>
+          {/* ── MAIN CONTENT ── */}
+          <main className="grp-unified-main">
+            <MyInvitesBanner />
 
-            {/* Tag chips */}
-            <div className="grp-sidebar-section">
-              <div className="grp-sidebar-title">Browse by Tag</div>
-              <div className="grp-tag-chips">
+            {/* Elegant Filter Bar */}
+            <div className="grp-modern-filter-bar" style={{ animation: "riseIn .65s .15s ease both" }}>
+              <div className="grp-search-capsule">
+                <Search size={16} className="grp-search-icon-mod" />
+                <input
+                  value={localSearch}
+                  onChange={handleSearch}
+                  placeholder="Search groups, subjects, or courses..."
+                  className="grp-search-input-mod"
+                />
+              </div>
+
+              <div className="grp-filter-sep"></div>
+
+              <div className="grp-toggle-trio">
+                <button
+                  className={`grp-trio-btn ${!filters.myGroups ? "active" : ""}`}
+                  onClick={() => dispatch(setFilters({ myGroups: false }))}
+                >
+                  <Globe size={15} /> Discover
+                </button>
+                <button
+                  className={`grp-trio-btn ${filters.myGroups ? "active" : ""}`}
+                  onClick={() => dispatch(setFilters({ myGroups: true }))}
+                >
+                  <Shield size={15} /> My Groups
+                </button>
+              </div>
+
+              <div className="grp-filter-sep"></div>
+
+              <div className="grp-tags-scroll">
                 {PRESET_TAGS.map((tag) => (
                   <button key={tag}
-                    className={`grp-tag-chip ${activeTag === tag ? "active" : ""}`}
+                    className={`grp-tag-pill-mod ${activeTag === tag ? "active" : ""}`}
                     onClick={() => setActiveTag(activeTag === tag ? null : tag)}>
                     #{tag}
                   </button>
                 ))}
               </div>
-            </div>
-
-            {/* CTA */}
-            <button className="grp-create-btn" style={{ width: "100%" }} onClick={() => setShowCreate(true)}>
-              <Plus size={16} /> Create Group
-            </button>
-          </div>
-
-          {/* ── MAIN AREA ── */}
-          <main className="grp-main-area">
-            {/* Pending invites banner */}
-            <MyInvitesBanner />
-
-            {/* Page heading */}
-            <div className="grp-page-heading" style={{ animation: "riseIn .65s .05s ease both" }}>
-              <h1 className="grp-page-title">Study & Project Groups</h1>
-              <p className="grp-page-sub">
-                Collaborate on projects, coordinate kuppi sessions, and schedule hybrid meetups — all in one place.
-              </p>
-            </div>
-
-            {/* Stats row (mobile/tablet — desktop sees sidebar) */}
-            <section className="db-stats" style={{ animation: "riseIn .65s .15s ease both" }}>
-              <div className="db-stat hover-glow" style={{ "--ac": "#2a9d8f" }}>
-                <div className="db-stat__icon"><Users size={16} /></div>
-                <div>
-                  <div className="db-stat__val">{groups.length}</div>
-                  <div className="db-stat__lbl">Available</div>
-                </div>
-              </div>
-              <div className="db-stat hover-glow" style={{ "--ac": "#818cf8" }}>
-                <div className="db-stat__icon"><Shield size={16} /></div>
-                <div>
-                  <div className="db-stat__val">{myGroupCount}</div>
-                  <div className="db-stat__lbl">My Groups</div>
-                </div>
-              </div>
-              <div className="db-stat hover-glow" style={{ "--ac": "#34d399" }}>
-                <div className="db-stat__icon"><Globe size={16} /></div>
-                <div>
-                  <div className="db-stat__val">{publicCount}</div>
-                  <div className="db-stat__lbl">Public</div>
-                </div>
-              </div>
-              <div className="db-stat hover-glow" style={{ "--ac": "#fbbf24" }}>
-                <div className="db-stat__icon"><Lock size={16} /></div>
-                <div>
-                  <div className="db-stat__val">{groups.length - publicCount}</div>
-                  <div className="db-stat__lbl">Private</div>
-                </div>
-              </div>
-            </section>
-
-            {/* Filter + action row */}
-            <div className="grp-top-row" style={{ animation: "riseIn .65s .22s ease both" }}>
-              {/* Search */}
-              <div className="grp-search-bar">
-                <Search size={15} className="grp-search-bar-icon" />
-                <input
-                  value={localSearch}
-                  onChange={handleSearch}
-                  placeholder="Search groups by name, subject, or course…"
-                />
-              </div>
-
-              {/* My groups toggle */}
-              <button
-                className={`grp-toggle-btn ${filters.myGroups ? "active" : ""}`}
-                onClick={() => dispatch(setFilters({ myGroups: !filters.myGroups }))}
-              >
-                <Filter size={14} />
-                {filters.myGroups ? "My Groups" : "All Groups"}
-              </button>
-
-              {/* Create button */}
-              <button className="grp-create-btn" onClick={() => setShowCreate(true)}>
-                <Plus size={16} /> Create Group
-              </button>
             </div>
 
             {/* Error banner */}

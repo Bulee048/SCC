@@ -14,12 +14,14 @@
 
 .tt-editor-table thead th {
   text-align: left;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  color: #d1fae5;
-  background: rgba(16, 185, 129, 0.10);
-  padding: 12px 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  color: var(--tt-amethyst);
+  background: rgba(168, 85, 247, 0.08);
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--tt-border-active);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
   white-space: nowrap;
 }
 
