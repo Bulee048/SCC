@@ -20,6 +20,7 @@ import Notes from "./pages/Notes";
 import NoteDetail from "./pages/NoteDetail";
 import Kuppi from "./pages/Kuppi";
 import Notifications from "./pages/Notifications";
+import ExamMode from './pages/ExamMode'; 
 import CommunityPage from "./pages/CommunityPage";
 import ResourcesPage from "./pages/ResourcesPage";
 import TutorsPage from "./pages/TutorsPage";
@@ -29,6 +30,10 @@ import AdminDashboard from "./pages/AdminDashboard";
 
 // Components
 import ProtectedRoute from "./components/ProtectedRoute";
+
+// අලුතින් හැදූ Exam Mode Components Import කරගැනීම
+import ExamLogin from './components/Exam/ExamLogin';
+import ExamProtectedRoute from './components/ExamProtectedRoute';
 
 // Styles
 import "./App.css";
@@ -130,6 +135,7 @@ function App() {
             <ThemeToggle />
             {sessionEnded && <SessionEnd onClose={handleSessionEndClose} />}
             <Routes>
+              {/* --- සාමාන්‍ය (Public & Protected) Routes --- */}
               <Route path="/" element={<Home />} />
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/login" element={<AuthPage />} />
@@ -198,6 +204,15 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+
+              <Route path="/exam-login" element={<ExamLogin />} />
+
+              
+              <Route element={<ExamProtectedRoute />}>
+                <Route path="/exam-mode" element={<ExamMode />} />
+             
+              </Route>
+
               <Route
                 path="/timetable"
                 element={

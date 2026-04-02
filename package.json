@@ -1,4 +1,11 @@
 {
+  "name": "scc",
+  "version": "1.0.0",
+  "description": "Smart Campus Companion",
+  "scripts": {
+    "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
+    "backend": "npm run dev --prefix backend",
+    "frontend": "npm run dev --prefix frontend"
   "name": "scc-monorepo",
   "version": "1.0.0",
   "description": "Smart Campus Companion - Monorepo",
