@@ -1,4 +1,4 @@
-import dotenv from "dotenv";
+﻿import dotenv from "dotenv";
 dotenv.config();
 
 import express from "express";
@@ -17,11 +17,6 @@ import fileRoutes from "./routes/fileRoutes.js";
 import notesRoutes from "./routes/notesRoutes.js";
 import kuppiRoutes from "./routes/kuppiRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
-import examRoutes from "./routes/examRoutes.js";
-
-
-import studyPilotRoutes from "./routes/studyPilotRoutes.js"; 
-
 import meetupRoutes from "./routes/meetupRoutes.js";
 import timetableRoutes from "./routes/timetableRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
@@ -71,7 +66,6 @@ app.get("/", (req, res) => {
   });
 });
 
-// Registering Routes
 app.get("/api/health", (req, res) => {
   res.json({
     success: true,
@@ -79,6 +73,20 @@ app.get("/api/health", (req, res) => {
     database: "connected",
     environment: process.env.NODE_ENV || "development",
   });
+});
+
+// Block DB-backed API routes until DB is connected (dev-friendly)
+app.use("/api", (req, res, next) => {
+  if (req.path === "/health") return next();
+  if (app.locals.dbConnected) return next();
+  const payload = {
+    success: false,
+    message: "Database not connected. Check /api/health for details.",
+  };
+  if ((process.env.NODE_ENV || "development") !== "production" && app.locals.dbError) {
+    payload.dbError = app.locals.dbError;
+  }
+  return res.status(503).json(payload);
 });
 
 // API Routes (require DB)
@@ -89,11 +97,6 @@ app.use("/api", fileRoutes);
 app.use("/api", notesRoutes);
 app.use("/api", kuppiRoutes);
 app.use("/api", notificationRoutes);
-app.use('/api/exams', examRoutes);
-
-
-app.use('/api/study-pilot', studyPilotRoutes);
-
 app.use("/api", meetupRoutes);
 app.use("/api", timetableRoutes);
 app.use("/api/ai", aiRoutes);
@@ -130,7 +133,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Socket.io — same origin policy as Express (works with multiple dev ports)
+// Socket.io ΓÇö same origin policy as Express (works with multiple dev ports)
 const io = new Server(server, {
   cors: {
     origin: corsOriginHandler,
@@ -197,8 +200,7 @@ const startJobs = async () => {
 };
 
 /**
- * Connect to MongoDB Atlas first, then start the HTTP server.
- * No API is served until the database is connected.
+ * Same lifecycle as `main`: connect MongoDB first, then listen (no API without DB).
  */
 const startServer = async () => {
   try {

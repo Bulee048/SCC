@@ -1,0 +1,25 @@
+PORT=5000
+NODE_ENV=development
+CLIENT_URL=http://localhost:5173
+
+# Must be exactly: MONGO_URI=<connection string> — do NOT repeat "MONGO_URI=" inside the value
+MONGO_URI=mongodb+srv://dulmin_db_user:123@cluster0.bzvmzxp.mongodb.net/scc?retryWrites=true&w=majority&appName=Cluster0
+
+JWT_SECRET=your_super_secret_jwt_key_change_this_in_production
+
+EMAIL_USER=your_email@example.com
+EMAIL_PASS=your_email_password
+
+OPENAI_API_KEY=your_openai_api_key
+
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+
+ONEDRIVE_CLIENT_ID=your_onedrive_client_id
+ONEDRIVE_CLIENT_SECRET=your_onedrive_client_secret
+
+# Google Sheets Attendance (optional - leave blank to disable)
+GOOGLE_SHEETS_ID=
+GOOGLE_SHEET_NAME=Attendance
+GOOGLE_SERVICE_ACCOUNT_EMAIL=
+GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY=

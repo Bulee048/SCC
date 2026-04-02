@@ -3,6 +3,8 @@
    Modern System Fonts · Forest Green Accent
    ======================================== */
 
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:opsz@6..12&family=Crimson+Pro:ital,wght@0,400;0,500;0,600;1,400&family=Inter:opsz,wght@14..32,300..700&display=swap');
+
 /* Professional font stack: system fonts for maximum performance & clarity */
 :root {
   /* ── Surfaces (Emerald/Slate Clean) ── */
@@ -91,8 +93,6 @@
 /* ========================================
    IMPORT GOOGLE FONTS (optional fallback)
    ======================================== */
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:opsz@6..12&family=Crimson+Pro:ital,wght@0,400;0,500;0,600;1,400&family=Inter:opsz,wght@14..32,300..700&display=swap');
-
 /* ========================================
    BASE
    ======================================== */
@@ -465,6 +465,7 @@
     opacity: 0;
     transform: translateY(20px) scale(0.98);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -1147,119 +1148,119 @@
 /* ── Semantic UI Customizations ── */
 
 .ui.modal.kuppi-semantic-modal {
-    border-radius: var(--r-xl) !important;
+  border-radius: var(--r-xl) !important;
 }
 
 .modal-header-flex {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
 }
 
 .modal-header-flex span {
-    font-family: var(--font-display);
-    font-weight: 800;
-    font-size: 1.5rem;
-    letter-spacing: -0.02em;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
 }
 
 .meeting-btn-semantic {
-    border-radius: var(--r-md) !important;
-    font-family: var(--font-body) !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.01em !important;
-    margin-bottom: 0.5rem !important;
-    padding: 1rem !important;
+  border-radius: var(--r-md) !important;
+  font-family: var(--font-body) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em !important;
+  margin-bottom: 0.5rem !important;
+  padding: 1rem !important;
 }
 
 .joined-message {
-    border-radius: var(--r-md) !important;
-    margin-bottom: 0.5rem !important;
-    font-weight: 700 !important;
-    border: 1px solid var(--k-primary-muted) !important;
+  border-radius: var(--r-md) !important;
+  margin-bottom: 0.5rem !important;
+  font-weight: 700 !important;
+  border: 1px solid var(--k-primary-muted) !important;
 }
 
 .applicants-header-bar-semantic {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1rem 0;
-    border-bottom: 1px solid var(--k-rule);
-    margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--k-rule);
+  margin-bottom: 1.5rem;
 }
 
 .kuppi-loading-semantic {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 4rem 0;
-    gap: 1rem;
-    color: var(--k-text-faint);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 0;
+  gap: 1rem;
+  color: var(--k-text-faint);
 }
 
 .no-applicants-semantic {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 4rem 0;
-    gap: 1.5rem;
-    color: var(--k-text-faint);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 0;
+  gap: 1.5rem;
+  color: var(--k-text-faint);
 }
 
 .row-avatar-semantic {
-    width: 40px;
-    height: 40px;
-    background: var(--k-primary-soft);
-    border: 2px solid var(--k-primary-muted);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 800;
-    color: var(--k-primary);
-    margin-right: 1.5rem;
-    font-size: 1rem;
+  width: 40px;
+  height: 40px;
+  background: var(--k-primary-soft);
+  border: 2px solid var(--k-primary-muted);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: var(--k-primary);
+  margin-right: 1.5rem;
+  font-size: 1rem;
 }
 
 .applicants-table-semantic {
-    border-radius: var(--r-lg) !important;
-    box-shadow: var(--k-shadow-sm) !important;
+  border-radius: var(--r-lg) !important;
+  box-shadow: var(--k-shadow-sm) !important;
 }
 
 /* Adjust Semantic Button Group within Kuppi Context */
 .kuppi-tabs .ui.button.group {
-    background: var(--k-surface-alt);
-    padding: 3px;
-    border-radius: var(--r-md);
+  background: var(--k-surface-alt);
+  padding: 3px;
+  border-radius: var(--r-md);
 }
 
 .kuppi-tabs .ui.button {
-    border-radius: calc(var(--r-md) - 2px) !important;
+  border-radius: calc(var(--r-md) - 2px) !important;
 }
 
 .kuppi-tabs .ui.button.active {
-    background: var(--k-surface) !important;
-    color: var(--k-primary) !important;
-    box-shadow: var(--k-shadow-sm) !important;
+  background: var(--k-surface) !important;
+  color: var(--k-primary) !important;
+  box-shadow: var(--k-shadow-sm) !important;
 }
 
 [data-theme="dark"] .ui.modal.kuppi-semantic-modal,
 [data-theme="dark"] .ui.modal {
-    background: var(--k-surface) !important;
-    color: var(--k-text) !important;
+  background: var(--k-surface) !important;
+  color: var(--k-text) !important;
 }
 
-[data-theme="dark"] .ui.modal > .header,
-[data-theme="dark"] .ui.modal > .content {
-    background: transparent !important;
-    color: var(--k-text) !important;
+[data-theme="dark"] .ui.modal>.header,
+[data-theme="dark"] .ui.modal>.content {
+  background: transparent !important;
+  color: var(--k-text) !important;
 }
 
-[data-theme="dark"] .ui.modal > .actions {
-    background: var(--k-surface-alt) !important;
+[data-theme="dark"] .ui.modal>.actions {
+  background: var(--k-surface-alt) !important;
 }
 
 /* ========================================
