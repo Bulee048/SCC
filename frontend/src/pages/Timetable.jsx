@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
+
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import { logout } from "../features/auth/authSlice";
@@ -554,7 +556,11 @@ const Timetable = () => {
 
       <main className="tt-main">
         {/* TOP BAR / BREADCRUMBS */}
-        <div className="tt-topbar">
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="tt-topbar"
+        >
           <div className="tt-topbar__left">
             <button className="tt-back-btn" onClick={() => navigate("/dashboard")} title="Go Back">
               <ArrowLeft size={18} />
@@ -570,40 +576,66 @@ const Timetable = () => {
             <div className="tt-status-dot" />
             <span>AI ENGINE ONLINE</span>
           </div>
-        </div>
+        </motion.div>
 
         {/* HERO SECTION */}
-        <section className="tt-hero">
+        <motion.section 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="tt-hero"
+        >
           <div className="tt-hero__content">
-            <span className="tt-hero__tag">Academic Operations</span>
-            <h1 className="tt-hero__title">Smart Strategy Matrix</h1>
-            <p className="tt-hero__desc">
+            <motion.span 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.8 }}
+              transition={{ delay: 0.3 }}
+              className="tt-hero__tag"
+            >
+              Academic Operations
+            </motion.span>
+            <motion.h1 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="tt-hero__title"
+            >
+              Smart Strategy Matrix
+            </motion.h1>
+            <motion.p 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="tt-hero__desc"
+            >
               Orchestrate your academic trajectory with our <strong>Neural Strategy Engine</strong>. 
               Input your constraints, calibrate subject difficulty, and deploy a high-efficiency 
               study plan synchronized across your ecosystem.
-            </p>
+            </motion.p>
           </div>
 
           <div className="tt-stats">
-            <div className="tt-stat">
-              <div className="tt-stat__val">{universitySchedule.length}</div>
-              <div className="tt-stat__lbl">Core Lectures</div>
-            </div>
-            <div className="tt-stat">
-              <div className="tt-stat__val">
-                {optimizedSchedule.filter(e => {
+            {[
+              { val: universitySchedule.length, lbl: "Core Lectures" },
+              { val: optimizedSchedule.filter(e => {
                   const t = String(e?.type || "").toLowerCase();
                   return t === "study" || String(e?.title || "").toLowerCase().includes("study");
-                }).length}
-              </div>
-              <div className="tt-stat__lbl">Study Blocks</div>
-            </div>
-            <div className="tt-stat">
-              <div className="tt-stat__val">{conflicts.length}</div>
-              <div className="tt-stat__lbl">Conflicts</div>
-            </div>
+                }).length, lbl: "Study Blocks" },
+              { val: conflicts.length, lbl: "Conflicts" }
+            ].map((stat, idx) => (
+              <motion.div 
+                key={stat.lbl}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.6 + (idx * 0.1) }}
+                className="tt-stat"
+              >
+                <div className="tt-stat__val">{stat.val}</div>
+                <div className="tt-stat__lbl">{stat.lbl}</div>
+              </motion.div>
+            ))}
           </div>
-        </section>
+        </motion.section>
 
         {/* ALERTS */}
         {error && (

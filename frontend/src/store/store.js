@@ -18,7 +18,7 @@ export const store = configureStore({
     notes: notesReducer,
     kuppi: kuppiReducer,
     notifications: notificationsReducer,
-    exam: examReducer
+    exam: examReducer,
     meetups: meetupReducer,
   },
   middleware: (getDefaultMiddleware) =>

@@ -20,7 +20,7 @@ import Notes from "./pages/Notes";
 import NoteDetail from "./pages/NoteDetail";
 import Kuppi from "./pages/Kuppi";
 import Notifications from "./pages/Notifications";
-import ExamMode from './pages/ExamMode'; 
+import ExamMode from './pages/ExamMode';
 import CommunityPage from "./pages/CommunityPage";
 import ResourcesPage from "./pages/ResourcesPage";
 import TutorsPage from "./pages/TutorsPage";
@@ -106,144 +106,143 @@ function App() {
   return (
     <Provider store={store}>
       <AuthInitializer>
-      <ThemeProvider>
-        <Router>
-          <div className="app">
-            <Toaster
-              position="top-right"
-              toastOptions={{
-                duration: 3000,
-                style: {
-                  background: "var(--toast-bg)",
-                  color: "var(--toast-text)",
-                  border: "1px solid var(--toast-border)",
-                },
-                success: {
-                  iconTheme: {
-                    primary: "#10b981",
-                    secondary: "#052e1b",
+        <ThemeProvider>
+          <Router>
+            <div className="app">
+              <Toaster
+                position="top-right"
+                toastOptions={{
+                  duration: 3000,
+                  style: {
+                    background: "var(--toast-bg)",
+                    color: "var(--toast-text)",
+                    border: "1px solid var(--toast-border)",
                   },
-                },
-                error: {
-                  iconTheme: {
-                    primary: "#ef4444",
-                    secondary: "#450a0a",
+                  success: {
+                    iconTheme: {
+                      primary: "#10b981",
+                      secondary: "#052e1b",
+                    },
                   },
-                },
-              }}
-            />
-            <ThemeToggle />
-            {sessionEnded && <SessionEnd onClose={handleSessionEndClose} />}
-            <Routes>
-              {/* --- සාමාන්‍ය (Public & Protected) Routes --- */}
-              <Route path="/" element={<Home />} />
-              <Route path="/auth" element={<AuthPage />} />
-              <Route path="/login" element={<AuthPage />} />
-              <Route path="/register" element={<AuthPage />} />
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
+                  error: {
+                    iconTheme: {
+                      primary: "#ef4444",
+                      secondary: "#450a0a",
+                    },
+                  },
+                }}
               />
-              <Route
-                path="/profile"
-                element={
-                  <ProtectedRoute>
-                    <Profile />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/groups"
-                element={
-                  <ProtectedRoute>
-                    <Groups />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/groups/:groupId"
-                element={
-                  <ProtectedRoute>
-                    <GroupDetail />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/notes"
-                element={
-                  <ProtectedRoute>
-                    <Notes />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/notes/:noteId"
-                element={
-                  <ProtectedRoute>
-                    <NoteDetail />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/kuppi"
-                element={
-                  <ProtectedRoute>
-                    <Kuppi />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/notifications"
-                element={
-                  <ProtectedRoute>
-                    <Notifications />
-                  </ProtectedRoute>
-                }
-              />
+              <ThemeToggle />
+              {sessionEnded && <SessionEnd onClose={handleSessionEndClose} />}
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/login" element={<AuthPage />} />
+                <Route path="/register" element={<AuthPage />} />
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/profile"
+                  element={
+                    <ProtectedRoute>
+                      <Profile />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/groups"
+                  element={
+                    <ProtectedRoute>
+                      <Groups />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/groups/:groupId"
+                  element={
+                    <ProtectedRoute>
+                      <GroupDetail />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/notes"
+                  element={
+                    <ProtectedRoute>
+                      <Notes />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/notes/:noteId"
+                  element={
+                    <ProtectedRoute>
+                      <NoteDetail />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/kuppi"
+                  element={
+                    <ProtectedRoute>
+                      <Kuppi />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/notifications"
+                  element={
+                    <ProtectedRoute>
+                      <Notifications />
+                    </ProtectedRoute>
+                  }
+                />
 
-              <Route path="/exam-login" element={<ExamLogin />} />
+                <Route path="/exam-login" element={<ExamLogin />} />
 
-              
-              <Route element={<ExamProtectedRoute />}>
-                <Route path="/exam-mode" element={<ExamMode />} />
-             
-              </Route>
 
-              <Route
-                path="/timetable"
-                element={
-                  <ProtectedRoute>
-                    <Timetable />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/ai-chat"
-                element={
-                  <ProtectedRoute>
-                    <AiChat />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="/community" element={<CommunityPage />} />
-              <Route path="/resources" element={<ResourcesPage />} />
-              <Route path="/tutors" element={<TutorsPage />} />
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute>
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
-          </div>
-        </Router>
-      </ThemeProvider>
+                <Route element={<ExamProtectedRoute />}>
+                  <Route path="/exam-mode" element={<ExamMode />} />
+
+                </Route>
+
+                <Route
+                  path="/timetable"
+                  element={
+                    <ProtectedRoute>
+                      <Timetable />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/ai-chat"
+                  element={
+                    <ProtectedRoute>
+                      <AiChat />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="/community" element={<CommunityPage />} />
+                <Route path="/resources" element={<ResourcesPage />} />
+                <Route path="/tutors" element={<TutorsPage />} />
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedRoute>
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
+            </div>
+          </Router>
+        </ThemeProvider>
       </AuthInitializer>
     </Provider>
   );
