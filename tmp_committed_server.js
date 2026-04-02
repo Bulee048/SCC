@@ -1,4 +1,4 @@
-import dotenv from "dotenv";
+﻿import dotenv from "dotenv";
 dotenv.config();
 
 import express from "express";
@@ -75,6 +75,20 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+// Block DB-backed API routes until DB is connected (dev-friendly)
+app.use("/api", (req, res, next) => {
+  if (req.path === "/health") return next();
+  if (app.locals.dbConnected) return next();
+  const payload = {
+    success: false,
+    message: "Database not connected. Check /api/health for details.",
+  };
+  if ((process.env.NODE_ENV || "development") !== "production" && app.locals.dbError) {
+    payload.dbError = app.locals.dbError;
+  }
+  return res.status(503).json(payload);
+});
+
 // API Routes (require DB)
 app.use("/api/auth", authRoutes);
 app.use("/api/groups", groupRoutes);
@@ -119,7 +133,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Socket.io — same origin policy as Express (works with multiple dev ports)
+// Socket.io ΓÇö same origin policy as Express (works with multiple dev ports)
 const io = new Server(server, {
   cors: {
     origin: corsOriginHandler,
@@ -186,8 +200,7 @@ const startJobs = async () => {
 };
 
 /**
- * Connect to MongoDB Atlas first, then start the HTTP server.
- * No API is served until the database is connected.
+ * Same lifecycle as `main`: connect MongoDB first, then listen (no API without DB).
  */
 const startServer = async () => {
   try {

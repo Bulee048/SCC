@@ -272,7 +272,7 @@ const Groups = () => {
   );
 
   return (
-    <div className="db-root dashboard-page">
+    <div className="db-root dashboard-page grp-root">
 
       <div className="db-layout">
         {/* ── Navbar ── */}
@@ -309,135 +309,82 @@ const Groups = () => {
           </div>
         </header>
 
-        {/* ── Page body: sidebar + main ── */}
-        <div style={{ display: "flex", position: "relative", zIndex: 10 }}>
+        {/* ── Page body: unified layout ── */}
+        <div className="grp-unified-layout fade-in">
 
-          {/* ── LEFT SIDEBAR ── */}
-          <div className="grp-sidebar" style={{ paddingTop: 20 }}>
-            {/* Quick stats */}
-            <div className="grp-sidebar-section">
-              <div className="grp-sidebar-title">Overview</div>
-              <div className="grp-sidebar-stat">
-                <span className="grp-sidebar-stat-label">Total Groups</span>
-                <span className="grp-sidebar-stat-val" style={{ color: "var(--bio)" }}>{groups.length}</span>
+          {/* ── HERO BANNER ── */}
+          <section className="grp-hero-banner">
+            <div className="grp-hero-content">
+              <div className="grp-hero-text-block">
+                <div className="grp-hero-badge">
+                  <span className="grp-live-dot"></span> Collaborative Spaces
+                </div>
+                <h1 className="grp-hero-title">Study & Project Groups</h1>
+                <p className="grp-hero-sub">
+                  Join forces with your peers. Manage group assignments, schedule hybrid meetups, and share resources easily.
+                </p>
+                <div className="grp-hero-stats">
+                  <div className="grp-h-stat"><Users size={14} /> <span><b>{groups.length}</b> Groups</span></div>
+                  <div className="grp-h-stat" style={{ color: "var(--cyan)" }}><Shield size={14} /> <span><b>{myGroupCount}</b> Joined</span></div>
+                  <div className="grp-h-stat" style={{ color: "var(--color-success, #10b981)" }}><Globe size={14} /> <span><b>{publicCount}</b> Public</span></div>
+                </div>
               </div>
-              <div className="grp-sidebar-stat">
-                <span className="grp-sidebar-stat-label">My Groups</span>
-                <span className="grp-sidebar-stat-val" style={{ color: "#818cf8" }}>{myGroupCount}</span>
-              </div>
-              <div className="grp-sidebar-stat">
-                <span className="grp-sidebar-stat-label">Public</span>
-                <span className="grp-sidebar-stat-val" style={{ color: "#34d399" }}>{publicCount}</span>
-              </div>
-              <div className="grp-sidebar-stat">
-                <span className="grp-sidebar-stat-label">Private</span>
-                <span className="grp-sidebar-stat-val" style={{ color: "#fbbf24" }}>{groups.length - publicCount}</span>
+              <div className="grp-hero-right">
+                <button className="grp-hero-create-btn" onClick={() => setShowCreate(true)}>
+                  <Plus size={18} />
+                  <span>Start a Group</span>
+                </button>
               </div>
             </div>
+            {/* Background elements */}
+            <div className="grp-hero-shape-1"></div>
+            <div className="grp-hero-shape-2"></div>
+          </section>
 
-            {/* Filters */}
-            <div className="grp-sidebar-section">
-              <div className="grp-sidebar-title">Filters</div>
-              <button
-                className={`grp-toggle-btn ${filters.myGroups ? "active" : ""}`}
-                style={{ width: "100%", marginBottom: 10 }}
-                onClick={() => dispatch(setFilters({ myGroups: !filters.myGroups }))}
-              >
-                <Shield size={14} />
-                {filters.myGroups ? "My Groups" : "All Groups"}
-              </button>
-            </div>
+          {/* ── MAIN CONTENT ── */}
+          <main className="grp-unified-main">
+            <MyInvitesBanner />
 
-            {/* Tag chips */}
-            <div className="grp-sidebar-section">
-              <div className="grp-sidebar-title">Browse by Tag</div>
-              <div className="grp-tag-chips">
+            {/* Elegant Filter Bar */}
+            <div className="grp-modern-filter-bar" style={{ animation: "riseIn .65s .15s ease both" }}>
+              <div className="grp-search-capsule">
+                <Search size={16} className="grp-search-icon-mod" />
+                <input
+                  value={localSearch}
+                  onChange={handleSearch}
+                  placeholder="Search groups, subjects, or courses..."
+                  className="grp-search-input-mod"
+                />
+              </div>
+
+              <div className="grp-filter-sep"></div>
+
+              <div className="grp-toggle-trio">
+                <button
+                  className={`grp-trio-btn ${!filters.myGroups ? "active" : ""}`}
+                  onClick={() => dispatch(setFilters({ myGroups: false }))}
+                >
+                  <Globe size={15} /> Discover
+                </button>
+                <button
+                  className={`grp-trio-btn ${filters.myGroups ? "active" : ""}`}
+                  onClick={() => dispatch(setFilters({ myGroups: true }))}
+                >
+                  <Shield size={15} /> My Groups
+                </button>
+              </div>
+
+              <div className="grp-filter-sep"></div>
+
+              <div className="grp-tags-scroll">
                 {PRESET_TAGS.map((tag) => (
                   <button key={tag}
-                    className={`grp-tag-chip ${activeTag === tag ? "active" : ""}`}
+                    className={`grp-tag-pill-mod ${activeTag === tag ? "active" : ""}`}
                     onClick={() => setActiveTag(activeTag === tag ? null : tag)}>
                     #{tag}
                   </button>
                 ))}
               </div>
-            </div>
-
-            {/* CTA */}
-            <button className="grp-create-btn" style={{ width: "100%" }} onClick={() => setShowCreate(true)}>
-              <Plus size={16} /> Create Group
-            </button>
-          </div>
-
-          {/* ── MAIN AREA ── */}
-          <main className="grp-main-area">
-            {/* Pending invites banner */}
-            <MyInvitesBanner />
-
-            {/* Page heading */}
-            <div className="grp-page-heading" style={{ animation: "riseIn .65s .05s ease both" }}>
-              <h1 className="grp-page-title">Study & Project Groups</h1>
-              <p className="grp-page-sub">
-                Collaborate on projects, coordinate kuppi sessions, and schedule hybrid meetups — all in one place.
-              </p>
-            </div>
-
-            {/* Stats row (mobile/tablet — desktop sees sidebar) */}
-            <section className="db-stats" style={{ animation: "riseIn .65s .15s ease both" }}>
-              <div className="db-stat hover-glow" style={{ "--ac": "#2a9d8f" }}>
-                <div className="db-stat__icon"><Users size={16} /></div>
-                <div>
-                  <div className="db-stat__val">{groups.length}</div>
-                  <div className="db-stat__lbl">Available</div>
-                </div>
-              </div>
-              <div className="db-stat hover-glow" style={{ "--ac": "#818cf8" }}>
-                <div className="db-stat__icon"><Shield size={16} /></div>
-                <div>
-                  <div className="db-stat__val">{myGroupCount}</div>
-                  <div className="db-stat__lbl">My Groups</div>
-                </div>
-              </div>
-              <div className="db-stat hover-glow" style={{ "--ac": "#34d399" }}>
-                <div className="db-stat__icon"><Globe size={16} /></div>
-                <div>
-                  <div className="db-stat__val">{publicCount}</div>
-                  <div className="db-stat__lbl">Public</div>
-                </div>
-              </div>
-              <div className="db-stat hover-glow" style={{ "--ac": "#fbbf24" }}>
-                <div className="db-stat__icon"><Lock size={16} /></div>
-                <div>
-                  <div className="db-stat__val">{groups.length - publicCount}</div>
-                  <div className="db-stat__lbl">Private</div>
-                </div>
-              </div>
-            </section>
-
-            {/* Filter + action row */}
-            <div className="grp-top-row" style={{ animation: "riseIn .65s .22s ease both" }}>
-              {/* Search */}
-              <div className="grp-search-bar">
-                <Search size={15} className="grp-search-bar-icon" />
-                <input
-                  value={localSearch}
-                  onChange={handleSearch}
-                  placeholder="Search groups by name, subject, or course…"
-                />
-              </div>
-
-              {/* My groups toggle */}
-              <button
-                className={`grp-toggle-btn ${filters.myGroups ? "active" : ""}`}
-                onClick={() => dispatch(setFilters({ myGroups: !filters.myGroups }))}
-              >
-                <Filter size={14} />
-                {filters.myGroups ? "My Groups" : "All Groups"}
-              </button>
-
-              {/* Create button */}
-              <button className="grp-create-btn" onClick={() => setShowCreate(true)}>
-                <Plus size={16} /> Create Group
-              </button>
             </div>
 
             {/* Error banner */}

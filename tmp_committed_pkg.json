@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "scc-backend",
   "version": "1.0.0",
   "description": "Smart Campus Companion - Backend API",
@@ -30,6 +30,7 @@
     "googleapis": "^171.4.0",
     "jsonwebtoken": "^9.0.3",
     "mongodb": "^7.1.0",
+    "mongodb-memory-server": "^9.3.0",
     "mongoose": "^9.2.1",
     "multer": "^2.0.2",
     "nodemailer": "^8.0.1",

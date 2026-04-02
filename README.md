@@ -91,6 +91,8 @@ CLIENT_URL=http://localhost:5173
 
 # MongoDB Connection
 MONGO_URI=your_mongodb_connection_string
+# If you see querySrv ECONNREFUSED on Windows, uncomment:
+# MONGO_DNS_SERVERS=8.8.8.8,1.1.1.1
 
 # JWT Secret (use a strong random string)
 JWT_SECRET=your_super_secret_jwt_key_change_this_in_production

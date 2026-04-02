@@ -10,12 +10,12 @@ import {
 } from "../features/meetups/meetupSlice";
 import { joinGroup as joinSocketRoom, leaveGroup as leaveSocketRoom, getSocket } from "../socket/socket";
 import * as groupService from "../services/groupService";
-import { 
+import {
     ArrowLeft, Users, MessageSquare, File, Calendar,
     Plus, X, Clock, Zap, Globe, Navigation, Shuffle,
     Award, Lock, Trash2, LogOut, Waves,
     Home as HomeIcon, Brain, BookMarked, Video, LayoutDashboard,
-    ChevronDown, ChevronUp, AlertTriangle, Mail, Activity,
+    ChevronDown, ChevronUp, AlertTriangle, Mail, Activity, Tag
 } from "lucide-react";
 import LoadingSpinner from "../components/LoadingSpinner";
 import NotificationBell from "../components/NotificationBell";
@@ -270,10 +270,10 @@ function MeetupsTab({ groupId, isAdmin, currentUser, memberCount, meetups, meetu
    MAIN GroupDetail PAGE
 ═══════════════════════════════════════════════════════════ */
 const GroupDetail = () => {
-  const { groupId } = useParams();
-  const navigate = useNavigate();
+    const { groupId } = useParams();
+    const navigate = useNavigate();
     const location = useLocation();
-  const dispatch = useDispatch();
+    const dispatch = useDispatch();
     const socket = getSocket();
 
     const { currentGroup, isLoading: groupLoading } = useSelector((s) => s.groups);
@@ -292,13 +292,13 @@ const GroupDetail = () => {
         dispatch(fetchGroupById(groupId));
         dispatch(fetchGroupMeetups(groupId));
         joinSocketRoom(groupId);
-      return () => {
+        return () => {
             leaveSocketRoom(groupId);
         };
     }, [dispatch, groupId]);
 
     // ── Socket: real-time meetup updates ─────────────────────
-  useEffect(() => {
+    useEffect(() => {
         if (!socket) return;
         const onCreated = (data) => dispatch(meetupCreatedRealtime(data));
         const onChanged = (data) => dispatch(meetupStatusChangedRealtime(data));
@@ -339,7 +339,7 @@ const GroupDetail = () => {
         const ok = await confirmAction("Delete this group? This cannot be undone.", { confirmText: "Delete", isDanger: true });
         if (!ok) return;
         await groupService.deleteGroup(groupId);
-      navigate("/groups");
+        navigate("/groups");
     };
 
     // ── Loading / not found states ────────────────────────────
@@ -359,9 +359,9 @@ const GroupDetail = () => {
                 </p>
                 <button className="btn btn-primary" onClick={() => navigate("/groups")}>
                     <ArrowLeft size={16} /> Back to Groups
-              </button>
+                </button>
             </div>
-          </div>
+        </div>
     );
 
     const tabs = [
@@ -377,236 +377,191 @@ const GroupDetail = () => {
     const upcomingMeetup = meetups.find((m) => ["Active", "Confirmed", "Draft"].includes(m.status));
 
     return (
-        <div className="db-root gd-workspace">
-            {/* ── Sticky header ── */}
-            <div className="gd-header" style={{ top: 0 }}>
-                <button className="gd-back-btn" onClick={() => navigate("/groups")}>
-                    <ArrowLeft size={15} /> Groups
-                </button>
-
-                <div className="gd-header-info">
-                    <div className="gd-header-name">
-                        {currentGroup.name}
-                        {isPrivate && (
-                            <span style={{
-                                fontSize: 12, fontWeight: 600, padding: "2px 8px", borderRadius: 4,
-                                background: "rgba(245,158,11,.12)", color: "#fbbf24",
-                                border: "1px solid rgba(245,158,11,.25)",
-                            }}>
-                                <Lock size={10} /> Private
-                    </span>
-                  )}
-                </div>
-                    <div className="gd-header-meta">
-                        <span style={{ color: "var(--bio)", fontWeight: 600 }}>{memberCount} members</span>
-                        {currentGroup.subject && <span style={{ margin: "0 6px", color: "var(--text-dim)" }}>·</span>}
-                        {currentGroup.subject && <span>{currentGroup.subject}</span>}
-                  {currentGroup.courseCode && (
-                            <span style={{ marginLeft: 4, color: "var(--text-dim)" }}>({currentGroup.courseCode})</span>
-                  )}
-                </div>
-              </div>
-
-                <div className="gd-header-actions">
-                    {isAdmin ? (
-                        <button className="btn btn-danger btn-sm" onClick={handleDelete}>
-                            <Trash2 size={14} /> Delete
+        <div className="db-root grp-root gdetail-page fade-in">
+            {/* ── Cinematic Hero Header ── */}
+            <div className="gdetail-hero">
+                <div className="gdetail-hero-inner">
+                    <div className="gdetail-breadcrumbs">
+                        <button className="gdetail-back-btn" onClick={() => navigate("/groups")}>
+                            <ArrowLeft size={14} /> Back to Groups
                         </button>
-                    ) : (
-                        <button className="btn btn-secondary btn-sm" onClick={handleLeave}>
-                            <LogOut size={14} /> Leave
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* ── Body: main + sidebar ── */}
-            <div className="gd-body">
-                {/* ── Left: tabs + content ── */}
-                <div>
-                    {/* Tabs */}
-                    <div className="gd-tabs">
-                        {tabs.map((tab) => (
-                            <button key={tab.id}
-                                className={`gd-tab-btn ${activeTab === tab.id ? "active" : ""}`}
-                                onClick={() => setActiveTab(tab.id)}>
-                                <tab.Icon size={15} />
-                                <span>{tab.label}</span>
-                                {tab.badge > 0 && (
-                                    <span className="gd-tab-badge">{tab.badge}</span>
-                                )}
-              </button>
-                        ))}
-            </div>
-
-                    {/* Tab content */}
-            {activeTab === "chat" && (
-                        <ChatTab groupId={groupId} />
-                    )}
-
-                    {activeTab === "meetups" && (
-                        <MeetupsTab
-                            groupId={groupId}
-                            isAdmin={isAdmin}
-                            currentUser={user}
-                            memberCount={memberCount}
-                            meetups={meetups}
-                            meetupsLoading={meetupsState?.loading}
-                            onSchedule={() => setShowCreateMeetup(true)}
-                        />
-            )}
-
-            {activeTab === "files" && (
-                        <FilesTab
-                            groupId={groupId}
-                            currentUserId={user?._id}
-                            isAdmin={isAdmin}
-                        />
-                    )}
-
-                    {activeTab === "members" && (
-                        <MemberList
-                            group={currentGroup}
-                            currentUser={user}
-                            groupId={groupId}
-                            isAdmin={isAdmin}
-                        />
-                    )}
-
-                    {activeTab === "invites" && (
-                        <InvitesTab
-                            groupId={groupId}
-                            isAdmin={isAdmin}
-                            currentUser={user}
-                        />
-                    )}
-
-                    {activeTab === "activity" && (
-                        <ActivityTab groupId={groupId} />
-                    )}
-                </div>
-
-                {/* ── Right: sidebar ── */}
-                <aside className="gd-sidebar">
-                    {/* Group info card */}
-                    <div className="gd-side-card">
-                        <div className="gd-side-title">
-                            <Users size={13} /> Group Info
-                        </div>
-                        <div className="gd-quick-stat">
-                            <span className="gd-quick-stat-label">Members</span>
-                            <span className="gd-quick-stat-val" style={{ color: "var(--bio)" }}>{memberCount}</span>
-                        </div>
-                        {currentGroup.subject && (
-                            <div className="gd-quick-stat">
-                                <span className="gd-quick-stat-label">Subject</span>
-                                <span className="gd-quick-stat-val">{currentGroup.subject}</span>
-                  </div>
-                )}
-                        {currentGroup.courseCode && (
-                            <div className="gd-quick-stat">
-                                <span className="gd-quick-stat-label">Course</span>
-                                <span className="gd-quick-stat-val">{currentGroup.courseCode}</span>
-              </div>
-            )}
-                        <div className="gd-quick-stat">
-                            <span className="gd-quick-stat-label">Visibility</span>
-                            <span className="gd-quick-stat-val">
-                                {isPrivate ? "🔒 Private" : "🌐 Public"}
-                            </span>
-                </div>
-                        {currentGroup.settings?.maxMembers && (
-                            <div className="gd-quick-stat">
-                                <span className="gd-quick-stat-label">Max Members</span>
-                                <span className="gd-quick-stat-val">{currentGroup.settings.maxMembers}</span>
-                            </div>
-                          )}
+                        <span className="gdetail-crumb-sep">/</span>
+                        <span className="gdetail-crumb-current">{currentGroup.name}</span>
                     </div>
 
-                    {/* Meetup quick summary */}
-                    <div className="gd-side-card">
-                        <div className="gd-side-title">
-                            <Calendar size={13} /> Meetups
-                        </div>
-                        <div className="gd-quick-stat">
-                            <span className="gd-quick-stat-label">Total</span>
-                            <span className="gd-quick-stat-val">{meetups.length}</span>
-                        </div>
-                        <div className="gd-quick-stat">
-                            <span className="gd-quick-stat-label">Active</span>
-                            <span className="gd-quick-stat-val" style={{ color: "#818cf8" }}>
-                                {meetups.filter((m) => m.status === "Active").length}
-                              </span>
-                        </div>
-                        <div className="gd-quick-stat">
-                            <span className="gd-quick-stat-label">Confirmed</span>
-                            <span className="gd-quick-stat-val" style={{ color: "#34d399" }}>
-                                {meetups.filter((m) => m.status === "Confirmed").length}
-                              </span>
-                          </div>
-                        {upcomingMeetup && (
-                            <div style={{ 
-                                marginTop: 10, padding: "8px 10px", borderRadius: "var(--r-md)",
-                                background: "rgba(99,102,241,.12)", border: "1px solid rgba(99,102,241,.25)",
-                            }}>
-                                <div style={{ fontSize: 11, fontWeight: 700, color: "#a5b4fc", marginBottom: 3 }}>
-                                    NEXT MEETUP
-                                </div>
-                                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
-                                    {upcomingMeetup.title}
-                                </div>
-                                <div style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 2 }}>
-                                    <Clock size={10} style={{ display: "inline", marginRight: 3 }} />
-                                    {upcomingMeetup.time} · {new Date(upcomingMeetup.meetingDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                                </div>
+                    <div className="gdetail-hero-main">
+                        <div className="gdetail-title-block">
+                            <h1 className="gdetail-title">
+                                {currentGroup.name}
+                                {isPrivate ? (
+                                    <span className="gdetail-badge gdetail-badge--private"><Lock size={12} /> Private</span>
+                                ) : (
+                                    <span className="gdetail-badge gdetail-badge--public"><Globe size={12} /> Public</span>
+                                )}
+                            </h1>
+                            <div className="gdetail-meta-row">
+                                <span className="gdetail-meta-stat"><Users size={14} /> {memberCount} Members</span>
+                                {currentGroup.subject && (
+                                    <>
+                                        <span className="gdetail-meta-dot">·</span>
+                                        <span className="gdetail-meta-stat"><Tag size={14} /> {currentGroup.subject}</span>
+                                    </>
+                                )}
+                                {currentGroup.courseCode && (
+                                    <>
+                                        <span className="gdetail-meta-dot">·</span>
+                                        <span className="gdetail-meta-stat"><BookMarked size={14} /> {currentGroup.courseCode}</span>
+                                    </>
+                                )}
                             </div>
-                          )}
-                        <button className="btn btn-sm btn-secondary" style={{ width: "100%", marginTop: 10 }}
-                            onClick={() => { setActiveTab("meetups"); setShowCreateMeetup(true); }}>
-                            <Plus size={13} /> Schedule Meetup
-                        </button>
                         </div>
 
-                    {/* Tags */}
-                    {currentGroup.tags?.length > 0 && (
-                        <div className="gd-side-card">
-                            <div className="gd-side-title">
-                                <span>Tags</span>
-                      </div>
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-                                {currentGroup.tags.map((tag, i) => (
-                                    <span key={i} style={{
-                                        display: "inline-block", padding: "3px 9px", fontSize: 11, fontWeight: 600,
-                                        background: "rgba(99,102,241,.12)", border: "1px solid rgba(99,102,241,.25)",
-                                        borderRadius: 4, color: "#a5b4fc",
-                                    }}>#{tag}</span>
-                                ))}
+                        <div className="gdetail-hero-actions">
+                            {isAdmin ? (
+                                <button className="gdetail-btn-danger" onClick={handleDelete}>
+                                    <Trash2 size={16} /> <span className="hide-on-mobile">Disband Group</span>
+                                </button>
+                            ) : (
+                                <button className="gdetail-btn-secondary" onClick={handleLeave}>
+                                    <LogOut size={16} /> <span className="hide-on-mobile">Leave Group</span>
+                                </button>
+                            )}
+                        </div>
+                    </div>
                 </div>
-              </div>
-            )}
 
-                    {/* Description */}
-                    {currentGroup.description && (
-                        <div className="gd-side-card">
-                            <div className="gd-side-title">About</div>
-                            <p style={{ fontSize: 13, color: "var(--text-mid)", lineHeight: 1.65 }}>
-                                {currentGroup.description}
-                            </p>
-                        </div>
-                    )}
-                </aside>
+                {/* Decorative Ambient Shapes */}
+                <div className="gdetail-ambient-1"></div>
+                <div className="gdetail-ambient-2"></div>
             </div>
 
-            {/* Create Meetup Modal */}
+            {/* ── Main Container ── */}
+            <div className="gdetail-container">
+
+                {/* ── Integrated Segmented Navigation ── */}
+                <div className="gdetail-nav-scroll">
+                    <nav className="gdetail-nav-bar">
+                        {tabs.map((tab) => (
+                            <button key={tab.id}
+                                className={`gdetail-nav-tab ${activeTab === tab.id ? "active" : ""}`}
+                                onClick={() => setActiveTab(tab.id)}>
+                                <tab.Icon size={16} className="gdetail-nav-icon" />
+                                <span>{tab.label}</span>
+                                {tab.badge > 0 && (
+                                    <span className="gdetail-tab-badge">{tab.badge}</span>
+                                )}
+                            </button>
+                        ))}
+                    </nav>
+                </div>
+
+                {/* ── Bento Content Grid ── */}
+                <div className="gdetail-bento-grid">
+
+                    {/* Left: Tab Content */}
+                    <div className="gdetail-content-panel">
+                        {activeTab === "chat" && <ChatTab groupId={groupId} />}
+                        {activeTab === "meetups" && (
+                            <MeetupsTab
+                                groupId={groupId}
+                                isAdmin={isAdmin}
+                                currentUser={user}
+                                memberCount={memberCount}
+                                meetups={meetups}
+                                meetupsLoading={meetupsState?.loading}
+                                onSchedule={() => setShowCreateMeetup(true)}
+                            />
+                        )}
+                        {activeTab === "files" && (
+                            <FilesTab groupId={groupId} currentUserId={user?._id} isAdmin={isAdmin} />
+                        )}
+                        {activeTab === "members" && (
+                            <MemberList group={currentGroup} currentUser={user} groupId={groupId} isAdmin={isAdmin} />
+                        )}
+                        {activeTab === "invites" && (
+                            <InvitesTab groupId={groupId} isAdmin={isAdmin} currentUser={user} />
+                        )}
+                        {activeTab === "activity" && (
+                            <ActivityTab groupId={groupId} />
+                        )}
+                    </div>
+
+                    {/* Right: Contextual Floating Sidebar */}
+                    <aside className="gdetail-context-sidebar">
+
+                        {/* About Panel */}
+                        <div className="gdetail-side-panel">
+                            <h3 className="gdetail-panel-title"><Award size={14} /> Group Context</h3>
+                            {currentGroup.description ? (
+                                <p className="gdetail-panel-desc">{currentGroup.description}</p>
+                            ) : (
+                                <p className="gdetail-panel-desc" style={{ fontStyle: "italic", opacity: 0.7 }}>No description provided.</p>
+                            )}
+
+                            <div className="gdetail-divider"></div>
+
+                            <div className="gdetail-stat-row">
+                                <span className="gdetail-stat-lbl">Capacity</span>
+                                <span className="gdetail-stat-val">{memberCount} / {currentGroup.settings?.maxMembers || "∞"}</span>
+                            </div>
+                            <div className="gdetail-stat-row">
+                                <span className="gdetail-stat-lbl">Status</span>
+                                <span className="gdetail-stat-val" style={{ color: "var(--color-success)" }}>Active</span>
+                            </div>
+
+                            {/* Tags */}
+                            {currentGroup.tags?.length > 0 && (
+                                <div className="gdetail-side-tags" style={{ marginTop: 16 }}>
+                                    {currentGroup.tags.map((tag, i) => (
+                                        <span key={i} className="gdetail-chip">#{tag}</span>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Meetups Snapshot Panel */}
+                        <div className="gdetail-side-panel">
+                            <h3 className="gdetail-panel-title"><Calendar size={14} /> Meetup Snapshot</h3>
+
+                            <div className="gdetail-stat-row">
+                                <span className="gdetail-stat-lbl">Total Sessions</span>
+                                <span className="gdetail-stat-val">{meetups.length}</span>
+                            </div>
+                            <div className="gdetail-stat-row">
+                                <span className="gdetail-stat-lbl">Active/Upcoming</span>
+                                <span className="gdetail-stat-val" style={{ color: "var(--cyan)" }}>
+                                    {meetups.filter((m) => m.status === "Active" || m.status === "Confirmed").length}
+                                </span>
+                            </div>
+
+                            {upcomingMeetup && (
+                                <div className="gdetail-upcoming-feature">
+                                    <div className="gdetail-uf-lbl">NEXT UP</div>
+                                    <div className="gdetail-uf-title">{upcomingMeetup.title}</div>
+                                    <div className="gdetail-uf-time">
+                                        <Clock size={12} /> {upcomingMeetup.time} · {new Date(upcomingMeetup.meetingDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                                    </div>
+                                </div>
+                            )}
+
+                            <button className="gdetail-uf-btn" onClick={() => { setActiveTab("meetups"); setShowCreateMeetup(true); }}>
+                                <Plus size={14} /> Schedule New
+                            </button>
+                        </div>
+                    </aside>
+                </div>
+            </div>
+
+            {/* Modal */}
             {showCreateMeetup && (
                 <CreateMeetupModal
                     groupId={groupId}
                     memberCount={memberCount}
                     onClose={() => setShowCreateMeetup(false)}
-          />
-        )}
-      </div>
-  );
+                />
+            )}
+        </div>
+    );
 };
 
 export default GroupDetail;
