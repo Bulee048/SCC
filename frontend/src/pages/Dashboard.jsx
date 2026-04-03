@@ -283,8 +283,7 @@ export default function Dashboard() {
       {/* Floating Navigation Bar */}
       <header className={`dashboard-header ${showHeader ? "dashboard-header--visible" : "dashboard-header--hidden"}`}>
         <Link to="/dashboard" className="dashboard-logo">
-          <span className="dashboard-logo__icon">📚</span>
-          <span className="dashboard-logo__text">StudyFlow</span>
+          <span className="dashboard-logo__text">User Dashboard</span>
         </Link>
         <nav className="dashboard-nav">
           {navLinks.map((link) => (
