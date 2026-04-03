@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { register, login, clearError } from "../features/auth/authSlice";
+import { getGoogleAuthStartUrl } from "../services/authService";
 import {
   Mail,
   Lock,
@@ -164,6 +165,7 @@ const AuthToggle = () => {
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [touchedFields, setTouchedFields] = useState({});
   const [rememberMe, setRememberMe] = useState(false);
+  const [postAuthRedirect, setPostAuthRedirect] = useState(null);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -178,7 +180,7 @@ const AuthToggle = () => {
       if (justLoggedIn) {
         // Show success message briefly after fresh login/register
         const timer = setTimeout(() => {
-          navigate(target, { replace: true });
+          navigate(postAuthRedirect || target, { replace: true });
         }, 1200);
         return () => clearTimeout(timer);
       } else {
@@ -186,7 +188,7 @@ const AuthToggle = () => {
         navigate(target, { replace: true });
       }
     }
-  }, [isAuthenticated, justLoggedIn, navigate, user]);
+  }, [isAuthenticated, justLoggedIn, navigate, postAuthRedirect, user]);
 
   useEffect(() => {
     return () => {
@@ -200,6 +202,7 @@ const AuthToggle = () => {
     setValidationError("");
     setSuccessMessage("");
     setTouchedFields({});
+    setPostAuthRedirect(null);
     setFormData({
       email: "",
       password: "",
@@ -375,6 +378,8 @@ const AuthToggle = () => {
         
         if (login.fulfilled.match(result)) {
           setJustLoggedIn(true);
+          const role = result.payload?.user?.role;
+          setPostAuthRedirect(role === "admin" ? "/admin" : "/dashboard");
           setSuccessMessage("Login successful! Redirecting to dashboard...");
           // Navigation will be handled by the useEffect watching isAuthenticated
         } else if (login.rejected.match(result)) {
@@ -401,7 +406,8 @@ const AuthToggle = () => {
         
         if (register.fulfilled.match(result)) {
           setJustLoggedIn(true);
-          setSuccessMessage("Registration successful! Redirecting to dashboard...");
+          setPostAuthRedirect("/");
+          setSuccessMessage("Registration successful! Redirecting to home page...");
           // Navigation will be handled by the useEffect watching isAuthenticated
         } else if (register.rejected.match(result)) {
           // Error will be set by Redux
@@ -415,8 +421,13 @@ const AuthToggle = () => {
   };
 
   const socialLogin = (provider) => {
-    // Implement social login logic
-    console.log(`Logging in with ${provider}`);
+    if (provider !== "google") {
+      setValidationError(`${provider.charAt(0).toUpperCase() + provider.slice(1)} sign-in is not configured yet.`);
+      return;
+    }
+
+    const mode = isLogin ? "login" : "register";
+    window.location.href = getGoogleAuthStartUrl(mode);
   };
 
   return (
@@ -500,28 +511,32 @@ const AuthToggle = () => {
           {/* Social Login Options */}
           <div className="social-login">
             <button 
-              className="social-btn google"
+              className="social-btn google social-btn--primary"
               onClick={() => socialLogin('google')}
               disabled={isLoading}
             >
               <Chrome size={20} />
-              <span>Google</span>
+              <span>{isLogin ? "Continue with Google" : "Register with Google"}</span>
             </button>
             <button 
-              className="social-btn github"
+              className="social-btn github social-btn--disabled"
               onClick={() => socialLogin('github')}
-              disabled={isLoading}
+              disabled
+              title="Coming soon"
             >
               <Github size={20} />
               <span>GitHub</span>
+              <small className="social-btn__badge">Coming soon</small>
             </button>
             <button 
-              className="social-btn linkedin"
+              className="social-btn linkedin social-btn--disabled"
               onClick={() => socialLogin('linkedin')}
-              disabled={isLoading}
+              disabled
+              title="Coming soon"
             >
               <Linkedin size={20} />
               <span>LinkedIn</span>
+              <small className="social-btn__badge">Coming soon</small>
             </button>
           </div>
 
