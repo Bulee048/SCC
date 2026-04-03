@@ -34,8 +34,7 @@ import {
   aiTimetableChat,
   importTimetableFromFile,
   deleteUserTimetable,
-  clearOptimizedSchedule,
-  syncGoogleCalendar
+  clearOptimizedSchedule
 } from "../services/timetableService";
 import LoadingSpinner from "../components/LoadingSpinner";
 import EmptyState from "../components/EmptyState";
@@ -160,7 +159,6 @@ const Timetable = () => {
   const [aiLoading, setAiLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleEventsLoading, setGoogleEventsLoading] = useState(false);
-  const [googleSyncLoading, setGoogleSyncLoading] = useState(false);
   const [googleStatus, setGoogleStatus] = useState({ connected: false, lastSyncedAt: null });
   const [googleEvents, setGoogleEvents] = useState([]);
   const [importFile, setImportFile] = useState(null);
@@ -245,51 +243,6 @@ const Timetable = () => {
     fetchGoogle();
   }, [isAuthenticated, navigate, user?._id]);
 
-  const syncToGoogleIfConnected = async () => {
-    try {
-      setGoogleSyncLoading(true);
-      const syncRes = await syncGoogleCalendar();
-      const status = await getGoogleCalendarStatus();
-      setGoogleStatus(status);
-
-      // Refresh the "upcoming events" list in the UI immediately.
-      try {
-        setGoogleEventsLoading(true);
-        const { events } = await getGoogleCalendarEvents({ maxResults: 50 });
-        setGoogleEvents(events || []);
-      } finally {
-        setGoogleEventsLoading(false);
-      }
-
-      return {
-        didSync: true,
-        eventsCreated: syncRes?.eventsCreated ?? null,
-        previousEventsRemoved: syncRes?.previousEventsRemoved ?? null,
-        failureCount: syncRes?.failureCount ?? null,
-        failureDetails: syncRes?.failureDetails ?? []
-      };
-    } catch (err) {
-      const backendMsg =
-        err?.response?.data?.message ||
-        err?.message ||
-        "";
-
-      // If user isn't connected (or refresh token missing), don't treat it as a failure.
-      if (
-        backendMsg.toLowerCase().includes("connect google") ||
-        backendMsg.toLowerCase().includes("no google access token")
-      ) {
-        return { didSync: false };
-      }
-      return {
-        didSync: false,
-        errorMessage: err?.message || "Google Calendar sync failed"
-      };
-    } finally {
-      setGoogleSyncLoading(false);
-    }
-  };
-
   const handleConnectGoogle = async () => {
     setError("");
     setSuccess("");
@@ -301,7 +254,7 @@ const Timetable = () => {
         return;
       }
       setGoogleLoading(true);
-      const { url } = await getGoogleAuthUrl(accessToken);
+      const { url } = await getGoogleAuthUrl();
       window.location.href = url;
     } catch (err) {
       setError(err.message || "Failed to start Google connection");

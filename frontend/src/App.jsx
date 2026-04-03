@@ -125,108 +125,6 @@ function App() {
                       secondary: "#052e1b",
                     },
                   },
-<<<<<<< AI-chat-box
-                },
-              }}
-            />
-            <ThemeToggle />
-            {sessionEnded && <SessionEnd onClose={handleSessionEndClose} />}
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/auth" element={<AuthPage />} />
-              <Route path="/login" element={<AuthPage />} />
-              <Route path="/register" element={<AuthPage />} />
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/profile"
-                element={
-                  <ProtectedRoute>
-                    <Profile />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/groups"
-                element={
-                  <ProtectedRoute>
-                    <Groups />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/groups/:groupId"
-                element={
-                  <ProtectedRoute>
-                    <GroupDetail />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/notes"
-                element={
-                  <ProtectedRoute>
-                    <Notes />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/notes/:noteId"
-                element={
-                  <ProtectedRoute>
-                    <NoteDetail />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/kuppi"
-                element={
-                  <ProtectedRoute>
-                    <Kuppi />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/notifications"
-                element={
-                  <ProtectedRoute>
-                    <Notifications />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/timetable"
-                element={
-                  <ProtectedRoute>
-                    <Timetable />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/ai-chat"
-                element={
-                  <ProtectedRoute>
-                    <AiChat />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="/community" element={<CommunityPage />} />
-              <Route path="/resources" element={<ResourcesPage />} />
-              <Route path="/tutors" element={<TutorsPage />} />
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute>
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                }
-=======
                   error: {
                     iconTheme: {
                       primary: "#ef4444",
@@ -234,7 +132,6 @@ function App() {
                     },
                   },
                 }}
->>>>>>> main
               />
               <ThemeToggle />
               {sessionEnded && <SessionEnd onClose={handleSessionEndClose} />}
