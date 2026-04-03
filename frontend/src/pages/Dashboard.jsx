@@ -510,7 +510,7 @@ export default function Dashboard() {
             </div>
             {recentNotes.length > 0 ? (
               recentNotes.map((note, idx) => (
-                <div key={idx} className="note-preview" onClick={() => navigate(`/notes/${note._id}`)}>
+                <div key={idx} className="note-preview" onClick={() => navigate(`/notes/${note._id}`, { state: { from: "/dashboard" } })}>
                   <BookOpen size={14} />
                   <div className="note-info">
                     <div className="note-title">{note.title || "Untitled"}</div>

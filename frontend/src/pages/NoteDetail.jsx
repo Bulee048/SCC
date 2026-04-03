@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { useNavigate, useParams, Link, useLocation } from "react-router-dom";
 import {
   ArrowLeft,
   ThumbsUp,
@@ -27,6 +27,7 @@ const NoteDetail = () => {
   const { noteId } = useParams();
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useSelector((state) => state.auth);
   const { notes, comments, commentsLoading } = useSelector(
     (state) => state.notes
@@ -58,12 +59,16 @@ const NoteDetail = () => {
     setSubmitting(false);
   };
 
+  const handleBack = () => {
+    navigate(location.state?.from || "/notes");
+  };
+
   if (!note) {
     return (
       <div className="notes-page">
         <header className="notes-header">
           <div className="notes-header-left">
-            <button onClick={() => navigate("/notes")} className="back-btn">
+            <button onClick={handleBack} className="back-btn">
               <ArrowLeft size={20} />
             </button>
             <h1>Note Details</h1>
@@ -85,7 +90,7 @@ const NoteDetail = () => {
       <div className="notes-container">
         <div className="pr-topbar">
           <div className="pr-topbar__left">
-            <button className="pr-back-btn" onClick={() => navigate("/notes")} title="Go Back">
+            <button className="pr-back-btn" onClick={handleBack} title="Go Back">
               <ArrowLeft size={20} />
             </button>
             <div className="pr-topbar__breadcrumb">

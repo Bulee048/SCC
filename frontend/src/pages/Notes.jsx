@@ -143,7 +143,7 @@ const Notes = () => {
         {/* Top Bar / Breadcrumbs */}
         <div className="pr-topbar">
           <div className="pr-topbar__left">
-            <button className="pr-back-btn" onClick={() => navigate(-1)} title="Go Back">
+            <button className="pr-back-btn" onClick={() => navigate("/dashboard")} title="Go Back">
               <ChevronLeft size={20} />
             </button>
             <div className="pr-topbar__breadcrumb">
@@ -324,7 +324,7 @@ const Notes = () => {
                   note={note}
                   currentUserId={user?._id}
                   onReaction={handleReaction}
-                  onViewComments={() => navigate(`/notes/${note._id}`)}
+                  onViewComments={() => navigate(`/notes/${note._id}`, { state: { from: "/notes" } })}
                 />
               ))}
             </div>
