@@ -15,6 +15,7 @@ import {
   RefreshCw,
   Trash2,
   Home as HomeIcon,
+  GraduationCap,
   LayoutDashboard,
   BookMarked,
   Video,
@@ -176,6 +177,7 @@ const Timetable = () => {
   const navLinks = [
     { icon: <HomeIcon size={18} strokeWidth={2.3} />, label: "Home", path: "/" },
     { icon: <LayoutDashboard size={18} strokeWidth={2.3} />, label: "Dashboard", path: "/dashboard" },
+    { icon: <GraduationCap size={18} strokeWidth={2.3} />, label: "Exam Mode", path: "/exam-mode" },
     { icon: <Brain size={18} strokeWidth={2.3} />, label: "Timetable", path: "/timetable", active: true },
     { icon: <BookMarked size={18} strokeWidth={2.3} />, label: "Notes", path: "/notes" },
     { icon: <Video size={18} strokeWidth={2.3} />, label: "Kuppi", path: "/kuppi" },
