@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   Search,
   Plus,
@@ -140,66 +140,58 @@ const Notes = () => {
       <div className="pr-canvas" />
 
       <div className="notes-container">
-        {/* Top Bar / Breadcrumbs */}
-        <div className="pr-topbar">
-          <div className="pr-topbar__left">
-            <button className="pr-back-btn" onClick={() => navigate("/dashboard")} title="Go Back">
+        <section className="notes-hero notes-hero--kuppi">
+          <div className="notes-hero-content">
+            <button
+              className="notes-hero-back"
+              onClick={() => navigate("/dashboard")}
+              title="Go Back"
+            >
               <ChevronLeft size={20} />
             </button>
-            <div className="pr-topbar__breadcrumb">
-              <Link to="/dashboard">Dashboard</Link>
-              <ChevronRight size={16} />
-              <span className="pr-topbar__page">Knowledge Hub</span>
-            </div>
-          </div>
-          <div className="pr-topbar__meta">
-            <span>{totalResources} Resources Available</span>
-          </div>
-        </div>
 
-        {/* Hero Section */}
-        <section className="notes-hero">
-          <div className="notes-hero-main">
-            <div className="notes-hero-text">
-              <p className="notes-hero__role">Academic Repository</p>
-              <h1 className="notes-hero-title">Knowledge Hub</h1>
-              <p className="notes-hero-subtitle">
-                Discover high-quality notes, structured references, and collaborative insight from your community.
-              </p>
-            </div>
+            <div className="notes-hero-main">
+              <div className="notes-hero-text">
+                <p className="notes-hero__role">Academic Repository</p>
+                <h1 className="notes-hero-title">Knowledge Hub</h1>
+                <p className="notes-hero-subtitle">
+                  Discover high-quality notes, structured references, and collaborative insight from your community.
+                </p>
+              </div>
 
-            <div className="notes-hero-metrics">
-              <div className="hero-metric-card">
-                <span className="hero-metric-label">Resources</span>
-                <strong className="hero-metric-value">{totalResources}</strong>
-              </div>
-              <div className="hero-metric-card">
-                <span className="hero-metric-label">Discussions</span>
-                <strong className="hero-metric-value">{totalDiscussions}</strong>
-              </div>
-              <div className="hero-metric-card">
-                <span className="hero-metric-label">Helpful Votes</span>
-                <strong className="hero-metric-value">{totalLikes}</strong>
+              <div className="notes-hero-metrics">
+                <div className="hero-metric-card">
+                  <span className="hero-metric-label">Resources</span>
+                  <strong className="hero-metric-value">{totalResources}</strong>
+                </div>
+                <div className="hero-metric-card">
+                  <span className="hero-metric-label">Discussions</span>
+                  <strong className="hero-metric-value">{totalDiscussions}</strong>
+                </div>
+                <div className="hero-metric-card">
+                  <span className="hero-metric-label">Helpful Votes</span>
+                  <strong className="hero-metric-value">{totalLikes}</strong>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="notes-hero-actions">
-            <button
-              className="btn-new-note"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setShowCreateDrawer(true);
-              }}
-            >
-              <Plus size={18} />
-              <span>Create Note</span>
-            </button>
+            <div className="notes-hero-actions">
+              <button
+                className="btn-new-note"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowCreateDrawer(true);
+                }}
+              >
+                <Plus size={18} />
+                <span>Create Note</span>
+              </button>
+            </div>
           </div>
         </section>
 
-        <div className="notes-insight-strip">
+        <div className="notes-insight-strip notes-insight-strip--kuppi">
           <span>
             <Sparkles size={16} />
             Curated by students and faculty with practical exam-focused context.
@@ -210,8 +202,9 @@ const Notes = () => {
           </span>
         </div>
 
-        {/* Controls */}
-        <div className="notes-toolbar">
+        <div className="notes-controls notes-controls--kuppi">
+          <div className="notes-controls-meta">{totalResources} resources available</div>
+
           <div className="notes-toolbar__inner">
             <div className="notes-search">
               <Search size={18} className="search-icon" />

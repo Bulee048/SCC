@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { useNavigate, useParams, Link, useLocation } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   ArrowLeft,
   ThumbsUp,
   MessageSquare,
   ExternalLink,
   Send,
-  ChevronRight,
   UserRound,
   BookOpen,
   GraduationCap,
@@ -88,23 +87,38 @@ const NoteDetail = () => {
       <div className="pr-canvas" />
 
       <div className="notes-container">
-        <div className="pr-topbar">
-          <div className="pr-topbar__left">
-            <button className="pr-back-btn" onClick={handleBack} title="Go Back">
+        <section className="notes-hero notes-hero--detail">
+          <div className="notes-hero-content">
+            <button className="notes-hero-back" onClick={handleBack} title="Go Back">
               <ArrowLeft size={20} />
             </button>
-            <div className="pr-topbar__breadcrumb">
-              <Link to="/dashboard">Dashboard</Link>
-              <ChevronRight size={16} style={{ color: 'var(--n-text-muted)' }} />
-              <Link to="/notes">Notes</Link>
-              <ChevronRight size={16} style={{ color: 'var(--n-text-muted)' }} />
-              <span className="pr-topbar__page">{note.title}</span>
+
+            <div className="notes-hero-main">
+              <div className="notes-hero-text">
+                <p className="notes-hero__role">Knowledge Hub Entry</p>
+                <h1 className="notes-hero-title notes-hero-title--detail">{note.title}</h1>
+                <p className="notes-hero-subtitle">
+                  Published by {authorName} on {publishedOn}
+                </p>
+              </div>
+
+              <div className="notes-hero-metrics notes-hero-metrics--detail">
+                <div className="hero-metric-card">
+                  <span className="hero-metric-label">Subject</span>
+                  <strong className="hero-metric-value">{note.subject || "General"}</strong>
+                </div>
+                <div className="hero-metric-card">
+                  <span className="hero-metric-label">Year</span>
+                  <strong className="hero-metric-value">{note.year ? `Y${note.year}` : "All"}</strong>
+                </div>
+                <div className="hero-metric-card">
+                  <span className="hero-metric-label">Comments</span>
+                  <strong className="hero-metric-value">{note.commentsCount || 0}</strong>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="pr-topbar__meta">
-            <span>Published on {publishedOn}</span>
-          </div>
-        </div>
+        </section>
 
         <div className="note-detail-container">
           <div className="note-detail-layout">
