@@ -105,19 +105,19 @@ export const getOngoingEvent = async () => {
 };
 
 // Google OAuth URL (uses GOOGLE_CLIENT_ID from backend .env)
-export const getGoogleAuthUrl = async (tokenOverride) => {
+export const getGoogleAuthUrl = async () => {
   // This endpoint is protected by JWT auth.
   // If accessToken is missing/expired, try refresh once before failing.
-  let token = typeof tokenOverride === "string" ? tokenOverride : localStorage.getItem("accessToken");
+  let token = sessionStorage.getItem("accessToken");
   if (!token) {
-    const refreshToken = localStorage.getItem("refreshToken");
+    const refreshToken = sessionStorage.getItem("refreshToken");
     if (refreshToken) {
       // Use direct axios to avoid interceptor races while bootstrapping OAuth.
       const refreshRes = await axios.post(`${API_URL}/api/auth/refresh`, { refreshToken });
       const next = refreshRes?.data?.data?.accessToken;
       if (next) {
         token = next;
-        localStorage.setItem("accessToken", next);
+        sessionStorage.setItem("accessToken", next);
       }
     }
   }
@@ -146,15 +146,6 @@ export const getGoogleCalendarStatus = async () => {
     );
   }
   return response.data.data; // { connected, lastSyncedAt }
-};
-
-// Sync SCC optimized schedule (classes + study/work blocks) to Google Calendar.
-export const syncGoogleCalendar = async () => {
-  const response = await api.post("/api/timetable/sync-google", {});
-  if (!response.data?.success) {
-    throw new Error(response.data?.message || "Failed to sync to Google Calendar");
-  }
-  return response.data.data;
 };
 
 // Upcoming Google Calendar events (read-only)

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { logout } from "../features/auth/authSlice";
 import { useTheme } from "../context/ThemeContext";
@@ -34,6 +34,7 @@ export default function CommunityPage() {
   const V = makeV(isDark);
   const styles = makeS(V);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const [profileOpen, setProfileOpen] = useState(false);
 
@@ -91,7 +92,7 @@ export default function CommunityPage() {
                     <Link to="/notes" style={styles.navDropdownItem} onClick={() => setProfileOpen(false)}>📝 My Notes</Link>
                     <Link to="/groups" style={styles.navDropdownItem} onClick={() => setProfileOpen(false)}>👥 My Groups</Link>
                     <Link to="/profile" style={styles.navDropdownItem} onClick={() => setProfileOpen(false)}>⚙️ Profile Settings</Link>
-                    <button style={styles.navDropdownLogout} onClick={() => { dispatch(logout()); setProfileOpen(false); }}>Sign Out</button>
+                    <button style={styles.navDropdownLogout} onClick={() => { dispatch(logout()); setProfileOpen(false); navigate("/"); }}>Sign Out</button>
                   </div>
                 )}
               </div>
@@ -150,14 +151,17 @@ export default function CommunityPage() {
       </section>
 
       {/* Benefits */}
-      <section style={{...styles.section, background: "rgba(16,185,129,0.03)"}}>
+      <section style={{
+        ...styles.section, 
+        backgroundImage: `linear-gradient(${V.bgOverlaySection}, ${V.bgOverlaySection}), url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=2070&auto=format&fit=crop')`
+      }}>
         <div style={styles.inner}>
           <p style={styles.sectionLabel}>Why it works</p>
           <h2 style={styles.sectionTitle}>Everything a study community should have.</h2>
           <div className="benefits-grid" style={styles.benefitsGrid}>
             {benefits.map((b) => (
               <div key={b.title} data-benefit style={styles.benefitCard}>
-                <div style={styles.benefitIcon}>{b.icon}</div>
+                <div style={b.iconStyle || styles.benefitIcon}>{b.icon}</div>
                 <h3 style={styles.benefitTitle}>{b.title}</h3>
                 <p style={styles.benefitDesc}>{b.desc}</p>
               </div>
@@ -180,72 +184,111 @@ export default function CommunityPage() {
 
 const makeV = (isDark) => ({
   dark: isDark ? "#16243a" : "#eaf1ff",
-  card: isDark ? "rgba(31,46,70,0.86)" : "rgba(246,250,255,0.9)",
+  card: isDark ? "rgba(31,46,70,0.72)" : "rgba(246,250,255,0.75)",
   surface: isDark ? "#233550" : "#dfe9fb",
-  border: isDark ? "rgba(255,255,255,0.1)" : "rgba(30,41,59,0.14)",
+  border: isDark ? "rgba(255,255,255,0.12)" : "rgba(30,41,59,0.14)",
   green: "#10b981",
   cyan: "#2dd4bf",
   purple: "#a78bfa",
   textPrimary: isDark ? "#f8fafc" : "#111827",
   textSec: isDark ? "#cbd5e1" : "#374151",
   textMuted: isDark ? "#94a3b8" : "#6b7280",
-  navGlass: isDark ? "rgba(22,36,58,0.82)" : "rgba(234,241,255,0.85)",
-  navPill: isDark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.72)",
+  navGlass: isDark ? "rgba(22,36,58,0.72)" : "rgba(234,241,255,0.85)",
+  navPill: isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.72)",
   navActive: isDark ? "rgba(16,185,129,0.2)" : "rgba(16,185,129,0.16)",
-  navActiveBorder: isDark ? "rgba(16,185,129,0.3)" : "rgba(16,185,129,0.34)",
+  navActiveBorder: isDark ? "rgba(16,185,129,0.35)" : "rgba(16,185,129,0.34)",
+  bgOverlay: isDark ? "rgba(13, 21, 35, 0.55)" : "rgba(255, 255, 255, 0.25)",
+  bgOverlaySection: isDark ? "rgba(13, 21, 35, 0.50)" : "rgba(255, 255, 255, 0.22)",
 });
 
 const makeS = (V) => ({
   page: { background: V.dark, color: V.textPrimary, fontFamily: "'Inter', sans-serif", minHeight: "100vh", paddingTop: 0 },
-  navWrap: { position: "fixed", top: 0, left: 0, right: 0, zIndex: 120, backdropFilter: "blur(14px)", background: V.navGlass, borderBottom: `1px solid ${V.border}` },
-  navInner: { maxWidth: 1280, margin: "0 auto", padding: "0.85rem clamp(1rem,4vw,2rem)", display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: "0.75rem" },
-  navBrand: { color: V.textPrimary, textDecoration: "none", fontWeight: 800, fontSize: "1.08rem", letterSpacing: "-0.02em", whiteSpace: "nowrap" },
-  navCenter: { justifySelf: "center", display: "flex", alignItems: "center", gap: "0.35rem", padding: "0.28rem", borderRadius: 999, border: `1px solid ${V.border}`, background: V.navPill },
-  navItem: { color: V.textMuted, textDecoration: "none", fontSize: "0.88rem", fontWeight: 600, padding: "0.52rem 0.88rem", borderRadius: 999, transition: "all 0.2s" },
-  navItemActive: { color: V.textPrimary, background: V.navActive, border: `1px solid ${V.navActiveBorder}` },
+  navWrap: { position: "fixed", top: 0, left: 0, right: 0, zIndex: 120, backdropFilter: "blur(10px) saturate(1.05)", background: "linear-gradient(135deg, #0f5132, #14532d)", borderBottom: "1px solid rgba(236, 253, 245, 0.14)", boxShadow: "0 10px 24px rgba(15, 83, 45, 0.2)" },
+  navInner: { maxWidth: 1280, margin: "0 auto", padding: "1.04rem clamp(0.9rem,2vw,1.8rem)", display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: "1.1rem" },
+  navBrand: { color: "#f8fff9", textDecoration: "none", fontWeight: 800, fontSize: "clamp(1.14rem, 1.3vw, 1.5rem)", letterSpacing: "0.02em", whiteSpace: "nowrap", lineHeight: 1.05 },
+  navCenter: { justifySelf: "center", display: "flex", alignItems: "center", gap: "0.35rem", padding: 0, border: 0, background: "none" },
+  navItem: { color: "#ffffff", textDecoration: "none", fontSize: "0.89rem", fontWeight: 650, padding: "0.86rem 1.35rem", borderRadius: 9999, transition: "all 0.25s ease", border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.08)", backdropFilter: "blur(12px)", boxShadow: "0 2px 8px rgba(0,0,0,0.15)" },
+  navItemActive: { color: "#03060b", background: "linear-gradient(135deg, #16a34a, #22c55e)", border: "1px solid transparent", boxShadow: "0 4px 14px rgba(34, 197, 94, 0.35)" },
   navRight: { justifySelf: "end", display: "flex", alignItems: "center", gap: "0.5rem" },
-  navSignIn: { color: V.textMuted, textDecoration: "none", fontWeight: 600, fontSize: "0.86rem", padding: "0.52rem 0.8rem", borderRadius: 999 },
+  navSignIn: { color: "#ecfdf5", textDecoration: "none", fontWeight: 600, fontSize: "0.86rem", padding: "0.52rem 0.8rem", borderRadius: 999 },
   navCta: { color: "#fff", textDecoration: "none", fontWeight: 700, fontSize: "0.86rem", padding: "0.58rem 1rem", borderRadius: 999, background: V.green, boxShadow: "0 6px 18px -8px rgba(16,185,129,0.8)" },
   navAvatar: { width: 36, height: 36, borderRadius: "50%", background: V.green, color: "#fff", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "1rem", overflow: "hidden", padding: 0 },
   navDropdown: { position: "absolute", top: "calc(100% + 10px)", right: 0, minWidth: 200, background: V.navGlass, backdropFilter: "blur(18px)", border: `1px solid ${V.border}`, borderRadius: 14, overflow: "hidden", boxShadow: "0 16px 40px rgba(0,0,0,0.25)", zIndex: 200 },
   navDropdownHeader: { padding: "0.85rem 1rem 0.75rem", borderBottom: `1px solid ${V.border}` },
   navDropdownItem: { display: "block", padding: "0.6rem 1rem", color: V.textPrimary, textDecoration: "none", fontSize: "0.86rem", fontWeight: 500 },
   navDropdownLogout: { display: "block", width: "100%", padding: "0.6rem 1rem", color: "#ef4444", background: "none", border: "none", borderTop: `1px solid ${V.border}`, textAlign: "left", cursor: "pointer", fontSize: "0.86rem" },
-  hero: { padding: "8rem clamp(1.5rem,5vw,4rem) 6rem", maxWidth: 1280, margin: "0 auto", textAlign: "center" },
+  hero: { 
+    padding: "10rem clamp(1.5rem,5vw,4rem) 8rem", 
+    maxWidth: "100%", 
+    margin: "0 auto", 
+    textAlign: "center",
+    backgroundImage: `linear-gradient(${V.bgOverlay}, ${V.bgOverlay}), url('https://images.unsplash.com/photo-1541339907198-e08759dfc3f3?q=80&w=2070&auto=format&fit=crop')`,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    backgroundAttachment: "fixed",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: "85vh",
+    boxShadow: "inset 0 0 100px rgba(0,0,0,0.2)"
+  },
   tag: { display: "inline-block", fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: V.green, background: "rgba(16,185,129,0.1)", border: `1px solid rgba(16,185,129,0.3)`, padding: "0.4rem 1.2rem", borderRadius: 40, marginBottom: "1.75rem" },
-  heroTitle: { fontSize: "clamp(2.4rem,6vw,4.5rem)", fontWeight: 800, lineHeight: 1.1, letterSpacing: "-0.02em", marginBottom: "1.25rem" },
+  heroTitle: { fontSize: "clamp(2.4rem,6vw,4.5rem)", fontWeight: 800, lineHeight: 1.1, letterSpacing: "-0.02em", marginBottom: "1.25rem", maxWidth: 1000, textShadow: "0 4px 12px rgba(0,0,0,0.3)" },
   grad: { background: `linear-gradient(135deg, ${V.cyan}, ${V.green})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" },
-  heroSub: { fontSize: "clamp(1rem,1.5vw,1.2rem)", color: V.textSec, maxWidth: 600, margin: "0 auto 2.5rem", lineHeight: 1.7 },
+  heroSub: { fontSize: "clamp(1rem,1.5vw,1.2rem)", color: V.textSec, maxWidth: 640, margin: "0 auto 2.5rem", lineHeight: 1.7, textShadow: "0 2px 4px rgba(0,0,0,0.2)" },
   heroBtns: { display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap", marginBottom: "2rem" },
   btnPrimary: { display: "inline-flex", alignItems: "center", height: 48, padding: "0 2rem", background: V.green, color: "#fff", borderRadius: 100, fontWeight: 600, textDecoration: "none", boxShadow: "0 6px 20px -6px rgba(16,185,129,0.65)", fontSize: "1rem", transition: "transform 0.2s, box-shadow 0.2s" },
-  btnGhost: { display: "inline-flex", alignItems: "center", height: 48, padding: "0 2rem", color: V.textPrimary, borderRadius: 100, fontWeight: 500, textDecoration: "none", border: `1px solid ${V.border}`, background: "rgba(255,255,255,0.03)", fontSize: "1rem" },
+  btnGhost: { display: "inline-flex", alignItems: "center", height: 48, padding: "0 2rem", color: V.textPrimary, borderRadius: 100, fontWeight: 500, textDecoration: "none", border: `1px solid ${V.border}`, background: "rgba(255,255,255,0.03)", fontSize: "1rem", backdropFilter: "blur(10px)" },
   heroPills: { display: "flex", gap: "0.75rem", justifyContent: "center", flexWrap: "wrap" },
-  pill: { fontSize: "0.8rem", fontWeight: 500, color: V.textMuted, background: "rgba(255,255,255,0.04)", border: `1px solid ${V.border}`, padding: "0.3rem 0.9rem", borderRadius: 100 },
-  section: { padding: "5rem clamp(1.5rem,5vw,4rem)" },
+  pill: { fontSize: "0.8rem", fontWeight: 500, color: V.textMuted, background: "rgba(255,255,255,0.04)", border: `1px solid ${V.border}`, padding: "0.3rem 0.9rem", borderRadius: 100, backdropFilter: "blur(10px)" },
+  section: { 
+    padding: "8rem clamp(1.5rem,5vw,4rem)",
+    backgroundImage: `linear-gradient(${V.bgOverlaySection}, ${V.bgOverlaySection}), url('https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=2071&auto=format&fit=crop')`,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    backgroundAttachment: "fixed",
+  },
   inner: { maxWidth: 1280, margin: "0 auto" },
   sectionLabel: { fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase", color: V.green, marginBottom: "0.75rem" },
-  sectionTitle: { fontSize: "clamp(1.8rem,3.5vw,2.8rem)", fontWeight: 700, lineHeight: 1.2, maxWidth: 680, marginBottom: "3rem" },
+  sectionTitle: { fontSize: "clamp(1.8rem,3.5vw,2.8rem)", fontWeight: 700, lineHeight: 1.2, maxWidth: 680, marginBottom: "3rem", textShadow: "0 2px 10px rgba(0,0,0,0.15)" },
   commGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "1.25rem" },
-  commCard: { background: V.card, border: `1px solid ${V.border}`, borderRadius: 20, padding: "1.75rem", backdropFilter: "blur(10px)", transition: "border-color 0.25s, transform 0.25s, box-shadow 0.25s", cursor: "pointer" },
+  commCard: { background: V.card, border: `1px solid ${V.border}`, borderRadius: 24, padding: "1.75rem", backdropFilter: "blur(24px)", transition: "border-color 0.25s, transform 0.25s, box-shadow 0.25s", cursor: "pointer", boxShadow: "0 8px 32px rgba(0,0,0,0.05)" },
   commIcon: { fontSize: "2rem", marginBottom: "0.75rem" },
   commTagBadge: { display: "inline-block", fontSize: "0.7rem", fontWeight: 600, color: V.green, background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.25)", padding: "0.2rem 0.7rem", borderRadius: 100, marginBottom: "0.75rem" },
   commName: { fontSize: "1.1rem", fontWeight: 700, color: V.textPrimary, marginBottom: "0.5rem", lineHeight: 1.3 },
   commMeta: { fontSize: "0.82rem", color: V.textMuted, display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "1.25rem" },
   commJoin: { display: "inline-flex", alignItems: "center", fontSize: "0.88rem", fontWeight: 600, color: V.green, textDecoration: "none", gap: "0.25rem", transition: "gap 0.2s" },
-  benefitsGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1.25rem" },
-  benefitCard: { background: V.card, border: `1px solid ${V.border}`, borderRadius: 20, padding: "1.75rem", backdropFilter: "blur(10px)" },
+  benefitsGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1.5rem" },
+  benefitCard: { background: V.card, border: `1px solid ${V.border}`, borderRadius: 24, padding: "1.75rem", backdropFilter: "blur(24px)", boxShadow: "0 8px 32px rgba(0,0,0,0.05)" },
   benefitIcon: { fontSize: "1.75rem", marginBottom: "1rem" },
   benefitTitle: { fontSize: "1.05rem", fontWeight: 700, color: V.textPrimary, marginBottom: "0.5rem" },
   benefitDesc: { fontSize: "0.9rem", color: V.textSec, lineHeight: 1.65 },
-  ctaSection: { padding: "4rem clamp(1.5rem,5vw,4rem) 8rem" },
-  ctaBox: { maxWidth: 700, margin: "0 auto", textAlign: "center", background: "linear-gradient(135deg, rgba(16,185,129,0.1), rgba(45,212,191,0.06))", border: "1px solid rgba(16,185,129,0.25)", borderRadius: 28, padding: "4rem 3rem" },
-  ctaTitle: { fontSize: "clamp(1.75rem,3.5vw,2.5rem)", fontWeight: 800, letterSpacing: "-0.02em", marginBottom: "1rem" },
+  ctaSection: { 
+    padding: "10rem clamp(1.5rem,5vw,4rem) 12rem",
+    backgroundImage: `linear-gradient(${V.bgOverlaySection}, ${V.bgOverlaySection}), url('https://images.unsplash.com/photo-1523580494863-6f3031224c94?q=80&w=2070&auto=format&fit=crop')`,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    backgroundAttachment: "fixed",
+  },
+  ctaBox: { 
+    maxWidth: 850, 
+    margin: "0 auto", 
+    textAlign: "center", 
+    background: V.card, 
+    backdropFilter: "blur(40px)",
+    border: `1px solid ${V.border}`, 
+    borderRadius: 32, 
+    padding: "6rem 3rem",
+    boxShadow: "0 20px 60px rgba(0,0,0,0.2)"
+  },
+  ctaTitle: { fontSize: "clamp(1.75rem,3.5vw,2.5rem)", fontWeight: 800, letterSpacing: "-0.02em", marginBottom: "1rem", textShadow: "0 2px 8px rgba(0,0,0,0.15)" },
   ctaSub: { color: V.textSec, fontSize: "1.05rem", marginBottom: "2rem", lineHeight: 1.6 },
   "border-col": V.border,
 });
 
 const pageCSS = `
-  .page-nav-center a:hover { color: #f8fafc !important; background: rgba(255,255,255,0.1); }
+  .page-nav-center a:hover { color: #ffffff !important; background: rgba(255,255,255,0.15) !important; border-color: rgba(34, 197, 94, 0.4) !important; transform: translateY(-1px) scale(1.03); }
   .comm-card:hover { border-color: #10b981 !important; transform: translateY(-4px); box-shadow: 0 18px 32px rgba(0,0,0,0.3), 0 0 20px rgba(16,185,129,0.15) !important; }
   .comm-card:hover .comm-join { gap: 0.5rem; }
   @media (max-width: 920px) {

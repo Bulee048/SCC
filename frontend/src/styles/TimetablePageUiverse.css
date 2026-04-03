@@ -1,23 +1,23 @@
 .timetable-uiverse-page {
   position: relative;
   min-height: 100vh;
-  background: var(--abyss);
+  /* background animation comes from the Three.js ocean canvas (Groups-like) */
+  background: transparent;
   overflow-x: hidden;
-  z-index: 1;
 }
 
-/* Premium Mesh Gradient Background - adapts to theme */
 .timetable-uiverse-page::before {
   content: "";
   position: fixed;
   inset: 0;
+  opacity: 0;
   background:
-    radial-gradient(circle at 10% 20%, var(--bio-dim) 0%, transparent 60%),
-    radial-gradient(circle at 90% 10%, var(--bio-glow) 0%, transparent 50%),
-    radial-gradient(circle at 50% 90%, var(--bio-dim) 0%, transparent 60%);
+    radial-gradient(circle at 15% 10%, rgba(16, 185, 129, 0.22) 0%, transparent 45%),
+    radial-gradient(circle at 80% 20%, rgba(45, 212, 191, 0.16) 0%, transparent 50%),
+    radial-gradient(circle at 55% 85%, rgba(167, 139, 250, 0.14) 0%, transparent 55%),
+    linear-gradient(180deg, rgba(6, 18, 31, 1) 0%, rgba(5, 11, 21, 1) 100%);
   pointer-events: none;
-  z-index: -2;
-  animation: bg-drift 20s ease-in-out infinite alternate;
+  z-index: -1;
 }
 
 .timetable-uiverse-page::after {
@@ -26,77 +26,18 @@
   inset: 0;
   pointer-events: none;
   z-index: -1;
+  opacity: 0;
   background-image:
-    linear-gradient(var(--border) 1px, transparent 1px),
-    linear-gradient(90deg, var(--border) 1px, transparent 1px);
-  background-size: 60px 60px;
-  mask-image: radial-gradient(circle at 50% 100%, black 10%, transparent 80%);
-  -webkit-mask-image: radial-gradient(circle at 50% 100%, black 10%, transparent 80%);
+    linear-gradient(to right, rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+  background-size: 80px 80px;
+  mask-image: radial-gradient(circle at 50% 35%, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 70%);
 }
-
-@keyframes bg-drift {
-  0% { transform: scale(1) translate(0, 0); }
-  100% { transform: scale(1.05) translate(-2%, 2%); }
-}
-
-.timetable-uiverse-page .dashboard-content {
-  display: grid;
-  gap: 1.5rem;
-  padding-bottom: 4rem;
-}
-
-.timetable-uiverse-page .dashboard-content > .card {
-  border: 1px solid var(--border);
-  background: var(--surface-1);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-radius: 24px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
-}
-
-.timetable-uiverse-page .dashboard-content > .card:hover {
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-  border-color: var(--border-lit);
-}
-
-.timetable-uiverse-page .card-header {
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 1rem;
-}
-
-.timetable-uiverse-page .card-title {
-  letter-spacing: -0.01em;
-  font-weight: 700;
-  font-size: 1.15rem;
-  color: var(--text);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.timetable-uiverse-page .card-description {
-  color: var(--text-dim);
-  line-height: 1.65;
-  font-size: 0.92rem;
-  margin-top: 0.3rem;
-}
-
-.timetable-uiverse-page .card-footer {
-  padding-top: 1rem;
-  border-top: 1px solid var(--border);
-}
-
-.timetable-uiverse-page .card-body {
-  color: var(--text-mid);
-}
-
 
 
 /* ===========================
    Timetable: Home-style Navbar
-   (Updated to Glassmorphism)
+   (scoped + blur-disabled)
    =========================== */
 
 .timetable-uiverse-page nav.timetable-topnav {
@@ -104,18 +45,18 @@
   top: 0;
   z-index: 200;
   height: 88px;
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  background: var(--surface-1);
-  backdrop-filter: blur(30px) saturate(150%);
-  -webkit-backdrop-filter: blur(30px) saturate(150%);
-  border-bottom: 1px solid var(--border);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  transition: height 0.35s ease, background 0.35s ease, box-shadow 0.35s ease;
+  /* Keep it visually close to Home, but disable blur to avoid the "glass blur" look. */
+  background: rgba(28, 44, 70, 0.72);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .timetable-uiverse-page nav.timetable-topnav.scrolled {
   height: 74px;
-  background: var(--surface-2);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2), inset 0 -1px 0 var(--border-lit);
+  background: rgba(28, 44, 70, 0.86);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08), 0 10px 34px rgba(0, 0, 0, 0.42);
 }
 
 .timetable-uiverse-page .nav-inner {
@@ -130,38 +71,6 @@
   gap: 1rem;
 }
 
-.timetable-uiverse-page .nav-left {
-  display: flex;
-  align-items: center;
-}
-
-.timetable-uiverse-page .glass-back-btn {
-  all: unset;
-  cursor: pointer;
-  box-sizing: border-box;
-  display: inline-flex;
-  align-items: center;
-  height: 38px;
-  padding: 0 1rem;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-mid);
-  background: var(--surface-1);
-  border: 1px solid var(--border);
-  border-radius: 100px;
-  transition: all 0.2s ease;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-
-.timetable-uiverse-page .glass-back-btn:hover {
-  background: var(--surface-2);
-  color: var(--text);
-  transform: translateX(-3px);
-  border-color: var(--border-lit);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
 .timetable-uiverse-page .nav-brand {
   display: flex;
   align-items: center;
@@ -170,29 +79,16 @@
   border: none;
   cursor: pointer;
   text-decoration: none;
-  color: var(--text);
+  color: var(--text-primary, #e6eefb);
   padding: 0;
   line-height: 1;
 }
 
-.timetable-uiverse-page .nav-brand-name {
-  font-weight: 700;
-  font-size: 1.1rem;
-  letter-spacing: .02em;
-  color: var(--bio);
-  line-height: 1;
-}
-
-.timetable-uiverse-page .nav-brand-name span {
-  color: var(--bio);
-}
-
 .timetable-uiverse-page .nav-brand-logo {
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  background: #183434;
-  border: 1px solid rgba(42, 157, 143, 0.28);
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent-green, #10b981), var(--accent-cyan, #2dd4bf));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -200,31 +96,36 @@
   font-weight: 900;
   color: #fff;
   flex-shrink: 0;
-  box-shadow: 0 0 14px rgba(42, 157, 143, 0.2), inset 0 0 8px rgba(42, 157, 143, 0.12);
+  box-shadow: 0 10px 28px rgba(16, 185, 129, 0.4), 0 0 20px rgba(45, 212, 191, 0.3);
 }
 
 .timetable-uiverse-page .nav-brand-name {
-  font-weight: 700;
-  font-size: 1.1rem;
-  letter-spacing: .02em;
-  color: var(--bio);
+  font-weight: 800;
+  font-size: 1.34rem;
+  letter-spacing: -0.03em;
+  color: var(--text-primary, #e6eefb);
   line-height: 1;
 }
 
 .timetable-uiverse-page .nav-brand-name span {
-  color: var(--bio);
+  color: var(--accent-green, #10b981);
 }
 
 .timetable-uiverse-page .nav-center {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  background: var(--surface-1);
-  border: 1px solid var(--border);
+  gap: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.08),
+    rgba(255, 255, 255, 0.03)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 100px;
   padding: 6px;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 8px 26px rgba(0, 0, 0, 0.24);
 }
 
 .timetable-uiverse-page .nav-link {
@@ -240,16 +141,16 @@
   font-size: 0.95rem;
   font-weight: 600;
   line-height: 1;
-  color: var(--text-mid);
-  transition: all 0.2s ease;
+  color: #b5c4da;
+  transition: color 0.2s, background 0.2s;
   white-space: nowrap;
   text-decoration: none;
+  -webkit-font-smoothing: antialiased;
 }
 
 .timetable-uiverse-page .nav-link:hover {
-  color: var(--text);
-  background: var(--surface-2);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  color: var(--text-primary, #e6eefb);
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .timetable-uiverse-page .nav-right {
@@ -266,25 +167,20 @@
   display: inline-flex;
   align-items: center;
   height: 42px;
-  padding: 0 1.5rem;
+  padding: 0 1.25rem;
   font-size: 0.95rem;
   font-weight: 600;
   line-height: 1;
-  color: var(--bio);
-  background: var(--bio-dim);
-  border: 1px solid var(--bio-line);
+  color: var(--text-muted, #b5c4da);
   border-radius: 100px;
-  transition: all 0.2s ease;
+  transition: color 0.2s, background 0.2s;
   text-decoration: none;
   white-space: nowrap;
-  backdrop-filter: blur(10px);
 }
 
 .timetable-uiverse-page .home-signin-btn:hover {
-  background: var(--bio-glow);
-  border-color: var(--bio);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px var(--bio-dim);
+  color: var(--text-primary, #e6eefb);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 @media (max-width: 860px) {

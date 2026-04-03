@@ -1,0 +1,54 @@
+.study-pilot-container { display: flex; gap: 20px; height: calc(100vh - 100px); color: #e2e8f0; }
+.pilot-panel { background: #1e293b; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; overflow: hidden; }
+.left-panel { flex: 0 0 250px; overflow-y: auto;}
+.middle-panel { flex: 1; position: relative; }
+.right-panel { flex: 0 0 250px; overflow-y: auto;}
+
+/* Chat Interface Styles */
+.chat-interface { padding: 0; background: #0f172a; border: 1px solid #334155; }
+.chat-history { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+.chat-bubble { max-width: 90%; padding: 15px; border-radius: 12px; line-height: 1.5; }
+.user-bubble { align-self: flex-end; background: #2563eb; color: white; border-bottom-right-radius: 2px; }
+.ai-bubble { align-self: flex-start; background: #1e293b; border: 1px solid #334155; border-bottom-left-radius: 2px; width: 100%;}
+.error-bubble { color: #ef4444; border-color: #ef4444; }
+.loading-bubble { display: flex; align-items: center; gap: 10px; color: #94a3b8; }
+
+.chat-input-area { display: flex; padding: 15px; background: #1e293b; border-top: 1px solid #334155; }
+.chat-input-area input { flex: 1; padding: 12px 15px; border-radius: 20px; border: 1px solid #475569; background: #0f172a; color: white; outline: none; }
+.chat-input-area button { background: #2563eb; color: white; border: none; padding: 10px; margin-left: 10px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;}
+
+/* Studio & Sidebar */
+.panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #334155; padding-bottom: 10px; }
+.upload-btn { background: #2563eb; color: white; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer; transition: 0.3s; margin-bottom: 15px; display: block;}
+.studio-grid { display: grid; gap: 15px; }
+.studio-card { background: #0f172a; border: 1px solid #334155; color: #cbd5e1; padding: 15px; border-radius: 8px; cursor: pointer; font-weight: bold;}
+.studio-card:hover { background: #334155; color: white; }
+
+/* Advanced Quiz Styles */
+.quiz-card { background: #0f172a; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #334155; }
+.hint-text { font-size: 12px; color: #94a3b8; margin-bottom: 15px; }
+.quiz-options { display: flex; flex-direction: column; gap: 12px; }
+.quiz-option-wrapper { background: #1e293b; border-radius: 8px; border: 1px solid transparent; transition: 0.2s; overflow: hidden;}
+.quiz-option-label { display: flex; align-items: center; gap: 10px; padding: 12px; cursor: pointer; width: 100%; }
+.quiz-option-label input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+
+/* Quiz Colors After Finish */
+.quiz-option-wrapper.selected { border-color: #60a5fa; }
+.quiz-option-wrapper.correct-answer { border-color: #22c55e; background: rgba(34, 197, 94, 0.1); }
+.quiz-option-wrapper.wrong-answer { border-color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+.quiz-option-wrapper.unselected-answer { opacity: 0.6; }
+.option-explanation { font-size: 13px; padding: 10px 12px; background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.05); color: #cbd5e1; }
+.finish-quiz-btn { width: 100%; background: #22c55e; color: #0f172a; border: none; padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 16px;}
+.finish-quiz-btn:hover { background: #16a34a; }
+
+/* Flashcards 3D Flip */
+.flashcards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; perspective: 1000px; }
+.flashcard { width: 100%; height: 200px; cursor: pointer; }
+.flashcard-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; border-radius: 12px; }
+.flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
+.flashcard-front, .flashcard-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; border-radius: 12px; background: #0f172a; border: 1px solid #334155; }
+.flashcard-back { transform: rotateY(180deg); background: #1e293b; border-color: #60a5fa; }
+
+/* General */
+.spinner { border: 3px solid rgba(255,255,255,0.1); border-left-color: #60a5fa; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
+@keyframes spin { 100% { transform: rotate(360deg); } }

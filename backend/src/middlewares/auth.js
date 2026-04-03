@@ -6,11 +6,6 @@ import User from "../models/User.js";
  */
 export const authenticate = async (req, res, next) => {
   try {
-    // Google OAuth callback is an unauthenticated redirect.
-    // If it ever hits this middleware due to route order/matching, skip auth.
-    if (String(req.path || "").includes("google-callback")) {
-      return next();
-    }
     // Get token from Authorization header (primary)
     const authHeader = req.headers.authorization;
 
