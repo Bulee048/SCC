@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import { logout } from "../features/auth/authSlice";
+import { useTheme } from "../context/ThemeContext";
 import {
   Calendar,
   Brain,
@@ -127,6 +128,7 @@ const Timetable = () => {
   const dispatch = useDispatch();
   const { user, isAuthenticated } = useSelector((state) => state.auth);
   const navigate = useNavigate();
+  const { theme } = useTheme();
 
   const toDateTimeLocalValue = (value) => {
     if (!value) return "";
@@ -551,7 +553,7 @@ const Timetable = () => {
   const isSync = activeTab === "sync";
 
   return (
-    <div className="tt-root">
+    <div className="tt-root" data-theme={theme}>
       <div className="tt-canvas" />
 
       <main className="tt-main">
@@ -778,27 +780,27 @@ const Timetable = () => {
                 {universitySchedule.length === 0 ? (
                   <EmptyState title="Registry Empty" description="Add your first subject block to initialize." />
                 ) : (
-                  <div className="tt-editor">
-                    <table className="tt-table">
+                  <div className="tt-editor-table-wrap">
+                    <table className="tt-editor-table">
                       <thead>
                         <tr>
-                          <th>Title</th>
-                          <th>Code</th>
-                          <th>Start</th>
-                          <th>End</th>
+                          <th>Subject Title</th>
+                          <th>ID/Code</th>
+                          <th>Start Time</th>
+                          <th>End Time</th>
                           <th>Difficulty</th>
-                          <th>Actions</th>
+                          <th style={{ width: '80px' }}>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
                         {universitySchedule.map((event, index) => (
-                          <tr key={index} className="tt-table-row">
+                          <tr key={index} className="tt-editor-table-row">
                             <td>
                               <input
                                 className="tt-input"
                                 value={event.title}
                                 onChange={(e) => handleChangeEventField(index, "title", e.target.value)}
-                                placeholder="Lecture Title"
+                                placeholder="e.g. Physics II"
                               />
                             </td>
                             <td>
@@ -806,7 +808,7 @@ const Timetable = () => {
                                 className="tt-input"
                                 value={event.subjectCode}
                                 onChange={(e) => handleChangeEventField(index, "subjectCode", e.target.value)}
-                                placeholder="CS201"
+                                placeholder="PHYS101"
                               />
                             </td>
                             <td>
@@ -831,13 +833,13 @@ const Timetable = () => {
                                 value={difficultyLevels[event.subjectCode || event.title] || "medium"}
                                 onChange={(e) => handleChangeDifficulty(event.subjectCode || event.title, e.target.value)}
                               >
-                                <option value="easy">Easy</option>
-                                <option value="medium">Medium</option>
-                                <option value="hard">Hard</option>
+                                <option value="easy">Level: Easy</option>
+                                <option value="medium">Level: Medium</option>
+                                <option value="hard">Level: Hard</option>
                               </select>
                             </td>
-                            <td>
-                              <button className="tt-btn tt-btn-danger tt-btn-sm" onClick={() => handleRemoveEvent(index)}>
+                            <td style={{ textAlign: 'center' }}>
+                              <button className="tt-btn tt-btn-danger tt-btn-sm" onClick={() => handleRemoveEvent(index)} title="Remove Block">
                                 <Trash2 size={14} />
                               </button>
                             </td>

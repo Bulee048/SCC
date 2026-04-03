@@ -71,6 +71,16 @@ SCC is built on a modern, distributed architecture designed for scalability and 
    npm run dev
    ```
 
+   For Google sign-in/register, add these variables to `backend/.env` and register the callback URI in Google Cloud Console:
+   ```bash
+   GOOGLE_CLIENT_ID=your-google-client-id
+   GOOGLE_CLIENT_SECRET=your-google-client-secret
+   GOOGLE_REDIRECT_URI=http://localhost:5000/api/auth/google/callback
+   CLIENT_URL=http://localhost:5173
+   ```
+
+   Use the same Google OAuth app for both login and registration flows.
+
 3. **Frontend Configuration**
    ```bash
    cd ../frontend

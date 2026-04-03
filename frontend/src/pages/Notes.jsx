@@ -4,7 +4,8 @@ import { useNavigate, Link } from "react-router-dom";
 import {
   Search,
   Plus,
-  Filter,
+  Sparkles,
+  SlidersHorizontal,
   ThumbsUp,
   MessageSquare,
   X,
@@ -14,6 +15,7 @@ import {
   Link as LinkIcon,
   Check,
   FileText,
+  CalendarDays,
 } from "lucide-react";
 import {
   fetchNotes,
@@ -100,6 +102,9 @@ const Notes = () => {
   };
 
   const hasActiveFilters = filters.subject || filters.year || filters.tag || localSearch;
+  const totalResources = pagination?.total || notes.length;
+  const totalDiscussions = notes.reduce((acc, item) => acc + (item.commentsCount || 0), 0);
+  const totalLikes = notes.reduce((acc, item) => acc + (item.reactionsCount?.like || 0), 0);
 
   const sortedNotes = [...notes].sort((a, b) => {
     switch (sortBy) {
@@ -148,20 +153,37 @@ const Notes = () => {
             </div>
           </div>
           <div className="pr-topbar__meta">
-            <span>{pagination?.total || notes.length} Resources Available</span>
+            <span>{totalResources} Resources Available</span>
           </div>
         </div>
 
-        {/* Modern Hero Section */}
+        {/* Hero Section */}
         <section className="notes-hero">
-          <div className="notes-hero-text">
-            <p className="notes-hero__role">Academic Repository</p>
-            <h1 className="notes-hero-title">Knowledge Hub</h1>
-            <p className="notes-hero-subtitle">
-              Access and contribute to a shared library of verified academic notes, 
-              research materials, and study guides.
-            </p>
+          <div className="notes-hero-main">
+            <div className="notes-hero-text">
+              <p className="notes-hero__role">Academic Repository</p>
+              <h1 className="notes-hero-title">Knowledge Hub</h1>
+              <p className="notes-hero-subtitle">
+                Discover high-quality notes, structured references, and collaborative insight from your community.
+              </p>
+            </div>
+
+            <div className="notes-hero-metrics">
+              <div className="hero-metric-card">
+                <span className="hero-metric-label">Resources</span>
+                <strong className="hero-metric-value">{totalResources}</strong>
+              </div>
+              <div className="hero-metric-card">
+                <span className="hero-metric-label">Discussions</span>
+                <strong className="hero-metric-value">{totalDiscussions}</strong>
+              </div>
+              <div className="hero-metric-card">
+                <span className="hero-metric-label">Helpful Votes</span>
+                <strong className="hero-metric-value">{totalLikes}</strong>
+              </div>
+            </div>
           </div>
+
           <div className="notes-hero-actions">
             <button
               className="btn-new-note"
@@ -177,7 +199,18 @@ const Notes = () => {
           </div>
         </section>
 
-        {/* Modern Integrated Toolbar */}
+        <div className="notes-insight-strip">
+          <span>
+            <Sparkles size={16} />
+            Curated by students and faculty with practical exam-focused context.
+          </span>
+          <span>
+            <CalendarDays size={16} />
+            Updated in real-time as new resources are published.
+          </span>
+        </div>
+
+        {/* Controls */}
         <div className="notes-toolbar">
           <div className="notes-toolbar__inner">
             <div className="notes-search">
@@ -199,6 +232,8 @@ const Notes = () => {
                 </button>
               )}
             </div>
+
+            <div className="toolbar-divider" />
 
             <select
               className="filter-chip"
@@ -234,10 +269,10 @@ const Notes = () => {
 
             {hasActiveFilters && (
               <button
-                className="filter-chip"
+                className="filter-chip filter-chip-clear"
                 onClick={handleClearFilters}
-                style={{ color: 'var(--n-accent)' }}
               >
+                <SlidersHorizontal size={14} />
                 Clear All
               </button>
             )}
@@ -393,11 +428,24 @@ const NoteCard = ({ note, currentUserId, onReaction, onViewComments }) => {
 
   return (
     <div className={`note-card ${isPinned ? "pinned" : ""}`} onClick={onViewComments}>
-      <div className="note-card-header">
-        <h3 className="note-title">{note.title}</h3>
-        {isPinned && <Pin size={16} color="var(--n-accent)" fill="currentColor" className="pin-icon" />}
+      <div className="note-context-row">
+        {note.subject && <span className="note-context-chip">{note.subject}</span>}
+        {note.year && <span className="note-context-chip muted">Year {note.year}</span>}
       </div>
-      <p className="note-body">{note.description}</p>
+
+      <div className="note-card-body">
+        <div className="note-card-header">
+          <h3 className="note-title">{note.title}</h3>
+          {isPinned && <Pin size={16} color="var(--n-accent)" fill="currentColor" className="pin-icon" />}
+        </div>
+
+        <p className="note-body">{note.description}</p>
+
+        <div className="note-card-info">
+          {note.department && <span className="note-info-chip">{note.department}</span>}
+          {note.faculty && <span className="note-info-chip muted">{note.faculty}</span>}
+        </div>
+      </div>
 
       {note.tags && note.tags.length > 0 && (
         <div className="note-tags">
@@ -408,7 +456,10 @@ const NoteCard = ({ note, currentUserId, onReaction, onViewComments }) => {
       )}
 
       <div className="note-footer">
-        <span className="note-author">By {note.userId?.name?.split(" ")[0] || "Scholar"}</span>
+        <div className="note-meta-stack">
+          <span className="note-author">By {note.userId?.name?.split(" ")[0] || "Scholar"}</span>
+          <span className="note-date-meta">{new Date(note.createdAt).toLocaleDateString()}</span>
+        </div>
         <div className="note-actions">
           <button
             className={`action-btn ${isLiked ? "active" : ""}`}

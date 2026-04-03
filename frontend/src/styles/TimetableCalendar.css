@@ -5,6 +5,13 @@
   --tt-card-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
+[data-theme="light"] {
+  --tt-glass: rgba(0, 0, 0, 0.02);
+  --tt-glass-border: rgba(0, 0, 0, 0.08);
+  --tt-accent-glow: rgba(5, 150, 105, 0.1);
+  --tt-card-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
 .ttcal-wrapper {
   width: 100%;
   animation: ttFadeIn 0.8s ease-out;
@@ -480,3 +487,29 @@
 @media (max-width: 480px) {
   .ttcal__nav-group { width: 100%; justify-content: space-between; }
 }
+
+/* Light Mode Visual Fixes */
+[data-theme="light"] {
+  --tt-glass: rgba(0, 0, 0, 0.02);
+  --tt-glass-border: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .ttcal__container {
+  background: #ffffff;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .ttcal__title { color: #1e293b; }
+[data-theme="light"] .ttcal__subtitle { color: #64748b; }
+[data-theme="light"] .ttcal__nav-btn, [data-theme="light"] .ttcal__today-btn { color: #1e293b; }
+[data-theme="light"] .ttcal__dayName { color: #64748b; }
+[data-theme="light"] .ttcal__dayDate { color: #1e293b; }
+[data-theme="light"] .ttcal__dayDate span { color: #94a3b8; }
+[data-theme="light"] .ttcal__time span { color: #94a3b8; }
+[data-theme="light"] .ttcal__body { background-image: linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px); }
+[data-theme="light"] .ttcal__event-title { color: white; } /* Keep white text inside colored events */
+[data-theme="light"] .ttcal__modal { background: #ffffff; }
+[data-theme="light"] .ttcal__modal-title { color: #1e293b; }
+[data-theme="light"] .ttcal__info-value { color: #1e293b; }
+[data-theme="light"] .ttcal__modal-close { color: #1e293b; background: #f1f5f9; }
+[data-theme="light"] .ttcal__modal-badge { color: white; }

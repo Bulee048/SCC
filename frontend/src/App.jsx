@@ -12,6 +12,7 @@ import { initSocket } from "./socket/socket";
 // Pages
 import Home from "./pages/Home";
 import AuthPage from "./pages/AuthPage";
+import GoogleAuthCallback from "./pages/GoogleAuthCallback";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import Groups from "./pages/Groups";
@@ -139,6 +140,7 @@ function App() {
                 <Route path="/auth" element={<AuthPage />} />
                 <Route path="/login" element={<AuthPage />} />
                 <Route path="/register" element={<AuthPage />} />
+                <Route path="/auth/google/callback" element={<GoogleAuthCallback />} />
                 <Route
                   path="/dashboard"
                   element={
