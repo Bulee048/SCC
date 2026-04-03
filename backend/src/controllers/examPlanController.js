@@ -1,6 +1,6 @@
 import axios from "axios";
 import FormData from "form-data";
-import pdfParse from "pdf-parse";
+import { PDFParse } from "pdf-parse";
 import Exam from "../models/Exam.js";
 import Timetable from "../models/Timetable.js";
 import {
@@ -154,8 +154,13 @@ const extractNotesText = async (files = []) => {
 
     if (type.includes("pdf") || file.originalname?.toLowerCase().endsWith(".pdf")) {
       try {
-        const parsed = await pdfParse(file.buffer);
-        chunks.push(parsed?.text || "");
+        const parser = new PDFParse({ data: file.buffer });
+        try {
+          const parsed = await parser.getText();
+          chunks.push(parsed?.text || "");
+        } finally {
+          await parser.destroy().catch(() => {});
+        }
       } catch {
         chunks.push("");
       }
