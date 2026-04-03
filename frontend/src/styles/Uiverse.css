@@ -1617,15 +1617,15 @@ html[data-theme="light"] .uiverse-progress {
 }
 
 html[data-theme="light"] .uiverse-bell-btn {
-  background: rgba(16, 185, 129, 0.08);
-  border-color: rgba(16, 185, 129, 0.2);
-  color: #059669;
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(100, 116, 139, 0.24);
+  color: #475569;
 }
 
 html[data-theme="light"] .uiverse-bell-btn:hover {
-  background: rgba(16, 185, 129, 0.16);
-  border-color: rgba(16, 185, 129, 0.35);
-  color: #047857;
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(100, 116, 139, 0.34);
+  color: #334155;
 }
 
 html[data-theme="light"] .notification-dropdown {
