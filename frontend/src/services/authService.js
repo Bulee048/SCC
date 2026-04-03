@@ -1,5 +1,10 @@
 import api from "./api";
 
+export const getGoogleAuthStartUrl = (mode = "login") => {
+  const baseUrl = api.defaults.baseURL || "http://localhost:5000";
+  return `${baseUrl}/api/auth/google/start?mode=${encodeURIComponent(mode)}`;
+};
+
 /**
  * Register a new user
  * Backend returns: { success, message, data: { user, accessToken, refreshToken } }
@@ -101,4 +106,18 @@ export const refreshToken = async (refreshToken) => {
   return {
     data: response.data.data
   };
+};
+
+/**
+ * Delete user account
+ * Backend returns: { success, message }
+ */
+export const deleteAccount = async () => {
+  const response = await api.delete("/api/auth/account");
+  
+  if (!response.data.success) {
+    throw new Error(response.data.message || "Failed to delete account");
+  }
+  
+  return response.data;
 };
