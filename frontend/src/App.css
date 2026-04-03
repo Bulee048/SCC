@@ -141,6 +141,22 @@
   transform: translateY(-2px);
 }
 
+.btn-outline-success {
+  background: transparent;
+  border: 2px solid var(--color-success);
+  color: var(--color-success-dark);
+  opacity: 1 !important;
+  cursor: default !important;
+}
+
+.btn-outline-warning {
+  background: transparent;
+  border: 2px solid var(--color-warning);
+  color: var(--color-warning-dark);
+  opacity: 1 !important;
+  cursor: default !important;
+}
+
 .btn-ghost {
   background: transparent;
   color: var(--color-primary-600);
@@ -709,14 +725,17 @@ button:disabled {
 }
 
 .welcome-section {
-  background: linear-gradient(135deg, var(--color-success), var(--color-success-dark));
-  color: white;
-  padding: var(--spacing-3xl);
-  border-radius: var(--radius-2xl);
-  margin-bottom: var(--spacing-2xl);
+  background: var(--surface-1);
+  color: var(--text);
+  padding: 3rem;
+  border-radius: var(--r-xl, 1.5rem);
+  margin-bottom: 2rem;
   position: relative;
   overflow: hidden;
-  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .welcome-section::before {
@@ -726,21 +745,28 @@ button:disabled {
   right: -20%;
   width: 150%;
   height: 150%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-  animation: pulse 6s ease-in-out infinite;
+  background: radial-gradient(ellipse at center, var(--bio-dim) 0%, transparent 60%);
+  animation: pulse 8s ease-in-out infinite;
+  pointer-events: none;
 }
 
 .welcome-section h1 {
-  font-size: var(--font-size-4xl);
-  margin-bottom: var(--spacing-sm);
-  font-weight: var(--font-weight-extrabold);
+  font-family: var(--font-display, inherit);
+  font-size: clamp(2rem, 4vw, 2.5rem);
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
   position: relative;
   z-index: 1;
 }
 
 .user-info {
-  font-size: var(--font-size-lg);
-  opacity: 0.95;
+  font-family: var(--font-display, inherit);
+  font-size: 1.1rem;
+  color: var(--text-mid);
+  font-weight: 500;
+  line-height: 1.6;
   position: relative;
   z-index: 1;
 }

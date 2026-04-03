@@ -105,7 +105,7 @@ export const getOngoingEvent = async () => {
 };
 
 // Google OAuth URL (uses GOOGLE_CLIENT_ID from backend .env)
-export const getGoogleAuthUrl = async () => {
+export const getGoogleAuthUrl = async (tokenOverride) => {
   // This endpoint is protected by JWT auth.
   // If accessToken is missing/expired, try refresh once before failing.
   let token = sessionStorage.getItem("accessToken");
@@ -146,6 +146,15 @@ export const getGoogleCalendarStatus = async () => {
     );
   }
   return response.data.data; // { connected, lastSyncedAt }
+};
+
+// Sync SCC optimized schedule (classes + study/work blocks) to Google Calendar.
+export const syncGoogleCalendar = async () => {
+  const response = await api.post("/api/timetable/sync-google", {});
+  if (!response.data?.success) {
+    throw new Error(response.data?.message || "Failed to sync to Google Calendar");
+  }
+  return response.data.data;
 };
 
 // Upcoming Google Calendar events (read-only)

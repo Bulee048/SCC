@@ -712,6 +712,26 @@ html[data-theme="light"] .modal-overlay {
   background: rgba(15, 23, 42, 0.38) !important;
 }
 
+/* Timetable page light-mode overrides */
+html[data-theme="light"] .timetable-uiverse-page {
+  --abyss:        #f1f5f9;
+  --abyss-mid:    #e2e8f0;
+  --abyss-lift:   #cbd5e1;
+  --bio:          #1e8276;
+  --bio-dim:      rgba(30,130,118,.14);
+  --bio-glow:     rgba(30,130,118,.2);
+  --bio-line:     rgba(30,130,118,.32);
+  --surface-1:    rgba(255, 255, 255, 0.85);
+  --surface-2:    rgba(248, 250, 252, 0.95);
+  --surface-3:    #ffffff;
+  --border:       rgba(100, 116, 139, 0.22);
+  --border-lit:   rgba(100, 116, 139, 0.36);
+  --text:         #0f172a;
+  --text-mid:     #334155;
+  --text-dim:     #64748b;
+  --font-display: 'Inter', sans-serif;
+}
+
 /* Selection */
 ::selection {
   background-color: var(--color-primary-100);
