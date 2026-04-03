@@ -728,6 +728,25 @@ async function replaceSccSyncedGoogleEvents(userId, accessToken, optimizedSchedu
     if (r.status === "fulfilled" && r.value?.data?.id) newIds.push(r.value.data.id);
   }
 
+  const failureDetails = [];
+  for (const r of settled) {
+    if (r.status !== "rejected") continue;
+    const reason = r.reason;
+    const respData = reason?.response?.data;
+    failureDetails.push({
+      status: reason?.response?.status ?? null,
+      message:
+        respData?.error?.message ||
+        respData?.message ||
+        reason?.message ||
+        "Unknown Google insert error"
+    });
+  }
+
+  if (failureDetails.length > 0) {
+    console.error("Google insert failures (first):", failureDetails[0]);
+  }
+
   await CalendarSync.findOneAndUpdate(
     { user: userId },
     {
@@ -742,7 +761,8 @@ async function replaceSccSyncedGoogleEvents(userId, accessToken, optimizedSchedu
   return {
     created: newIds.length,
     removedOld: prevIds.length,
-    failureCount: settled.filter((r) => r.status === "rejected").length
+    failureCount: settled.filter((r) => r.status === "rejected").length,
+    failureDetails: failureDetails.slice(0, 5)
   };
 }
 
@@ -780,14 +800,31 @@ export const syncGoogleCalendar = async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    if (!timetable || !Array.isArray(timetable.optimizedSchedule) || timetable.optimizedSchedule.length === 0) {
+    if (!timetable) {
       return res.status(400).json({
         success: false,
-        message: "No optimized timetable available to sync"
+        message: "No timetable found to sync"
       });
     }
 
-    const schedule = timetable.optimizedSchedule;
+    // optimizedSchedule usually includes the base universitySchedule + study blocks.
+    // But if the user cleared only the AI/optimized plan, optimizedSchedule can be empty
+    // while universitySchedule still has classes. In that case, we still sync the university table.
+    const optimized = Array.isArray(timetable.optimizedSchedule)
+      ? timetable.optimizedSchedule
+      : [];
+    const baseUniversity = Array.isArray(timetable.universitySchedule)
+      ? timetable.universitySchedule
+      : [];
+
+    const schedule = optimized.length > 0 ? optimized : baseUniversity;
+
+    if (!Array.isArray(schedule) || schedule.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No timetable events available to sync"
+      });
+    }
     const syncStats = await replaceSccSyncedGoogleEvents(req.user._id, accessToken, schedule);
 
     const update = { lastSyncedAt: new Date() };
@@ -810,7 +847,8 @@ export const syncGoogleCalendar = async (req, res) => {
       data: {
         eventsCreated: syncStats.created,
         previousEventsRemoved: syncStats.removedOld,
-        failureCount: syncStats.failureCount
+        failureCount: syncStats.failureCount,
+        failureDetails: syncStats.failureDetails
       }
     });
   } catch (error) {

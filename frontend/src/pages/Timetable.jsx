@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
-import * as THREE from "three";
 import {
   Calendar,
   Brain,
@@ -10,7 +9,8 @@ import {
   Clock,
   AlertCircle,
   RefreshCw,
-  Trash2
+  Trash2,
+  ArrowLeft
 } from "lucide-react";
 import {
   createRawTimetable,
@@ -22,7 +22,8 @@ import {
   aiTimetableChat,
   importTimetableFromFile,
   deleteUserTimetable,
-  clearOptimizedSchedule
+  clearOptimizedSchedule,
+  syncGoogleCalendar
 } from "../services/timetableService";
 import LoadingSpinner from "../components/LoadingSpinner";
 import EmptyState from "../components/EmptyState";
@@ -32,165 +33,7 @@ import "../styles/Dashboard.css";
 import "../styles/TimetableEditor.css";
 import "../styles/TimetablePageUiverse.css";
 
-/* ═══════════════════════════════════════════════════════════
-   Ocean background (same vibe as Groups page)
-   Uses Three.js with a full-screen canvas + vignette overlay.
-   ═══════════════════════════════════════════════════════════ */
-function useOceanBackground(wrapRef, canvasReady) {
-  useEffect(() => {
-    if (!canvasReady || !wrapRef.current) return;
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.9;
-    wrapRef.current.appendChild(renderer.domElement);
-
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0a2134);
-    scene.fog = new THREE.FogExp2(0x0d2940, 0.0165);
-
-    const camera = new THREE.PerspectiveCamera(
-      60,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      400
-    );
-    camera.position.set(0, 8, 55);
-    camera.lookAt(0, 0, 0);
-
-    // Floor
-    const floorGeo = new THREE.PlaneGeometry(300, 300, 40, 40);
-    const fPos = floorGeo.attributes.position;
-    for (let i = 0; i < fPos.count; i++) {
-      const x = fPos.getX(i);
-      const z = fPos.getZ(i);
-      fPos.setY(i, Math.sin(x * 0.08) * 0.8 + Math.cos(z * 0.06) * 0.6);
-    }
-    fPos.needsUpdate = true;
-    floorGeo.computeVertexNormals();
-    const floor = new THREE.Mesh(
-      floorGeo,
-      new THREE.MeshBasicMaterial({ color: 0x102d42 })
-    );
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = -18;
-    scene.add(floor);
-
-    // God rays
-    const raysGroup = new THREE.Group();
-    for (let r = 0; r < 7; r++) {
-      const ray = new THREE.Mesh(
-        new THREE.CylinderGeometry(
-          0.05,
-          3 + Math.random() * 4,
-          60,
-          6,
-          1,
-          true
-        ),
-        new THREE.MeshBasicMaterial({
-          color: 0x7dd3fc,
-          transparent: true,
-          opacity: 0.03 + Math.random() * 0.03,
-          side: THREE.DoubleSide,
-          blending: THREE.AdditiveBlending,
-          depthWrite: false
-        })
-      );
-      ray.position.set(
-        (Math.random() - 0.5) * 60,
-        10,
-        (Math.random() - 0.5) * 30 - 10
-      );
-      ray.rotation.z = (Math.random() - 0.5) * 0.15;
-      raysGroup.add(ray);
-    }
-    scene.add(raysGroup);
-
-    // Plankton
-    const PLANKTON = 4500;
-    const plankGeo = new THREE.BufferGeometry();
-    const pPos = new Float32Array(PLANKTON * 3);
-    const pCol = new Float32Array(PLANKTON * 3);
-    const pPhase = new Float32Array(PLANKTON);
-    const cc = new THREE.Color();
-    for (let i = 0; i < PLANKTON; i++) {
-      pPos[i * 3] = (Math.random() - 0.5) * 100;
-      pPos[i * 3 + 1] = -18 + Math.random() * 45;
-      pPos[i * 3 + 2] = (Math.random() - 0.5) * 80;
-      pPhase[i] = Math.random() * Math.PI * 2;
-      cc.setHSL(Math.random() > 0.4 ? 0.47 : 0.58, 1, 0.55 + Math.random() * 0.25);
-      pCol[i * 3] = cc.r;
-      pCol[i * 3 + 1] = cc.g;
-      pCol[i * 3 + 2] = cc.b;
-    }
-    plankGeo.setAttribute("position", new THREE.BufferAttribute(pPos, 3));
-    plankGeo.setAttribute("color", new THREE.BufferAttribute(pCol, 3));
-    const plankMat = new THREE.PointsMaterial({
-      size: 0.18,
-      vertexColors: true,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-      transparent: true,
-      opacity: 0.7,
-      sizeAttenuation: true
-    });
-    const plankton = new THREE.Points(plankGeo, plankMat);
-    scene.add(plankton);
-
-    let frame = 0;
-    let animId;
-    const plankPos = plankton.geometry.attributes.position;
-
-    const animate = () => {
-      frame++;
-      const t = frame * 0.001;
-      camera.position.x = Math.sin(t * 0.15) * 10;
-      camera.position.z = 55 + Math.sin(t * 0.09) * 8;
-      camera.position.y = 8 + Math.sin(t * 0.2) * 3;
-      camera.lookAt(0, 2, 0);
-
-      for (let i = 0; i < PLANKTON; i++) {
-        plankPos.array[i * 3] += Math.sin(t * 1.2 + pPhase[i]) * 0.004;
-        plankPos.array[i * 3 + 1] += 0.006;
-        plankPos.array[i * 3 + 2] += Math.cos(t * 0.9 + pPhase[i]) * 0.004;
-        if (plankPos.array[i * 3 + 1] > 28) {
-          plankPos.array[i * 3 + 1] = -18;
-          plankPos.array[i * 3] = (Math.random() - 0.5) * 100;
-          plankPos.array[i * 3 + 2] = (Math.random() - 0.5) * 80;
-        }
-      }
-      plankPos.needsUpdate = true;
-      plankMat.opacity = 0.55 + Math.sin(t * 2.5) * 0.15;
-
-      raysGroup.children.forEach((ray, ri) => {
-        ray.material.opacity = 0.02 + Math.sin(t * 0.8 + ri * 0.9) * 0.018;
-      });
-
-      renderer.render(scene, camera);
-      animId = requestAnimationFrame(animate);
-    };
-    animate();
-
-    const onResize = () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    };
-    window.addEventListener("resize", onResize);
-
-    return () => {
-      cancelAnimationFrame(animId);
-      window.removeEventListener("resize", onResize);
-      renderer.dispose();
-      if (wrapRef.current?.contains(renderer.domElement)) {
-        wrapRef.current.removeChild(renderer.domElement);
-      }
-    };
-  }, [canvasReady, wrapRef]);
-}
 
 function toDayKey(date) {
   return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
@@ -278,14 +121,7 @@ const Timetable = () => {
   const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
 
-  // Ocean canvas refs (same style as Groups page)
-  const wrapRef = useRef(null);
-  const [canvasReady, setCanvasReady] = useState(false);
-  const canvasRefCallback = (node) => {
-    wrapRef.current = node;
-    if (node) setCanvasReady(true);
-  };
-  useOceanBackground(wrapRef, canvasReady);
+
 
   const toDateTimeLocalValue = (value) => {
     if (!value) return "";
@@ -320,6 +156,7 @@ const Timetable = () => {
   const [aiLoading, setAiLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleEventsLoading, setGoogleEventsLoading] = useState(false);
+  const [googleSyncLoading, setGoogleSyncLoading] = useState(false);
   const [googleStatus, setGoogleStatus] = useState({ connected: false, lastSyncedAt: null });
   const [googleEvents, setGoogleEvents] = useState([]);
 
@@ -415,6 +252,51 @@ const Timetable = () => {
     fetchGoogle();
   }, [isAuthenticated, navigate, user?._id]);
 
+  const syncToGoogleIfConnected = async () => {
+    try {
+      setGoogleSyncLoading(true);
+      const syncRes = await syncGoogleCalendar();
+      const status = await getGoogleCalendarStatus();
+      setGoogleStatus(status);
+
+      // Refresh the "upcoming events" list in the UI immediately.
+      try {
+        setGoogleEventsLoading(true);
+        const { events } = await getGoogleCalendarEvents({ maxResults: 50 });
+        setGoogleEvents(events || []);
+      } finally {
+        setGoogleEventsLoading(false);
+      }
+
+      return {
+        didSync: true,
+        eventsCreated: syncRes?.eventsCreated ?? null,
+        previousEventsRemoved: syncRes?.previousEventsRemoved ?? null,
+        failureCount: syncRes?.failureCount ?? null,
+        failureDetails: syncRes?.failureDetails ?? []
+      };
+    } catch (err) {
+      const backendMsg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "";
+
+      // If user isn't connected (or refresh token missing), don't treat it as a failure.
+      if (
+        backendMsg.toLowerCase().includes("connect google") ||
+        backendMsg.toLowerCase().includes("no google access token")
+      ) {
+        return { didSync: false };
+      }
+      return {
+        didSync: false,
+        errorMessage: err?.message || "Google Calendar sync failed"
+      };
+    } finally {
+      setGoogleSyncLoading(false);
+    }
+  };
+
   const handleConnectGoogle = async () => {
     setError("");
     setSuccess("");
@@ -429,7 +311,7 @@ const Timetable = () => {
       }
 
       setGoogleLoading(true);
-      const { url } = await getGoogleAuthUrl();
+      const { url } = await getGoogleAuthUrl(accessToken);
       window.location.href = url;
     } catch (err) {
       setError(err.message || "Failed to start Google connection");
@@ -662,19 +544,44 @@ const Timetable = () => {
       setOptimizedSchedule(timetable.optimizedSchedule || []);
       setConflicts(foundConflicts);
       setHasSavedTimetableOnServer(true);
-      if (isUpdate) {
-        setSuccess(
-          hasConflicts
-            ? "Timetable updated and optimized plan regenerated. Some overlaps need review."
-            : "Timetable updated and optimized plan generated."
-        );
-      } else {
-        setSuccess(
-          hasConflicts
-            ? "Timetable saved and optimized plan generated. Some overlaps need review."
-            : "Timetable saved and optimized plan generated."
-        );
-      }
+
+      const baseSuccess = isUpdate
+        ? hasConflicts
+          ? "Timetable updated and optimized plan regenerated. Some overlaps need review."
+          : "Timetable updated and optimized plan generated."
+        : hasConflicts
+          ? "Timetable saved and optimized plan generated. Some overlaps need review."
+          : "Timetable saved and optimized plan generated.";
+
+      const {
+        didSync,
+        errorMessage: googleErrorMessage,
+        eventsCreated,
+        previousEventsRemoved,
+        failureCount,
+        failureDetails
+      } = await syncToGoogleIfConnected();
+      setSuccess(
+        didSync
+          ? typeof eventsCreated === "number"
+            ? `${baseSuccess} Synced to Google Calendar: created ${eventsCreated} event(s)${
+                typeof failureCount === "number" && failureCount > 0
+                  ? `, failed ${failureCount}`
+                  : ""
+              }${
+                typeof previousEventsRemoved === "number" && previousEventsRemoved > 0
+                  ? `, removed ${previousEventsRemoved} old event(s)`
+                  : ""
+              }${
+                Array.isArray(failureDetails) && failureDetails.length > 0
+                  ? `. First error: ${String(failureDetails[0]?.message || "").slice(0, 90)}`
+                  : "."
+              }`
+            : `${baseSuccess} Synced to Google Calendar.`
+          : googleErrorMessage
+            ? `${baseSuccess} Google sync failed: ${googleErrorMessage}`
+            : baseSuccess
+      );
     } catch (err) {
       setError(err.message || "Failed to save timetable");
     } finally {
@@ -699,10 +606,38 @@ const Timetable = () => {
       setOptimizedSchedule(timetable.optimizedSchedule || []);
       setConflicts(foundConflicts);
       setHasSavedTimetableOnServer(true);
+      const baseSuccess = hasConflicts
+        ? "Optimized timetable generated with some overlapping events to review."
+        : "Optimized timetable generated.";
+
+      const {
+        didSync,
+        errorMessage: googleErrorMessage,
+        eventsCreated,
+        previousEventsRemoved,
+        failureCount,
+        failureDetails
+      } = await syncToGoogleIfConnected();
       setSuccess(
-        hasConflicts
-          ? "Optimized timetable generated with some overlapping events to review."
-          : "Optimized timetable generated."
+        didSync
+          ? typeof eventsCreated === "number"
+            ? `${baseSuccess} Synced to Google Calendar: created ${eventsCreated} event(s)${
+                typeof failureCount === "number" && failureCount > 0
+                  ? `, failed ${failureCount}`
+                  : ""
+              }${
+                typeof previousEventsRemoved === "number" && previousEventsRemoved > 0
+                  ? `, removed ${previousEventsRemoved} old event(s)`
+                  : ""
+              }${
+                Array.isArray(failureDetails) && failureDetails.length > 0
+                  ? `. First error: ${String(failureDetails[0]?.message || "").slice(0, 90)}`
+                  : "."
+              }`
+            : `${baseSuccess} Synced to Google Calendar.`
+          : googleErrorMessage
+            ? `${baseSuccess} Google sync failed: ${googleErrorMessage}`
+            : baseSuccess
       );
     } catch (err) {
       setError(err.message || "Failed to generate optimized timetable");
@@ -753,10 +688,39 @@ const Timetable = () => {
       setOptimizedSchedule(timetable.optimizedSchedule || []);
       setConflicts(foundConflicts);
       setHasSavedTimetableOnServer(true);
+
+      const baseSuccess = hasConflicts
+        ? "AI created an optimized timetable with some overlaps to review."
+        : "AI created an optimized timetable for you.";
+
+      const {
+        didSync,
+        errorMessage: googleErrorMessage,
+        eventsCreated,
+        previousEventsRemoved,
+        failureCount,
+        failureDetails
+      } = await syncToGoogleIfConnected();
       setSuccess(
-        hasConflicts
-          ? "AI created an optimized timetable with some overlaps to review."
-          : "AI created an optimized timetable for you."
+        didSync
+          ? typeof eventsCreated === "number"
+            ? `${baseSuccess} Synced to Google Calendar: created ${eventsCreated} event(s)${
+                typeof failureCount === "number" && failureCount > 0
+                  ? `, failed ${failureCount}`
+                  : ""
+              }${
+                typeof previousEventsRemoved === "number" && previousEventsRemoved > 0
+                  ? `, removed ${previousEventsRemoved} old event(s)`
+                  : ""
+              }${
+                Array.isArray(failureDetails) && failureDetails.length > 0
+                  ? `. First error: ${String(failureDetails[0]?.message || "").slice(0, 90)}`
+                  : "."
+              }`
+            : `${baseSuccess} Synced to Google Calendar.`
+          : googleErrorMessage
+            ? `${baseSuccess} Google sync failed: ${googleErrorMessage}`
+            : baseSuccess
       );
     } catch (err) {
       setError(err.message || "Failed to generate timetable from AI chat");
@@ -792,10 +756,39 @@ const Timetable = () => {
       setOptimizedSchedule(timetable.optimizedSchedule || []);
       setConflicts(foundConflicts);
       setHasSavedTimetableOnServer(true);
+
+      const baseSuccess = hasConflicts
+        ? "Imported timetable + generated working plan (with study time)."
+        : "Imported timetable + generated working plan.";
+
+      const {
+        didSync,
+        errorMessage: googleErrorMessage,
+        eventsCreated,
+        previousEventsRemoved,
+        failureCount,
+        failureDetails
+      } = await syncToGoogleIfConnected();
       setSuccess(
-        hasConflicts
-          ? "Imported timetable + generated working plan (with study time)."
-          : "Imported timetable + generated working plan."
+        didSync
+          ? typeof eventsCreated === "number"
+            ? `${baseSuccess} Synced to Google Calendar: created ${eventsCreated} event(s)${
+                typeof failureCount === "number" && failureCount > 0
+                  ? `, failed ${failureCount}`
+                  : ""
+              }${
+                typeof previousEventsRemoved === "number" && previousEventsRemoved > 0
+                  ? `, removed ${previousEventsRemoved} old event(s)`
+                  : ""
+              }${
+                Array.isArray(failureDetails) && failureDetails.length > 0
+                  ? `. First error: ${String(failureDetails[0]?.message || "").slice(0, 90)}`
+                  : "."
+              }`
+            : `${baseSuccess} Synced to Google Calendar.`
+          : googleErrorMessage
+            ? `${baseSuccess} Google sync failed: ${googleErrorMessage}`
+            : baseSuccess
       );
 
       setImportFile(null);
@@ -821,34 +814,25 @@ const Timetable = () => {
   }
 
   return (
-    <div className="db-root dashboard-page">
-      {/* Ocean canvas + vignette overlay (behind UI) */}
-      <div className="db-canvas-wrap" ref={canvasRefCallback} />
-      <div className="db-overlay-vignette" />
-
-      <div className="dashboard-container timetable-uiverse-page" style={{ position: "relative", zIndex: 10 }}>
+    <div className="db-root dashboard-page timetable-uiverse-page">
+      <div className="dashboard-container" style={{ position: "relative", zIndex: 10 }}>
       <nav className={`timetable-topnav fade-in${scrolled ? " scrolled" : ""}`}>
         <div className="nav-inner">
-          {/* Brand (same layout as Home) */}
-          <Link to="/" className="nav-brand">
-            <span className="nav-brand-logo">S</span>
-            <span className="nav-brand-name">
-              Smart<span> Campus Companion</span>
-            </span>
-          </Link>
-
-          {/* Center Links – dashboard only */}
-          <div className="nav-center">
-            <Link className="nav-link" to="/dashboard">
-              🏠 Dashboard
+          <div className="nav-left">
+            <Link to="/" className="nav-brand">
+              <span className="nav-brand-name">
+                Smart<span> Campus Companion</span>
+              </span>
             </Link>
           </div>
 
-          {/* Right side – profile */}
+          <div className="nav-center"></div>
+
           <div className="nav-right">
-            <Link className="home-signin-btn" to="/profile">
-              ⚙️ Profile
-            </Link>
+            <button className="glass-back-btn" onClick={() => navigate(-1)}>
+              <ArrowLeft size={18} style={{ marginRight: "6px" }} />
+              Back
+            </button>
           </div>
         </div>
       </nav>
@@ -1117,10 +1101,11 @@ const Timetable = () => {
           </p>
         </div>
 
-        <div
-          className="card card-shine hover-glow fade-in"
-          style={{ marginBottom: "2rem", animationDelay: "240ms" }}
-        >
+        {false && (
+          <div
+            className="card card-shine hover-glow fade-in"
+            style={{ marginBottom: "2rem", animationDelay: "240ms" }}
+          >
           <div className="card-header">
             <h3 className="card-title">
               <Clock size={20} style={{ marginRight: 8 }} />
@@ -1134,22 +1119,10 @@ const Timetable = () => {
           </div>
 
           <div className="card-body">
-            {!hasTimetable && (
-              <EmptyState
-                title="No schedule yet"
-                description="Save a base timetable and generate an optimized plan to see your upcoming events."
-              />
-            )}
-
-            {hasTimetable && (
-              <WeekTimetableCalendar
-                key={calendarMountKey}
-                title="Timetable calendar"
-                events={optimizedSchedule.length > 0 ? optimizedSchedule : universitySchedule}
-                minHour={6}
-                maxHour={22}
-              />
-            )}
+            {/* Calendar hidden (user request): keep optimized planning logic + other UI features. */}
+            <div className="form-hint" style={{ margin: 0 }}>
+              Optimized calendar is hidden in this view.
+            </div>
           </div>
 
           {hasTimetable && optimizedSchedule.length > 0 && (
@@ -1173,7 +1146,8 @@ const Timetable = () => {
               </p>
             </div>
           )}
-        </div>
+          </div>
+        )}
 
         <div
           className="card card-shine hover-glow fade-in"
@@ -1232,9 +1206,13 @@ const Timetable = () => {
               >
                 {googleStatus.connected ? "Reconnect Google" : "Connect Google"}
               </button>
-              <span className={`badge ${googleStatus.connected ? "badge-success" : "badge-warning"}`}>
+              <button
+                type="button"
+                className={`btn btn-outline ${googleStatus.connected ? "btn-outline-success" : "btn-outline-warning"}`}
+                disabled
+              >
                 {googleStatus.connected ? "Connected" : "Not connected"}
-              </span>
+              </button>
             </div>
 
             {googleStatus.connected && (

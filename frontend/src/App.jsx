@@ -218,10 +218,6 @@ function App() {
               <Route path="/resources" element={<ResourcesPage />} />
               <Route path="/tutors" element={<TutorsPage />} />
               <Route
-                path="/timetable"
-                element={
-                  <ProtectedRoute>
-                    <Timetable />
                 path="/admin"
                 element={
                   <ProtectedRoute>
