@@ -34,7 +34,6 @@ import ProtectedRoute from "./components/ProtectedRoute";
 
 // අලුතින් හැදූ Exam Mode Components Import කරගැනීම
 import ExamLogin from './components/Exam/ExamLogin';
-import ExamProtectedRoute from './components/ExamProtectedRoute';
 
 // Styles
 import "./App.css";
@@ -207,12 +206,14 @@ function App() {
                 />
 
                 <Route path="/exam-login" element={<ExamLogin />} />
-
-
-                <Route element={<ExamProtectedRoute />}>
-                  <Route path="/exam-mode" element={<ExamMode />} />
-
-                </Route>
+                <Route
+                  path="/exam-mode"
+                  element={
+                    <ProtectedRoute>
+                      <ExamMode />
+                    </ProtectedRoute>
+                  }
+                />
 
                 <Route
                   path="/timetable"

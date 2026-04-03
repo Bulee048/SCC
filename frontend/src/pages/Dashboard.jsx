@@ -12,7 +12,7 @@ import {
   ChevronRight, BookOpen, Clock, Award, Activity, LayoutDashboard,
   Sparkles, Flame, BarChart3, CheckCircle2, Zap, MessageSquare,
   Mic, Coffee, Headphones, MapPin, CalendarDays,
-  ListTodo, FileText, Globe, Github, Twitter, Linkedin
+  ListTodo, FileText, Globe, Github, Twitter, Linkedin, GraduationCap
 } from "lucide-react";
 import NotificationBell from "../components/NotificationBell";
 import { confirmAction } from "../utils/toast";
@@ -90,6 +90,8 @@ export default function Dashboard() {
   const [todayClasses, setTodayClasses] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
   const [upcomingEvent, setUpcomingEvent] = useState(null);
+  const [examOverview, setExamOverview] = useState(null);
+  const [examTick, setExamTick] = useState(Date.now());
   const [upcomingDeadlines, setUpcomingDeadlines] = useState([]);
   const [recentNotes, setRecentNotes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -111,6 +113,11 @@ export default function Dashboard() {
     updateDayProgress();
     const interval = setInterval(updateDayProgress, 60000);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => setExamTick(Date.now()), 1000);
+    return () => clearInterval(id);
   }, []);
 
   useEffect(() => {
@@ -145,6 +152,15 @@ export default function Dashboard() {
 
         const allTimetableRes = await axios.get("/api/timetable");
         const allEvents = allTimetableRes.data?.data || [];
+
+        let overviewData = null;
+        try {
+          const examsRes = await axios.get("/api/exams/overview");
+          overviewData = examsRes.data?.data || null;
+        } catch {
+          overviewData = null;
+        }
+        setExamOverview(overviewData);
 
         const today = new Date();
         const todayEvents = allEvents.filter(ev => {
@@ -219,6 +235,7 @@ export default function Dashboard() {
         setUpcomingEvent(null);
         setUpcomingDeadlines([]);
         setRecentNotes([]);
+        setExamOverview(null);
       } finally {
         setIsLoading(false);
       }
@@ -240,6 +257,18 @@ export default function Dashboard() {
     return h < 12 ? "Good Morning" : h < 18 ? "Good Afternoon" : "Good Evening";
   };
 
+  const nextExamCountdown = (() => {
+    const target = examOverview?.nextExam?.examDate;
+    if (!target) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+    const diff = Math.max(0, new Date(target).getTime() - examTick);
+    return {
+      days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+      hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+      minutes: Math.floor((diff / (1000 * 60)) % 60),
+      seconds: Math.floor((diff / 1000) % 60),
+    };
+  })();
+
   if (!user) {
     return (
       <div className="dashboard-loading" data-theme={theme}>
@@ -253,10 +282,12 @@ export default function Dashboard() {
     { icon: <Brain size={24} />, title: "AI Timetable", desc: "Smart scheduling & clash prevention", path: "/timetable", gradient: "linear-gradient(135deg, #00ffa3, #00e1ff)", badge: "Smart Planner", meta: ["Auto clash checks", "Adaptive scheduling"] },
     { icon: <BookMarked size={24} />, title: "Knowledge Hub", desc: "Notes, files & resources", path: "/notes", gradient: "linear-gradient(135deg, #00c853, #7cfc00)", badge: "Study Library", meta: ["Fast notes access", "Organized resources"] },
     { icon: <Users size={24} />, title: "Study Groups", desc: "Collaborate & learn together", path: "/groups", gradient: "linear-gradient(135deg, #10b981, #22c55e)", badge: "Team Space", meta: ["Live collaboration", "Shared learning"] },
+    { icon: <GraduationCap size={24} />, title: "Exam Mode", desc: "Countdown, tracker, AI revision", path: "/exam-mode", gradient: "linear-gradient(135deg, #14b8a6, #22c55e)", badge: "Exam Ready", meta: ["Subject-wise progress", "Daily study roadmap"] },
   ];
 
   const quickActions = [
     { icon: <Plus size={16} />, label: "New Timetable", path: "/timetable", primary: true },
+    { icon: <GraduationCap size={16} />, label: "Open Exam Mode", path: "/exam-mode" },
     { icon: <Video size={16} />, label: "Create Kuppi", path: "/kuppi" },
     { icon: <Users size={16} />, label: "New Group", path: "/groups" },
     { icon: <Share2 size={16} />, label: "Share Notes", path: "/notes" },
@@ -265,6 +296,7 @@ export default function Dashboard() {
   const navLinks = [
     { icon: <HomeIcon size={18} />, label: "Home", path: "/" },
     { icon: <LayoutDashboard size={18} />, label: "Dashboard", path: "/dashboard" },
+    { icon: <GraduationCap size={18} />, label: "Exam Mode", path: "/exam-mode" },
     { icon: <Brain size={18} />, label: "Timetable", path: "/timetable" },
     { icon: <BookMarked size={18} />, label: "Notes", path: "/notes" },
     { icon: <Video size={18} />, label: "Kuppi", path: "/kuppi" },
@@ -325,9 +357,33 @@ export default function Dashboard() {
             <p className="bento-hero__desc">
               Your AI-powered study hub. Track progress, manage tasks, and stay ahead.
             </p>
+            <div className="bento-exam-mini">
+              <div className="bento-exam-mini__head">
+                <GraduationCap size={14} />
+                <span>Exam Mode Snapshot</span>
+              </div>
+              {examOverview?.nextExam ? (
+                <>
+                  <div className="bento-exam-mini__subject">
+                    {examOverview.nextExam.subjectCode} - {examOverview.nextExam.subjectName}
+                  </div>
+                  <div className="bento-exam-mini__countdown">
+                    <span>{nextExamCountdown.days}d</span>
+                    <span>{nextExamCountdown.hours}h</span>
+                    <span>{nextExamCountdown.minutes}m</span>
+                    <span>{nextExamCountdown.seconds}s</span>
+                  </div>
+                </>
+              ) : (
+                <div className="bento-exam-mini__empty">No upcoming exams yet.</div>
+              )}
+            </div>
             <div className="bento-hero__actions">
               <button className="bento-btn" onClick={() => navigate("/timetable")}>
                 Launch Timetable <ArrowRight size={16} />
+              </button>
+              <button className="bento-btn" onClick={() => navigate("/exam-mode")}>
+                Open Exam Mode <ArrowRight size={16} />
               </button>
               <button className="bento-btn bento-btn--ghost" onClick={() => setFocusMode(!focusMode)}>
                 <Headphones size={16} /> Focus Mode
