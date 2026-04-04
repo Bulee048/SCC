@@ -7,6 +7,7 @@ import http from "http";
 import { Server } from "socket.io";
 import multer from "multer";
 import connectDB from "./config/db.js";
+import User from "./models/User.js";
 import KuppiPost from "./models/KuppiPost.js";
 
 // Import routes
@@ -36,6 +37,9 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   "http://localhost:5175",
+  "http://127.0.0.1:5173",
+  "http://127.0.0.1:5174",
+  "http://127.0.0.1:5175",
 ];
 
 const corsOriginHandler = (origin, callback) => {
@@ -203,6 +207,14 @@ const startJobs = async () => {
 const startServer = async () => {
   try {
     await connectDB();
+
+    // Drop stale DB indexes (e.g. old unique on `name`) so they match User schema
+    try {
+      await User.syncIndexes();
+      console.log("User collection indexes synced with schema");
+    } catch (syncErr) {
+      console.warn("User.syncIndexes:", syncErr.message);
+    }
 
     await startJobs();
 
