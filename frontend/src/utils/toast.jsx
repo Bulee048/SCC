@@ -18,13 +18,13 @@ export const confirmAction = (
       (toastItem) => (
         <div
           style={{
-            background: isLightTheme ? "#ffffff" : "#0f172a",
-            color: isLightTheme ? "#0f172a" : "#f8fafc",
-            border: isLightTheme ? "1px solid rgba(100,116,139,0.3)" : "1px solid rgba(148,163,184,0.35)",
+            background: isLightTheme ? "#ffffff" : "#0f1f16",
+            color: isLightTheme ? "#0f2618" : "#e8f7ee",
+            border: isLightTheme ? "1px solid rgba(22,101,52,0.22)" : "1px solid rgba(52,211,153,0.35)",
             borderRadius: "10px",
             padding: "12px",
             width: "min(92vw, 360px)",
-            boxShadow: isLightTheme ? "0 12px 28px rgba(15,23,42,0.18)" : "0 12px 28px rgba(2,6,23,0.45)",
+            boxShadow: isLightTheme ? "0 12px 28px rgba(15, 89, 47, 0.14)" : "0 12px 28px rgba(2, 24, 12, 0.5)",
           }}
         >
           <p style={{ margin: 0, marginBottom: "10px", fontSize: "0.9rem", lineHeight: 1.45 }}>
@@ -38,9 +38,9 @@ export const confirmAction = (
                 resolve(false);
               }}
               style={{
-                border: isLightTheme ? "1px solid rgba(100,116,139,0.3)" : "1px solid rgba(148,163,184,0.35)",
-                background: isLightTheme ? "#f8fafc" : "rgba(30,41,59,0.9)",
-                color: isLightTheme ? "#334155" : "#cbd5e1",
+                border: isLightTheme ? "1px solid rgba(22,101,52,0.22)" : "1px solid rgba(52,211,153,0.3)",
+                background: isLightTheme ? "#f3f8f4" : "rgba(20, 45, 32, 0.92)",
+                color: isLightTheme ? "#355a43" : "#b9e5cb",
                 borderRadius: "8px",
                 padding: "6px 10px",
                 cursor: "pointer",

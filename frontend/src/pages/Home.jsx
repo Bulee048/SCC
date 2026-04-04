@@ -79,6 +79,10 @@ export default function Home() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const normalizedRole = String(user?.role || "").trim().toLowerCase();
+  const isAdmin = normalizedRole === "admin";
+  const isStudent = normalizedRole === "student";
+  const homeAvatarTarget = isAdmin ? "/admin" : "/dashboard";
 
   // Initialize enhanced Three.js background (now with green neon)
   const setCanvasMountRef = (node) => {
@@ -134,7 +138,10 @@ export default function Home() {
       gsap.from("[data-hero-title]", { y: 60, opacity: 0, duration: 1, ease: "power3.out", delay: 0.2 });
       gsap.from("[data-hero-sub]", { y: 40, opacity: 0, duration: 1, ease: "power3.out", delay: 0.4 });
       gsap.from("[data-hero-cta]", { y: 30, opacity: 0, duration: 0.8, stagger: 0.15, delay: 0.6 });
-      gsap.from("[data-hero-stats]", { y: 30, opacity: 0, duration: 0.8, stagger: 0.1, delay: 0.8 });
+      const heroStatsItems = gsap.utils.toArray("[data-hero-stats]");
+      if (heroStatsItems.length) {
+        gsap.from(heroStatsItems, { y: 30, opacity: 0, duration: 0.8, stagger: 0.1, delay: 0.8 });
+      }
       gsap.fromTo(
         "[data-feat-card]",
         { y: 36, autoAlpha: 0 },
@@ -1375,25 +1382,31 @@ export default function Home() {
               {/* Right – desktop */}
               <div className="nav-right">
                 {isAuthenticated ? (
-                  <div className="profile-wrapper" ref={profileMenuRef}>
-                    <div className="profile-avatar" onClick={() => setProfileOpen((v) => !v)}>
-                      {user?.profilePicture ? <img src={user.profilePicture} alt={user.name} style={{width:"100%",height:"100%",borderRadius:"50%",objectFit:"cover"}} /> : (user?.name?.[0] || "U")}
-                    </div>
-                    {profileOpen && (
-                      <div className="profile-dropdown">
-                        <div className="profile-dropdown-header">
-                          <div className="profile-dropdown-name">{user?.name || "User"}</div>
-                          <div className="profile-dropdown-email">{user?.email || ""}</div>
-                        </div>
-                        <Link to="/dashboard" onClick={() => setProfileOpen(false)}>🏠 Dashboard</Link>
-                        <Link to="/groups" onClick={() => setProfileOpen(false)}>👥 My Groups</Link>
-                        <Link to="/notes" onClick={() => setProfileOpen(false)}>📝 My Notes</Link>
-                        <Link to="/notifications" onClick={() => setProfileOpen(false)}>🔔 Notifications</Link>
-                        <Link to="/profile" onClick={() => setProfileOpen(false)}>⚙️ Profile Settings</Link>
-                        <button className="logout-btn" onClick={() => { dispatch(logout()); setProfileOpen(false); navigate("/"); }}>Sign Out</button>
+                  isStudent ? (
+                    <div className="profile-wrapper" ref={profileMenuRef}>
+                      <div className="profile-avatar" onClick={() => setProfileOpen((v) => !v)}>
+                        {user?.profilePicture ? <img src={user.profilePicture} alt={user.name} style={{width:"100%",height:"100%",borderRadius:"50%",objectFit:"cover"}} /> : (user?.name?.[0] || "U")}
                       </div>
-                    )}
-                  </div>
+                      {profileOpen && (
+                        <div className="profile-dropdown">
+                          <div className="profile-dropdown-header">
+                            <div className="profile-dropdown-name">{user?.name || "User"}</div>
+                            <div className="profile-dropdown-email">{user?.email || ""}</div>
+                          </div>
+                          <Link to="/dashboard" onClick={() => setProfileOpen(false)}>🏠 Dashboard</Link>
+                          <Link to="/groups" onClick={() => setProfileOpen(false)}>👥 My Groups</Link>
+                          <Link to="/notes" onClick={() => setProfileOpen(false)}>📝 My Notes</Link>
+                          <Link to="/notifications" onClick={() => setProfileOpen(false)}>🔔 Notifications</Link>
+                          <Link to="/profile" onClick={() => setProfileOpen(false)}>⚙️ Profile Settings</Link>
+                          <button className="logout-btn" onClick={() => { dispatch(logout()); setProfileOpen(false); navigate("/"); }}>Sign Out</button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <Link to={homeAvatarTarget} className="profile-avatar" title={isAdmin ? "Go to Admin Dashboard" : "Go to Dashboard"} onClick={() => setProfileOpen(false)}>
+                      {user?.profilePicture ? <img src={user.profilePicture} alt={user.name} style={{width:"100%",height:"100%",borderRadius:"50%",objectFit:"cover"}} /> : (user?.name?.[0] || "U")}
+                    </Link>
+                  )
                 ) : (
                   <>
                     <Link to="/login" className="home-signin-btn">Sign In</Link>
@@ -1427,8 +1440,8 @@ export default function Home() {
               <span className="drawer-icon">🎓</span> Tutors
             </Link>
             {isAuthenticated && (
-              <Link className="nav-drawer-link" to="/dashboard" onClick={() => setMobileOpen(false)}>
-                <span className="drawer-icon">🏠</span> Dashboard
+              <Link className="nav-drawer-link" to={homeAvatarTarget} onClick={() => setMobileOpen(false)}>
+                <span className="drawer-icon">🏠</span> {isAdmin ? "Admin Dashboard" : "Dashboard"}
               </Link>
             )}
             {isAuthenticated && (
