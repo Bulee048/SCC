@@ -105,7 +105,41 @@ export const register = async (req, res) => {
     });
   } catch (error) {
     console.error("Register error:", error);
-    
+
+    // Duplicate key (MongoDB E11000) — often stale unique index on `name` or real duplicate field
+    if (error.code === 11000) {
+      const key = error.keyPattern || {};
+      if (key.email) {
+        return res.status(400).json({
+          success: false,
+          message: "User with this email already exists"
+        });
+      }
+      if (key.name) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "This display name is already taken. Try a different name, or restart the server once so the database indexes can update."
+        });
+      }
+      if (key.phone) {
+        return res.status(400).json({
+          success: false,
+          message: "Phone number already registered to another account."
+        });
+      }
+      if (key.studentId) {
+        return res.status(400).json({
+          success: false,
+          message: "Student ID already registered"
+        });
+      }
+      return res.status(400).json({
+        success: false,
+        message: "An account with these details already exists."
+      });
+    }
+
     // Handle validation errors
     if (error.name === "ValidationError") {
       const messages = Object.values(error.errors).map(err => err.message);

@@ -62,13 +62,19 @@ export const createRawTimetable = async (req, res) => {
 
     const conflicts = findScheduleConflicts(optimizedSchedule);
 
+    const googleCalendarSync = await tryAutoSyncGoogleCalendar(
+      req.user._id,
+      optimizedSchedule
+    );
+
     return res.status(201).json({
       success: true,
       message: "Timetable saved and optimized plan generated successfully",
       data: {
         timetable,
         conflicts,
-        hasConflicts: conflicts.length > 0
+        hasConflicts: conflicts.length > 0,
+        googleCalendarSync
       }
     });
   } catch (error) {
@@ -303,13 +309,19 @@ export const generateOptimizedTimetable = async (req, res) => {
 
     const conflicts = findScheduleConflicts(optimizedSchedule);
 
+    const googleCalendarSync = await tryAutoSyncGoogleCalendar(
+      req.user._id,
+      optimizedSchedule
+    );
+
     return res.status(200).json({
       success: true,
       message: "Optimized timetable generated successfully",
       data: {
         timetable,
         conflicts,
-        hasConflicts: conflicts.length > 0
+        hasConflicts: conflicts.length > 0,
+        googleCalendarSync
       }
     });
   } catch (error) {
@@ -501,12 +513,19 @@ export const getGoogleEvents = async (req, res) => {
       });
     }
 
-    const timeMin = new Date().toISOString();
-    const maxResults = Math.min(50, Number(req.query?.maxResults || 15));
+    // SCC timetables often use class dates in the past or a fixed “study week”; listing only
+    // events with start >= now hides them. Use a wide window around “today”.
+    const nowMs = Date.now();
+    const pastDays = Math.min(366, Math.max(1, Number(req.query?.pastDays || 180)));
+    const futureDays = Math.min(366, Math.max(1, Number(req.query?.futureDays || 180)));
+    const timeMin = new Date(nowMs - pastDays * 24 * 60 * 60 * 1000).toISOString();
+    const timeMax = new Date(nowMs + futureDays * 24 * 60 * 60 * 1000).toISOString();
+    const maxResults = Math.min(250, Number(req.query?.maxResults || 40));
 
     const eventsRes = await axios.get(GOOGLE_CALENDAR_EVENTS_URL, {
       params: {
         timeMin,
+        timeMax,
         maxResults,
         singleEvents: true,
         orderBy: "startTime"
@@ -658,33 +677,123 @@ async function getAccessTokenFromRefreshToken(refreshToken) {
 }
 
 /**
+ * Match CalendarSync.user the same way as Timetable.user (ObjectId vs string / legacy).
+ */
+function buildCalendarSyncUserMatch(userId) {
+  const raw = userId;
+  const idStr = raw?.toString?.() ?? String(raw);
+  const or = [{ user: raw }, { user: idStr }];
+  if (mongoose.Types.ObjectId.isValid(idStr)) {
+    try {
+      or.push({ user: new mongoose.Types.ObjectId(idStr) });
+    } catch {
+      /* ignore */
+    }
+  }
+  or.push({
+    $expr: { $eq: [{ $toString: { $ifNull: ["$user", ""] } }, idStr] }
+  });
+  return { $or: or };
+}
+
+function eventHasSccTimetableTag(e) {
+  const priv = e?.extendedProperties?.private;
+  return priv?.sccTimetableSync === "1" || priv?.sccTimetableSync === 1;
+}
+
+/**
+ * Paginate primary calendar and collect IDs of events SCC created (private sccTimetableSync).
+ * Client-side filter is reliable; the events.list privateExtendedProperty query often misses events
+ * depending on encoding/API behavior, leaving orphans after timetable delete.
+ */
+async function listAllSccTaggedGoogleEventIds(accessToken) {
+  if (!accessToken) return [];
+  const collected = [];
+  let pageToken = null;
+  const nowMs = Date.now();
+  // Wide window so semester blocks from past/future years are still discoverable
+  const timeMin = new Date(nowMs - 2500 * 24 * 60 * 60 * 1000).toISOString();
+  const timeMax = new Date(nowMs + 2500 * 24 * 60 * 60 * 1000).toISOString();
+  let pages = 0;
+  const maxPages = 100;
+
+  try {
+    do {
+      if (++pages > maxPages) {
+        console.warn("[listAllSccTaggedGoogleEventIds] stopped at maxPages", maxPages);
+        break;
+      }
+      const res = await axios.get(GOOGLE_CALENDAR_EVENTS_URL, {
+        params: {
+          timeMin,
+          timeMax,
+          maxResults: 250,
+          singleEvents: true,
+          orderBy: "startTime",
+          ...(pageToken ? { pageToken } : {})
+        },
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      for (const e of res.data?.items || []) {
+        if (e?.id && eventHasSccTimetableTag(e)) collected.push(e.id);
+      }
+      pageToken = res.data?.nextPageToken || null;
+    } while (pageToken);
+  } catch (err) {
+    console.error(
+      "[listAllSccTaggedGoogleEventIds]",
+      err?.response?.data || err.message
+    );
+  }
+  return collected;
+}
+
+/**
  * Delete Google Calendar events by ID (best-effort; 404 ignored).
  */
 async function deleteGoogleCalendarEventsById(accessToken, eventIds) {
   if (!accessToken || !Array.isArray(eventIds) || eventIds.length === 0) {
     return { removed: 0, attempted: 0 };
   }
-  const results = await Promise.allSettled(
-    eventIds.map((id) =>
-      axios.delete(`${GOOGLE_CALENDAR_EVENTS_URL}/${encodeURIComponent(id)}`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        validateStatus: (s) => (s >= 200 && s < 300) || s === 404
-      })
-    )
-  );
-  const removed = results.filter((r) => {
-    if (r.status !== "fulfilled") return false;
-    const s = r.value?.status;
-    return (s >= 200 && s < 300) || s === 404;
-  }).length;
+  const ok = (s) =>
+    (s >= 200 && s < 300) || s === 404 || s === 410;
+  // Serial deletes reduce Google rate-limit failures vs a huge parallel burst.
+  let removed = 0;
+  for (const id of eventIds) {
+    try {
+      const res = await axios.delete(
+        `${GOOGLE_CALENDAR_EVENTS_URL}/${encodeURIComponent(id)}`,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          validateStatus: ok
+        }
+      );
+      if (ok(res.status)) removed += 1;
+      else {
+        console.error(
+          "[deleteGoogleCalendarEventsById] non-OK status",
+          id,
+          res.status,
+          res.data
+        );
+      }
+    } catch (err) {
+      console.error(
+        "[deleteGoogleCalendarEventsById] failed for event",
+        id,
+        err?.response?.data || err.message
+      );
+    }
+  }
   return { removed, attempted: eventIds.length };
 }
 
 /**
  * Remove previously synced SCC events from Google and clear stored IDs.
+ * Uses DB event IDs plus a Calendar API scan for sccTimetableSync=1 (covers missing/stale ID lists).
  */
 async function clearSccSyncedGoogleEventsOnly(userId) {
-  const sync = await CalendarSync.findOne({ user: userId })
+  const sync = await CalendarSync.findOne(buildCalendarSyncUserMatch(userId))
     .select("+googleRefreshToken syncedGoogleEventIds")
     .lean();
 
@@ -692,31 +801,36 @@ async function clearSccSyncedGoogleEventsOnly(userId) {
     ? sync.syncedGoogleEventIds.filter(Boolean)
     : [];
 
-  if (prevIds.length === 0) {
-    return { removedFromGoogle: 0, attempted: 0, hadConnection: Boolean(sync?.googleRefreshToken) };
-  }
-
   let accessToken = null;
   if (sync?.googleRefreshToken) {
     accessToken = await getAccessTokenFromRefreshToken(sync.googleRefreshToken);
   }
 
-  let removedFromGoogle = 0;
+  const idSet = new Set(prevIds);
   if (accessToken) {
-    const { removed } = await deleteGoogleCalendarEventsById(accessToken, prevIds);
+    const taggedIds = await listAllSccTaggedGoogleEventIds(accessToken);
+    for (const id of taggedIds) idSet.add(id);
+  }
+
+  const allIds = [...idSet];
+
+  let removedFromGoogle = 0;
+  if (accessToken && allIds.length > 0) {
+    const { removed } = await deleteGoogleCalendarEventsById(accessToken, allIds);
     removedFromGoogle = removed;
   }
 
   await CalendarSync.findOneAndUpdate(
-    { user: userId },
+    buildCalendarSyncUserMatch(userId),
     { $set: { syncedGoogleEventIds: [] } },
     { new: true }
   );
 
   return {
     removedFromGoogle,
-    attempted: prevIds.length,
-    hadConnection: Boolean(accessToken)
+    attempted: allIds.length,
+    hadConnection: Boolean(accessToken),
+    hadRefreshToken: Boolean(sync?.googleRefreshToken)
   };
 }
 
@@ -786,6 +900,41 @@ async function replaceSccSyncedGoogleEvents(userId, accessToken, optimizedSchedu
     removedOld: prevIds.length,
     failureCount: settled.filter((r) => r.status === "rejected").length
   };
+}
+
+/**
+ * After saving an optimized plan, push to Google when the user has connected Calendar (stored refresh token).
+ * Does not throw — logs and returns a result for optional API responses.
+ */
+async function tryAutoSyncGoogleCalendar(userId, optimizedSchedule) {
+  if (!Array.isArray(optimizedSchedule) || optimizedSchedule.length === 0) {
+    return null;
+  }
+  try {
+    const syncDoc = await CalendarSync.findOne({ user: userId })
+      .select("+googleRefreshToken")
+      .lean();
+    if (!syncDoc?.googleRefreshToken) return null;
+    const accessToken = await getAccessTokenFromRefreshToken(
+      syncDoc.googleRefreshToken
+    );
+    if (!accessToken) return null;
+    const stats = await replaceSccSyncedGoogleEvents(
+      userId,
+      accessToken,
+      optimizedSchedule
+    );
+    return { ok: true, ...stats };
+  } catch (err) {
+    console.error(
+      "[auto Google Calendar sync]",
+      err?.response?.data || err.message
+    );
+    return {
+      ok: false,
+      error: err?.response?.data || err.message
+    };
+  }
 }
 
 /**
@@ -1156,11 +1305,34 @@ Rules:
             error: calendarError?.response?.data || calendarError.message
           };
         }
+      } else {
+        const auto = await tryAutoSyncGoogleCalendar(
+          req.user._id,
+          optimizedSchedule
+        );
+        if (auto?.ok) {
+          calendarSyncResult = {
+            attempted: true,
+            successCount: auto.created,
+            failureCount: auto.failureCount,
+            removedPreviousFromGoogle: auto.removedOld,
+            viaStoredGoogle: true
+          };
+        } else if (auto && auto.ok === false) {
+          calendarSyncResult = {
+            attempted: true,
+            error: auto.error
+          };
+        }
       }
+
+      const syncedToGoogle =
+        Boolean(googleAccessToken) ||
+        Boolean(calendarSyncResult?.viaStoredGoogle);
 
       return res.status(200).json({
         success: true,
-        message: googleAccessToken
+        message: syncedToGoogle
           ? "AI-generated timetable created, optimized, and sent to Google Calendar (best-effort)."
           : "AI-generated timetable created and optimized.",
         data: {
@@ -1353,11 +1525,34 @@ Return ONLY valid JSON (no markdown, no explanation) with this shape:
           error: calendarError?.response?.data || calendarError.message
         };
       }
+    } else {
+      const auto = await tryAutoSyncGoogleCalendar(
+        req.user._id,
+        optimizedSchedule
+      );
+      if (auto?.ok) {
+        calendarSyncResult = {
+          attempted: true,
+          successCount: auto.created,
+          failureCount: auto.failureCount,
+          removedPreviousFromGoogle: auto.removedOld,
+          viaStoredGoogle: true
+        };
+      } else if (auto && auto.ok === false) {
+        calendarSyncResult = {
+          attempted: true,
+          error: auto.error
+        };
+      }
     }
+
+    const syncedToGoogle =
+      Boolean(googleAccessToken) ||
+      Boolean(calendarSyncResult?.viaStoredGoogle);
 
     return res.status(200).json({
       success: true,
-      message: googleAccessToken
+      message: syncedToGoogle
         ? "AI-generated timetable created, optimized, and sent to Google Calendar (best-effort)."
         : "AI-generated timetable created and optimized.",
       data: {
