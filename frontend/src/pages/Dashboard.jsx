@@ -83,7 +83,6 @@ export default function Dashboard() {
   const dispatch = useDispatch();
   const location = useLocation();
   const navigate = useNavigate();
-  const scrollRef = useRef(0);
 
   const [dayProgress, setDayProgress] = useState(0);
   const [stats, setStats] = useState([]);
@@ -98,7 +97,6 @@ export default function Dashboard() {
   const [streak, setStreak] = useState(7);
   const [aiInsight, setAiInsight] = useState("");
   const [focusMode, setFocusMode] = useState(false);
-  const [showHeader, setShowHeader] = useState(true);
   const [quote, setQuote] = useState({ text: "The expert in anything was once a beginner.", author: "Helen Hayes" });
 
   // Day progress ring effect
@@ -123,20 +121,6 @@ export default function Dashboard() {
   useEffect(() => {
     if (!isAuthenticated) navigate("/");
   }, [isAuthenticated, navigate]);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScroll = window.scrollY || 0;
-      const isScrollingUp = currentScroll < scrollRef.current;
-
-      setShowHeader(currentScroll < 96 || isScrollingUp);
-      scrollRef.current = currentScroll;
-    };
-
-    scrollRef.current = window.scrollY || 0;
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   // Fetch dashboard data
   useEffect(() => {
@@ -313,7 +297,7 @@ export default function Dashboard() {
       </div>
 
       {/* Floating Navigation Bar */}
-      <header className={`dashboard-header ${showHeader ? "dashboard-header--visible" : "dashboard-header--hidden"}`}>
+      <header className="dashboard-header dashboard-header--visible">
         <Link to="/dashboard" className="dashboard-logo">
           <span className="dashboard-logo__text">User Dashboard</span>
         </Link>
