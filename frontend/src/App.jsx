@@ -5,7 +5,7 @@ import { Toaster } from "react-hot-toast";
 import store from "./store/store";
 import { ThemeProvider } from "./context/ThemeContext";
 import ThemeToggle from "./components/ThemeToggle";
-import { fetchUserProfile, logout, updateLastActivity, resetAuth } from "./features/auth/authSlice";
+import { fetchUserProfile, updateLastActivity, resetAuth } from "./features/auth/authSlice";
 import SessionEnd from "./components/SessionEnd";
 import { initSocket } from "./socket/socket";
 
@@ -25,7 +25,12 @@ import ExamMode from './pages/ExamMode';
 import CommunityPage from "./pages/CommunityPage";
 import ResourcesPage from "./pages/ResourcesPage";
 import TutorsPage from "./pages/TutorsPage";
-import Timetable from "./pages/Timetable";
+import TimetableHome from "./pages/TimetableHome";
+import Resources from "./pages/Resources";
+import Modules from "./pages/Modules";
+import GenerateTimetable from "./pages/GenerateTimetable";
+import SemesterTimetableView from "./pages/SemesterTimetableView";
+import TimetableSearch from "./pages/TimetableSearch";
 import AiChat from "./pages/AiChat";
 import AdminDashboard from "./pages/AdminDashboard";
 
@@ -219,7 +224,47 @@ function App() {
                   path="/timetable"
                   element={
                     <ProtectedRoute>
-                      <Timetable />
+                      <TimetableHome />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/timetable/resources"
+                  element={
+                    <ProtectedRoute>
+                      <Resources />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/timetable/modules"
+                  element={
+                    <ProtectedRoute>
+                      <Modules />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/timetable/generate"
+                  element={
+                    <ProtectedRoute roles={["teacher", "admin"]}>
+                      <GenerateTimetable />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/timetable/search"
+                  element={
+                    <ProtectedRoute>
+                      <TimetableSearch />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/timetable/view/:id"
+                  element={
+                    <ProtectedRoute>
+                      <SemesterTimetableView />
                     </ProtectedRoute>
                   }
                 />

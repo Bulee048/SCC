@@ -8,6 +8,7 @@ import { Server } from "socket.io";
 import multer from "multer";
 import connectDB from "./config/db.js";
 import User from "./models/User.js";
+import Module from "./models/Module.js";
 import KuppiPost from "./models/KuppiPost.js";
 
 // Import routes
@@ -25,6 +26,9 @@ import studyPilotRoutes from "./routes/studyPilotRoutes.js";
 
 import meetupRoutes from "./routes/meetupRoutes.js";
 import timetableRoutes from "./routes/timetableRoutes.js";
+import resourceRoutes from "./routes/resourceRoutes.js";
+import moduleRoutes from "./routes/moduleRoutes.js";
+import semesterTimetableRoutes from "./routes/semesterTimetableRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import { startMeetupCancellationJob } from "./jobs/meetupJobs.js";
@@ -100,6 +104,9 @@ app.use('/api/study-pilot', studyPilotRoutes);
 
 app.use("/api", meetupRoutes);
 app.use("/api", timetableRoutes);
+app.use("/api", resourceRoutes);
+app.use("/api", moduleRoutes);
+app.use("/api", semesterTimetableRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/admin", adminRoutes);
 
@@ -214,6 +221,13 @@ const startServer = async () => {
       console.log("User collection indexes synced with schema");
     } catch (syncErr) {
       console.warn("User.syncIndexes:", syncErr.message);
+    }
+
+    try {
+      await Module.syncIndexes();
+      console.log("Module collection indexes synced with schema");
+    } catch (syncErr) {
+      console.warn("Module.syncIndexes:", syncErr.message);
     }
 
     await startJobs();
