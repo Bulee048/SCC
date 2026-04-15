@@ -1,19 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   fetchGroups, createGroup, joinGroup, setFilters, clearError,
 } from "../features/groups/groupSlice";
 import { logout } from "../features/auth/authSlice";
 import {
   Plus, Search, Users, Lock, Globe, Tag, X,
-  SlidersHorizontal, Waves, LogOut, Home as HomeIcon,
-  Brain, BookMarked, Video, LayoutDashboard,
-  GraduationCap, Activity, Radio, Shield,
-  Filter, TrendingUp, Hash,
+  SlidersHorizontal, Waves, Shield,
+  Filter, TrendingUp, Hash, ArrowLeft,
 } from "lucide-react";
 import LoadingSpinner from "../components/LoadingSpinner";
-import NotificationBell from "../components/NotificationBell";
 import GroupCard from "../components/groups/GroupCard";
 import MyInvitesBanner from "../components/groups/MyInvitesBanner";
 import { confirmAction } from "../utils/toast";
@@ -247,6 +244,15 @@ const Groups = () => {
     navigate("/");
   };
 
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+
+    navigate("/dashboard");
+  };
+
   // Computed stats
   const myGroupCount = groups.filter((g) => g.members?.some((m) => {
     const uid = m.user?._id || m.user;
@@ -259,15 +265,6 @@ const Groups = () => {
     ? groups.filter((g) => g.tags?.some((t) => t.toLowerCase().includes(activeTag.toLowerCase())))
     : groups;
 
-  const navLinks = [
-    { icon: <HomeIcon size={14} />, label: "Home", path: "/" },
-    { icon: <LayoutDashboard size={14} />, label: "Dashboard", path: "/dashboard" },
-    { icon: <Brain size={14} />, label: "Timetable", path: "/timetable" },
-    { icon: <BookMarked size={14} />, label: "Notes", path: "/notes" },
-    { icon: <Video size={14} />, label: "Kuppi", path: "/kuppi" },
-    { icon: <Users size={14} />, label: "Groups", path: "/groups", active: true },
-  ];
-
   if (!user) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#010810", color: "#2a9d8f", fontFamily: "Inter, sans-serif" }}>
       Loading...
@@ -277,187 +274,172 @@ const Groups = () => {
   return (
     <div className="db-root dashboard-page grp-root">
 
-      <div className="db-layout">
-        {/* ── Navbar ── */}
-        <header className="dashboard-header">
-          <div className="dashboard-header__inner">
-            <Link to="/dashboard" className="dashboard-logo">
-              <span className="dashboard-logo__text">User Dashboard</span>
-            </Link>
+      <div className="grp-unified-layout fade-in">
 
-            <nav className="dashboard-nav">
-              {navLinks.map((l, i) => (
-                <Link
-                  key={i}
-                  to={l.path}
-                  className={`dashboard-nav__link ${l.active ? "active" : ""}`}
-                  style={{ "--i": i }}
-                >
-                  {l.icon}
-                  <span>{l.label}</span>
-                </Link>
-              ))}
-            </nav>
+        <div style={{ padding: "1rem 1rem 0", maxWidth: 1480, width: "100%", margin: "0 auto" }}>
+          <button
+            type="button"
+            onClick={handleBack}
+            aria-label="Go back"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "0.7rem 1rem",
+              borderRadius: 999,
+              border: "1px solid var(--border)",
+              background: "var(--surface-1)",
+              color: "var(--text)",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            <ArrowLeft size={16} />
+            Back
+          </button>
+        </div>
 
-            <div className="dashboard-actions" style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-              <NotificationBell />
-              <button className="dashboard-profile-btn" onClick={() => navigate("/profile")}>
-                <span className="dashboard-avatar">{user?.name?.charAt(0) || "U"}</span>
-                <span className="dashboard-profile-name">{user?.name?.split(" ")[0] || "User"}</span>
-              </button>
-              <button className="dashboard-logout-btn" onClick={handleLogout}>
-                <LogOut size={20} strokeWidth={2.4} />
+        {/* ── HERO BANNER ── */}
+        <section className="grp-hero-banner">
+          <div className="grp-hero-content">
+            <div className="grp-hero-text-block">
+              <div className="grp-hero-badge">
+                <span className="grp-live-dot"></span> Collaborative Spaces
+              </div>
+              <h1 className="grp-hero-title">Study & Project Groups</h1>
+              <p className="grp-hero-sub">
+                Join forces with your peers. Manage group assignments, schedule hybrid meetups, and share resources easily.
+              </p>
+              <div className="grp-hero-stats">
+                <div className="grp-h-stat"><Users size={14} /> <span><b>{groups.length}</b> Groups</span></div>
+                <div className="grp-h-stat" style={{ color: "var(--cyan)" }}><Shield size={14} /> <span><b>{myGroupCount}</b> Joined</span></div>
+                <div className="grp-h-stat" style={{ color: "var(--color-success, #10b981)" }}><Globe size={14} /> <span><b>{publicCount}</b> Public</span></div>
+              </div>
+            </div>
+            <div className="grp-hero-right">
+              <button className="grp-hero-create-btn" onClick={() => setShowCreate(true)}>
+                <Plus size={18} />
+                <span>Start a Group</span>
               </button>
             </div>
           </div>
-        </header>
+          {/* Background elements */}
+          <div className="grp-hero-shape-1"></div>
+          <div className="grp-hero-shape-2"></div>
+        </section>
 
-        {/* ── Page body: unified layout ── */}
-        <div className="grp-unified-layout fade-in">
+        {/* ── MAIN CONTENT ── */}
+        <main className="grp-unified-main">
+          <MyInvitesBanner />
 
-          {/* ── HERO BANNER ── */}
-          <section className="grp-hero-banner">
-            <div className="grp-hero-content">
-              <div className="grp-hero-text-block">
-                <div className="grp-hero-badge">
-                  <span className="grp-live-dot"></span> Collaborative Spaces
-                </div>
-                <h1 className="grp-hero-title">Study & Project Groups</h1>
-                <p className="grp-hero-sub">
-                  Join forces with your peers. Manage group assignments, schedule hybrid meetups, and share resources easily.
+          {/* Elegant Filter Bar */}
+          <div className="grp-modern-filter-bar" style={{ animation: "riseIn .65s .15s ease both" }}>
+            <div className="grp-search-capsule">
+              <Search size={16} className="grp-search-icon-mod" />
+              <input
+                value={localSearch}
+                onChange={handleSearch}
+                placeholder="Search groups, subjects, or courses..."
+                className="grp-search-input-mod"
+              />
+            </div>
+
+            <div className="grp-filter-sep"></div>
+
+            <div className="grp-toggle-trio">
+              <button
+                className={`grp-trio-btn ${!filters.myGroups ? "active" : ""}`}
+                onClick={() => dispatch(setFilters({ myGroups: false }))}
+              >
+                <Globe size={15} /> Discover
+              </button>
+              <button
+                className={`grp-trio-btn ${filters.myGroups ? "active" : ""}`}
+                onClick={() => dispatch(setFilters({ myGroups: true }))}
+              >
+                <Shield size={15} /> My Groups
+              </button>
+            </div>
+
+            <div className="grp-filter-sep"></div>
+
+            <div className="grp-tags-scroll">
+              {PRESET_TAGS.map((tag) => (
+                <button key={tag}
+                  className={`grp-tag-pill-mod ${activeTag === tag ? "active" : ""}`}
+                  onClick={() => setActiveTag(activeTag === tag ? null : tag)}>
+                  #{tag}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Error banner */}
+          {error && (
+            <div className="alert alert-error" style={{ animation: "riseIn .3s ease both" }}>
+              <span>{error}</span>
+              <button className="btn btn-sm btn-ghost" onClick={() => dispatch(clearError())}>
+                <X size={15} />
+              </button>
+            </div>
+          )}
+
+          {/* Content */}
+          <div style={{ animation: "riseIn .65s .3s ease both" }}>
+            {isLoading && <LoadingSpinner text="Loading groups…" />}
+
+            {/* Empty state */}
+            {!isLoading && displayGroups.length === 0 && (
+              <div className="grp-empty">
+                <div className="grp-empty__icon"><Users size={52} strokeWidth={1} /></div>
+                <h3 className="grp-empty__title">
+                  {filters.myGroups ? "You haven't joined any groups yet" : "No groups found"}
+                </h3>
+                <p className="grp-empty__sub">
+                  {filters.myGroups
+                    ? "Create a group or browse public groups to join"
+                    : "Be the first — create a study group and start collaborating!"}
                 </p>
-                <div className="grp-hero-stats">
-                  <div className="grp-h-stat"><Users size={14} /> <span><b>{groups.length}</b> Groups</span></div>
-                  <div className="grp-h-stat" style={{ color: "var(--cyan)" }}><Shield size={14} /> <span><b>{myGroupCount}</b> Joined</span></div>
-                  <div className="grp-h-stat" style={{ color: "var(--color-success, #10b981)" }}><Globe size={14} /> <span><b>{publicCount}</b> Public</span></div>
-                </div>
-              </div>
-              <div className="grp-hero-right">
-                <button className="grp-hero-create-btn" onClick={() => setShowCreate(true)}>
-                  <Plus size={18} />
-                  <span>Start a Group</span>
-                </button>
-              </div>
-            </div>
-            {/* Background elements */}
-            <div className="grp-hero-shape-1"></div>
-            <div className="grp-hero-shape-2"></div>
-          </section>
-
-          {/* ── MAIN CONTENT ── */}
-          <main className="grp-unified-main">
-            <MyInvitesBanner />
-
-            {/* Elegant Filter Bar */}
-            <div className="grp-modern-filter-bar">
-              <div className="grp-search-capsule">
-                <Search size={16} className="grp-search-icon-mod" />
-                <input
-                  value={localSearch}
-                  onChange={handleSearch}
-                  placeholder="Search groups, subjects, or courses..."
-                  className="grp-search-input-mod"
-                />
-              </div>
-
-              <div className="grp-filter-sep"></div>
-
-              <div className="grp-toggle-trio">
-                <button
-                  className={`grp-trio-btn ${!filters.myGroups ? "active" : ""}`}
-                  onClick={() => dispatch(setFilters({ myGroups: false }))}
-                >
-                  <Globe size={15} /> Discover
-                </button>
-                <button
-                  className={`grp-trio-btn ${filters.myGroups ? "active" : ""}`}
-                  onClick={() => dispatch(setFilters({ myGroups: true }))}
-                >
-                  <Shield size={15} /> My Groups
-                </button>
-              </div>
-
-              <div className="grp-filter-sep"></div>
-
-              <div className="grp-tags-scroll">
-                {PRESET_TAGS.map((tag) => (
-                  <button key={tag}
-                    className={`grp-tag-pill-mod ${activeTag === tag ? "active" : ""}`}
-                    onClick={() => setActiveTag(activeTag === tag ? null : tag)}>
-                    #{tag}
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+                  <button className="grp-create-btn" onClick={() => setShowCreate(true)}>
+                    <Plus size={16} /> Create Group
                   </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Error banner */}
-            {error && (
-              <div className="alert alert-error">
-                <span>{error}</span>
-                <button className="btn btn-sm btn-ghost" onClick={() => dispatch(clearError())}>
-                  <X size={15} />
-                </button>
+                  {filters.myGroups && (
+                    <button className="grp-toggle-btn" onClick={() => dispatch(setFilters({ myGroups: false }))}>
+                      <Users size={14} /> Browse All
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 
-            {/* Content */}
-            <div>
-              {isLoading && <LoadingSpinner text="Loading groups…" />}
-
-              {/* Empty state */}
-              {!isLoading && displayGroups.length === 0 && (
-                <div className="grp-empty">
-                  <div className="grp-empty__icon"><Users size={52} strokeWidth={1} /></div>
-                  <h3 className="grp-empty__title">
-                    {filters.myGroups ? "You haven't joined any groups yet" : "No groups found"}
-                  </h3>
-                  <p className="grp-empty__sub">
-                    {filters.myGroups
-                      ? "Create a group or browse public groups to join"
-                      : "Be the first — create a study group and start collaborating!"}
-                  </p>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
-                    <button className="grp-create-btn" onClick={() => setShowCreate(true)}>
-                      <Plus size={16} /> Create Group
-                    </button>
-                    {filters.myGroups && (
-                      <button className="grp-toggle-btn" onClick={() => dispatch(setFilters({ myGroups: false }))}>
-                        <Users size={14} /> Browse All
-                      </button>
-                    )}
-                  </div>
+            {/* Group cards grid */}
+            {!isLoading && displayGroups.length > 0 && (
+              <>
+                <div className="grp-section-head-row" style={{ marginBottom: 12 }}>
+                  <span className="grp-section-label">
+                    {filters.myGroups ? "My Groups" : activeTag ? `#${activeTag}` : "All Study Groups"}
+                  </span>
+                  <span className="grp-count-badge">
+                    {displayGroups.length} group{displayGroups.length !== 1 ? "s" : ""}
+                  </span>
                 </div>
-              )}
-
-              {/* Group cards grid */}
-              {!isLoading && displayGroups.length > 0 && (
-                <>
-                  <div className="grp-section-head-row" style={{ marginBottom: 12 }}>
-                    <span className="grp-section-label">
-                      {filters.myGroups ? "My Groups" : activeTag ? `#${activeTag}` : "All Study Groups"}
-                    </span>
-                    <span className="grp-count-badge">
-                      {displayGroups.length} group{displayGroups.length !== 1 ? "s" : ""}
-                    </span>
-                  </div>
-                  <div className="grp-cards-grid">
-                    {displayGroups.map((group, idx) => (
-                      <div key={group._id} style={{ animation: `riseIn 0.5s ease both ${idx * 0.05}s` }}>
-                        <GroupCard
-                          group={group}
-                          currentUserId={user?._id}
-                          onJoin={handleJoin}
-                          onOpen={(id) => navigate(`/groups/${id}`)}
-                          joining={joining}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          </main>
-        </div>
+                <div className="grp-cards-grid">
+                  {displayGroups.map((group) => (
+                    <GroupCard
+                      key={group._id}
+                      group={group}
+                      currentUserId={user?._id}
+                      onJoin={handleJoin}
+                      onOpen={(id) => navigate(`/groups/${id}`)}
+                      joining={joining}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </main>
       </div>
 
       {showCreate && <CreateGroupModal onClose={() => setShowCreate(false)} />}
