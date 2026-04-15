@@ -9,7 +9,7 @@ export const register = async (req, res) => {
   try {
     const {
       name,
-      email: rawEmail,
+      email,
       password,
       role,
       studentId,
@@ -27,9 +27,9 @@ export const register = async (req, res) => {
     // Check if user already exists with email
     const existingEmail = await User.findOne({ email });
     if (existingEmail) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "User with this email already exists" 
+        message: "User with this email already exists"
       });
     }
 
@@ -37,9 +37,9 @@ export const register = async (req, res) => {
     if (phone) {
       const existingPhone = await User.findOne({ phone });
       if (existingPhone) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           success: false,
-          message: "Phone number already registered to another account." 
+          message: "Phone number already registered to another account."
         });
       }
     }
@@ -48,9 +48,9 @@ export const register = async (req, res) => {
     if (studentId) {
       const existingStudent = await User.findOne({ studentId });
       if (existingStudent) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           success: false,
-          message: "Student ID already registered" 
+          message: "Student ID already registered"
         });
       }
     }
@@ -100,20 +100,20 @@ export const register = async (req, res) => {
     });
   } catch (error) {
     console.error("Register error:", error);
-    
+
     // Handle validation errors
     if (error.name === "ValidationError") {
       const messages = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
         message: messages.join(", ")
       });
     }
-    
-    res.status(500).json({ 
+
+    res.status(500).json({
       success: false,
       message: "Error registering user",
-      error: error.message 
+      error: error.message
     });
   }
 };
@@ -134,9 +134,9 @@ export const login = async (req, res) => {
     const user = await User.findOne({ email }).select("+password");
 
     if (!user) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         success: false,
-        message: "Invalid email or password" 
+        message: "Invalid email or password"
       });
     }
 
@@ -144,9 +144,9 @@ export const login = async (req, res) => {
     const isPasswordValid = await user.comparePassword(password);
 
     if (!isPasswordValid) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         success: false,
-        message: "Invalid email or password" 
+        message: "Invalid email or password"
       });
     }
 
@@ -169,10 +169,10 @@ export const login = async (req, res) => {
     });
   } catch (error) {
     console.error("Login error:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       message: "Error logging in",
-      error: error.message 
+      error: error.message
     });
   }
 };
@@ -186,9 +186,9 @@ export const refreshAccessToken = async (req, res) => {
     const { refreshToken } = req.body;
 
     if (!refreshToken) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "Refresh token is required" 
+        message: "Refresh token is required"
       });
     }
 
@@ -199,9 +199,9 @@ export const refreshAccessToken = async (req, res) => {
     const user = await User.findById(decoded.userId);
 
     if (!user) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         success: false,
-        message: "User not found" 
+        message: "User not found"
       });
     }
 
@@ -209,9 +209,9 @@ export const refreshAccessToken = async (req, res) => {
     const tokenExists = user.refreshTokens.some(rt => rt.token === refreshToken);
 
     if (!tokenExists) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         success: false,
-        message: "Invalid refresh token" 
+        message: "Invalid refresh token"
       });
     }
 
@@ -227,10 +227,10 @@ export const refreshAccessToken = async (req, res) => {
     });
   } catch (error) {
     console.error("Refresh token error:", error);
-    res.status(401).json({ 
+    res.status(401).json({
       success: false,
       message: "Invalid or expired refresh token",
-      error: error.message 
+      error: error.message
     });
   }
 };
@@ -256,10 +256,10 @@ export const logout = async (req, res) => {
     });
   } catch (error) {
     console.error("Logout error:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       message: "Error logging out",
-      error: error.message 
+      error: error.message
     });
   }
 };
@@ -278,10 +278,10 @@ export const getMe = async (req, res) => {
     });
   } catch (error) {
     console.error("Get me error:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       message: "Error fetching user profile",
-      error: error.message 
+      error: error.message
     });
   }
 };
@@ -345,20 +345,20 @@ export const updateProfile = async (req, res) => {
     });
   } catch (error) {
     console.error("Update profile error:", error);
-    
+
     // Handle validation errors
     if (error.name === "ValidationError") {
       const messages = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
         message: messages.join(", ")
       });
     }
-    
-    res.status(500).json({ 
+
+    res.status(500).json({
       success: false,
       message: "Error updating profile",
-      error: error.message 
+      error: error.message
     });
   }
 };

@@ -21,6 +21,7 @@ import meetupRoutes from "./routes/meetupRoutes.js";
 import timetableRoutes from "./routes/timetableRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import pollRoutes from "./routes/pollRoutes.js";
 import { startMeetupCancellationJob } from "./jobs/meetupJobs.js";
 
 const app = express();
@@ -87,6 +88,7 @@ app.use("/api", meetupRoutes);
 app.use("/api", timetableRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api", pollRoutes);
 
 // 404 handler
 app.use((req, res) => {

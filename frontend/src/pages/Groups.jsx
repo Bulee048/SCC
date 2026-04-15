@@ -26,6 +26,7 @@ import "../styles/Notifications.css";
 /* ═══════════════════════════════════════════════════════════
    CREATE GROUP MODAL
 ═══════════════════════════════════════════════════════════ */
+// This is the popup where we type in the new group details
 function CreateGroupModal({ onClose }) {
   const dispatch = useDispatch();
   const [form, setForm] = useState({
@@ -204,6 +205,7 @@ function CreateGroupModal({ onClose }) {
 ═══════════════════════════════════════════════════════════ */
 const PRESET_TAGS = ["Projects", "Exams", "Labs", "Assignments", "Research"];
 
+// This is the main page that shows all the groups you're in or can join
 const Groups = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -228,6 +230,7 @@ const Groups = () => {
     dispatch(setFilters({ search: val }));
   }, [dispatch]);
 
+  // This runs when someone clicks the join button on a group card
   const handleJoin = async (groupId) => {
     setJoining((p) => ({ ...p, [groupId]: true }));
     try {
@@ -346,7 +349,7 @@ const Groups = () => {
             <MyInvitesBanner />
 
             {/* Elegant Filter Bar */}
-            <div className="grp-modern-filter-bar" style={{ animation: "riseIn .65s .15s ease both" }}>
+            <div className="grp-modern-filter-bar">
               <div className="grp-search-capsule">
                 <Search size={16} className="grp-search-icon-mod" />
                 <input
@@ -389,7 +392,7 @@ const Groups = () => {
 
             {/* Error banner */}
             {error && (
-              <div className="alert alert-error" style={{ animation: "riseIn .3s ease both" }}>
+              <div className="alert alert-error">
                 <span>{error}</span>
                 <button className="btn btn-sm btn-ghost" onClick={() => dispatch(clearError())}>
                   <X size={15} />
@@ -398,7 +401,7 @@ const Groups = () => {
             )}
 
             {/* Content */}
-            <div style={{ animation: "riseIn .65s .3s ease both" }}>
+            <div>
               {isLoading && <LoadingSpinner text="Loading groups…" />}
 
               {/* Empty state */}
@@ -438,15 +441,16 @@ const Groups = () => {
                     </span>
                   </div>
                   <div className="grp-cards-grid">
-                    {displayGroups.map((group) => (
-                      <GroupCard
-                        key={group._id}
-                        group={group}
-                        currentUserId={user?._id}
-                        onJoin={handleJoin}
-                        onOpen={(id) => navigate(`/groups/${id}`)}
-                        joining={joining}
-                      />
+                    {displayGroups.map((group, idx) => (
+                      <div key={group._id} style={{ animation: `riseIn 0.5s ease both ${idx * 0.05}s` }}>
+                        <GroupCard
+                          group={group}
+                          currentUserId={user?._id}
+                          onJoin={handleJoin}
+                          onOpen={(id) => navigate(`/groups/${id}`)}
+                          joining={joining}
+                        />
+                      </div>
                     ))}
                   </div>
                 </>

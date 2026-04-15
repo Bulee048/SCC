@@ -6,6 +6,7 @@ import notesReducer from "../features/notes/notesSlice";
 import kuppiReducer from "../features/kuppi/kuppiSlice";
 import notificationsReducer from "../features/notifications/notificationsSlice";
 import meetupReducer from "../features/meetups/meetupSlice";
+import pollReducer from "../features/polls/pollSlice";
 
 export const store = configureStore({
   reducer: {
@@ -16,6 +17,7 @@ export const store = configureStore({
     kuppi: kuppiReducer,
     notifications: notificationsReducer,
     meetups: meetupReducer,
+    polls: pollReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
