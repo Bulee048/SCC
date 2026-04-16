@@ -12,7 +12,7 @@ export const register = async (req, res) => {
   try {
     const {
       name,
-      email,
+      email: rawEmail,
       password,
       role,
       studentId,
