@@ -31,6 +31,7 @@ import moduleRoutes from "./routes/moduleRoutes.js";
 import semesterTimetableRoutes from "./routes/semesterTimetableRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import pollRoutes from "./routes/pollRoutes.js";
 import { startMeetupCancellationJob } from "./jobs/meetupJobs.js";
 
 const app = express();
@@ -109,6 +110,7 @@ app.use("/api", moduleRoutes);
 app.use("/api", semesterTimetableRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api", pollRoutes);
 
 // 404 handler
 app.use((req, res) => {
