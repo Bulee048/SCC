@@ -7,6 +7,7 @@ import { logout } from "../features/auth/authSlice";
 import { useTheme } from "../context/ThemeContext";
 import {
   Calendar,
+  List,
   Brain,
   Plus,
   Sparkles,
@@ -46,7 +47,7 @@ import {
 } from "../services/timetableService";
 import LoadingSpinner from "../components/LoadingSpinner";
 import EmptyState from "../components/EmptyState";
-import WeekTimetableCalendar from "../components/WeekTimetableCalendar";
+import StudyPlanScheduleList from "../components/StudyPlanScheduleList";
 import NotificationBell from "../components/NotificationBell";
 import { confirmAction } from "../utils/toast";
 
@@ -720,7 +721,7 @@ const Timetable = () => {
 
           <div className="tt-status-pill">
             <div className="tt-status-dot" />
-            <span>AI ENGINE ONLINE</span>
+            <span>University Timetable System</span>
           </div>
         </motion.div>
 
@@ -813,8 +814,8 @@ const Timetable = () => {
             <span>Strategy Planner</span>
           </button>
           <button className={`tt-tab ${isVisualizer ? "active" : ""}`} onClick={() => setActiveTab("visualizer")}>
-            <Calendar size={18} />
-            <span>Visual Matrix</span>
+            <List size={18} />
+            <span>Schedule list</span>
           </button>
           <button className={`tt-tab ${isSync ? "active" : ""}`} onClick={() => setActiveTab("sync")}>
             <RefreshCw size={18} />
@@ -1043,15 +1044,15 @@ const Timetable = () => {
         {/* PANEL: VISUALIZER */}
         {isVisualizer && (
           <div className="tt-panel">
-            <div className="tt-card tt-card--calendar">
+            <div className="tt-card tt-card--full">
               <div className="tt-card__header">
                 <div className="tt-card__header-info">
                   <h3 className="tt-card__title tt-card__title--large">
-                    <Calendar size={28} />
-                    Week view (SCC)
+                    <List size={28} />
+                    Schedule list (SCC)
                   </h3>
                   <p className="tt-card__desc">
-                    Your classes plus the AI study blocks stored in this app. Google Calendar only updates when you are
+                    Your classes and AI study blocks in a simple day-by-day list. Google Calendar only updates when you are
                     connected on the Sync tab and save or run &quot;Push plan to Google&quot;.
                   </p>
                 </div>
@@ -1067,15 +1068,13 @@ const Timetable = () => {
               {!hasTimetable ? (
                 <EmptyState
                   title="No timetable to show yet"
-                  description="Add classes on the Planner tab and save. The week view shows your university rows plus generated study blocks."
+                  description="Add classes on the Planner tab and save. This list shows your university sessions plus generated study blocks."
                 />
               ) : (
-                <WeekTimetableCalendar
+                <StudyPlanScheduleList
                   key={calendarMountKey}
                   title="This week in SCC"
                   events={optimizedSchedule.length > 0 ? optimizedSchedule : universitySchedule}
-                  minHour={6}
-                  maxHour={22}
                 />
               )}
             </div>

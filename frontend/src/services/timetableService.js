@@ -120,7 +120,7 @@ export const getOngoingEvent = async () => {
 };
 
 // Google OAuth URL (uses GOOGLE_CLIENT_ID from backend .env)
-export const getGoogleAuthUrl = async () => {
+export const getGoogleAuthUrl = async ({ returnPath } = {}) => {
   // This endpoint is protected by JWT auth.
   // If accessToken is missing/expired, try refresh once before failing.
   let token = getAccessToken();
@@ -143,7 +143,12 @@ export const getGoogleAuthUrl = async () => {
   // Use direct axios call (no interceptors) and send token in BOTH header + query.
   const response = await axios.get(`${API_URL}/api/timetable/google-auth-url`, {
     headers: { Authorization: `Bearer ${token}` },
-    params: { token }
+    params: {
+      token,
+      ...(typeof returnPath === "string" && returnPath.trim()
+        ? { returnPath: returnPath.trim() }
+        : {})
+    }
   });
   if (!response.data?.success) {
     throw new Error(response.data?.message || "Failed to get Google auth URL");
