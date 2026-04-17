@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { logout } from "../features/auth/authSlice";
+import { LayoutDashboard, Users, BookOpen, Bell, Settings, LogOut } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "@studio-freight/lenis";
@@ -79,6 +80,10 @@ export default function Home() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const normalizedRole = String(user?.role || "").trim().toLowerCase();
+  const isAdmin = normalizedRole === "admin";
+  const isStudent = normalizedRole === "student";
+  const homeAvatarTarget = isAdmin ? "/admin" : "/dashboard";
 
   // Initialize enhanced Three.js background (now with green neon)
   const setCanvasMountRef = (node) => {
@@ -134,7 +139,10 @@ export default function Home() {
       gsap.from("[data-hero-title]", { y: 60, opacity: 0, duration: 1, ease: "power3.out", delay: 0.2 });
       gsap.from("[data-hero-sub]", { y: 40, opacity: 0, duration: 1, ease: "power3.out", delay: 0.4 });
       gsap.from("[data-hero-cta]", { y: 30, opacity: 0, duration: 0.8, stagger: 0.15, delay: 0.6 });
-      gsap.from("[data-hero-stats]", { y: 30, opacity: 0, duration: 0.8, stagger: 0.1, delay: 0.8 });
+      const heroStatsItems = gsap.utils.toArray("[data-hero-stats]");
+      if (heroStatsItems.length) {
+        gsap.from(heroStatsItems, { y: 30, opacity: 0, duration: 0.8, stagger: 0.1, delay: 0.8 });
+      }
       gsap.fromTo(
         "[data-feat-card]",
         { y: 36, autoAlpha: 0 },
@@ -232,7 +240,7 @@ export default function Home() {
     <>
       <style>{`
         /* ===== REDESIGNED UI WITH GREEN ACCENTS ===== */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap');
 
         * {
           margin: 0;
@@ -335,15 +343,16 @@ export default function Home() {
           top: 0; left: 0; right: 0;
           z-index: 200;
           width: 100%;
-          background: var(--glass-header-top);
-          backdrop-filter: blur(20px);
-          border-bottom: 1px solid var(--border);
+          background: linear-gradient(135deg, #0f5132, #14532d);
+          backdrop-filter: blur(10px) saturate(1.05);
+          border-bottom: 1px solid rgba(236, 253, 245, 0.12);
+          box-shadow: 0 10px 24px rgba(15, 83, 45, 0.2);
           transition: background 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease, transform 0.22s ease, opacity 0.22s ease;
         }
         nav.scrolled {
-          background: var(--glass-header);
-          border-bottom-color: rgba(255, 255, 255, 0.16);
-          box-shadow: 0 10px 34px rgba(0, 0, 0, 0.42);
+          background: linear-gradient(135deg, #0f5132, #14532d);
+          border-bottom-color: rgba(236, 253, 245, 0.18);
+          box-shadow: 0 12px 28px rgba(15, 83, 45, 0.26);
         }
         nav.nav-hidden {
           transform: translateY(-110%);
@@ -354,11 +363,11 @@ export default function Home() {
           width: 100%;
           max-width: 1600px;
           margin: 0 auto;
-          padding: 1.2rem 2.4rem;
+          padding: 1.04rem clamp(0.9rem, 2vw, 1.8rem);
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 1rem;
+          gap: 1.1rem;
         }
 
         /* ---- Brand ---- */
@@ -389,15 +398,15 @@ export default function Home() {
           box-shadow: 0 10px 28px rgba(16,185,129,0.4), 0 0 20px rgba(45,212,191,0.3);
         }
         .nav-brand-name {
-          font-family: 'Inter', sans-serif;
+          font-family: 'Outfit', sans-serif;
           font-weight: 800;
-          font-size: 1.62rem;
-          letter-spacing: -0.03em;
-          background: linear-gradient(135deg, var(--text-primary), var(--accent-green));
+          font-size: clamp(1.14rem, 1.3vw, 1.5rem);
+          letter-spacing: 0.02em;
+          background: linear-gradient(180deg, #ffffff 0%, #ecfdf5 92%);
           -webkit-background-clip: text;
           background-clip: text;
           color: transparent;
-          line-height: 1;
+          line-height: 1.05;
         }
         .nav-brand-name span {
           color: inherit;
@@ -407,7 +416,7 @@ export default function Home() {
         .nav-center {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 0.35rem;
         }
         .nav-link {
           /* complete reset for both <a> and <button> */
@@ -417,16 +426,18 @@ export default function Home() {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          gap: 10px;
-          min-height: 48px;
-          padding: 14px 26px;
-          border-radius: 18px;
-          font-size: 1.08rem;
-          font-weight: 700;
+          gap: 0.55rem;
+          min-height: 0;
+          padding: 0.86rem 1.35rem;
+          border-radius: 9999px;
+          font-size: 0.89rem;
+          font-weight: 650;
           line-height: 1;
-          color: #e2e8f0;
+          color: #ffffff;
           background: rgba(255, 255, 255, 0.08);
-          border: 1px solid rgba(255, 255, 255, 0.14);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          backdrop-filter: blur(12px);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
           transition: all 0.25s ease;
           white-space: nowrap;
           text-decoration: none;
@@ -434,19 +445,19 @@ export default function Home() {
         }
         .nav-link:visited,
         .nav-link:active {
-          color: #e2e8f0;
+          color: #ffffff;
         }
         .nav-link:hover {
-          color: #f8fafc;
-          background: rgba(255, 255, 255, 0.16);
-          border-color: rgba(255, 255, 255, 0.24);
-          transform: translateY(-2px);
+          color: #ffffff;
+          background: rgba(255, 255, 255, 0.15);
+          border-color: rgba(34, 197, 94, 0.4);
+          transform: translateY(-1px) scale(1.03);
         }
         .nav-link.active-link {
-          color: #ffffff;
-          background: linear-gradient(135deg, var(--accent-green), #059669);
+          color: #03060b;
+          background: linear-gradient(135deg, #16a34a, #22c55e);
           border-color: transparent;
-          box-shadow: 0 10px 20px -6px rgba(16, 185, 129, 0.45), inset 0 2px 4px rgba(255, 255, 255, 0.2);
+          box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35);
         }
 
         /* ---- Right side ---- */
@@ -605,65 +616,146 @@ export default function Home() {
         /* Profile dropdown */
         .profile-wrapper { position: relative; }
         .profile-avatar {
-          width: 38px; height: 38px;
+          width: 40px; height: 40px;
           border-radius: 50%;
-          background: linear-gradient(135deg, var(--accent-cyan), var(--accent-green));
+          background: linear-gradient(135deg, rgba(45, 212, 191, 0.98), rgba(16, 185, 129, 0.98));
           color: #fff;
           display: flex; align-items: center; justify-content: center;
-          font-weight: 600;
+          font-weight: 800;
+          letter-spacing: 0.02em;
           cursor: pointer;
-          border: 2px solid transparent;
-          transition: border-color 0.2s;
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          box-shadow: 0 10px 24px rgba(16, 185, 129, 0.24), 0 0 0 4px rgba(16, 185, 129, 0.08);
+          transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+          position: relative;
+          overflow: hidden;
         }
         .profile-avatar:hover {
-          border-color: var(--accent-green);
+          border-color: rgba(255, 255, 255, 0.35);
+          transform: translateY(-1px);
+          box-shadow: 0 14px 30px rgba(16, 185, 129, 0.28), 0 0 0 4px rgba(16, 185, 129, 0.12);
+        }
+        .profile-avatar::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(135deg, rgba(255, 255, 255, 0.26), transparent 45%, rgba(255, 255, 255, 0.08));
+          pointer-events: none;
         }
         .profile-dropdown {
           position: absolute;
-          top: calc(100% + 8px);
+          top: calc(100% + 12px);
           right: 0;
-          min-width: 220px;
-          background: var(--bg-surface);
-          border: 1px solid var(--border);
-          border-radius: 16px;
-          padding: 0.5rem 0;
-          z-index: 200;
-          box-shadow: 0 14px 34px rgba(0,0,0,0.52);
+          min-width: 280px;
+          padding: 0.7rem;
+          z-index: 260;
+          border-radius: 22px;
+          background:
+            linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
+            rgba(7, 15, 24, 0.88);
+          border: 1px solid rgba(148, 163, 184, 0.22);
+          box-shadow:
+            0 24px 54px rgba(3, 8, 20, 0.42),
+            0 1px 0 rgba(255, 255, 255, 0.08) inset,
+            0 0 0 1px rgba(16, 185, 129, 0.08);
+          backdrop-filter: blur(22px) saturate(1.15);
+          overflow: hidden;
+        }
+        .profile-dropdown::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background:
+            radial-gradient(circle at top right, rgba(45, 212, 191, 0.18), transparent 32%),
+            radial-gradient(circle at bottom left, rgba(16, 185, 129, 0.12), transparent 30%);
+          pointer-events: none;
         }
         .profile-dropdown-header {
-          padding: 0.8rem 1rem;
-          border-bottom: 1px solid var(--border);
+          position: relative;
+          z-index: 1;
+          padding: 0.95rem 1rem 1rem;
+          margin-bottom: 0.4rem;
+          border-radius: 16px;
+          background: linear-gradient(135deg, rgba(16, 185, 129, 0.16), rgba(59, 130, 246, 0.08));
+          border: 1px solid rgba(148, 163, 184, 0.16);
+          box-shadow: 0 10px 22px rgba(2, 6, 23, 0.18);
         }
         .profile-dropdown-name {
-          font-weight: 600;
-          color: var(--text-primary);
+          font-weight: 800;
+          color: #ffffff;
+          letter-spacing: 0.01em;
+          line-height: 1.2;
         }
         .profile-dropdown-email {
-          font-size: 0.8rem;
-          color: var(--text-muted);
+          margin-top: 0.2rem;
+          font-size: 0.78rem;
+          color: rgba(226, 232, 240, 0.82);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
         .profile-dropdown a,
         .profile-dropdown button {
-          display: block;
+          display: flex;
+          align-items: center;
+          justify-content: flex-start;
+          gap: 0.8rem;
           width: 100%;
           text-align: left;
-          padding: 0.7rem 1rem;
-          font-size: 0.9rem;
-          color: var(--text-secondary);
+          padding: 0.82rem 0.95rem;
+          margin-top: 0.22rem;
+          font-size: 0.92rem;
+          font-weight: 600;
+          color: rgba(241, 245, 249, 0.92);
           background: none;
           border: none;
           cursor: pointer;
           text-decoration: none;
-          transition: 0.15s;
+          border-radius: 14px;
+          position: relative;
+          z-index: 1;
+          transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+        }
+        .profile-dropdown-icon {
+          width: 1.8rem;
+          height: 1.8rem;
+          border-radius: 999px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex: 0 0 auto;
+          background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(59, 130, 246, 0.12));
+          border: 1px solid rgba(148, 163, 184, 0.2);
+          color: #ecfdf5;
+          box-shadow: 0 8px 18px rgba(2, 6, 23, 0.12);
+        }
+        .profile-dropdown-icon svg {
+          width: 0.95rem;
+          height: 0.95rem;
         }
         .profile-dropdown a:hover,
         .profile-dropdown button:hover {
-          background: rgba(16, 185, 129, 0.1);
-          color: var(--text-primary);
+          background: rgba(255, 255, 255, 0.08);
+          color: #ffffff;
+          transform: translateX(2px);
+          box-shadow: 0 8px 18px rgba(2, 6, 23, 0.14);
         }
         .profile-dropdown .logout-btn {
-          color: var(--accent-green);
-          border-top: 1px solid var(--border);
+          width: 100%;
+          height: auto;
+          border-radius: 14px;
+          margin-top: 0.35rem;
+          padding: 0.88rem 0.95rem;
+          color: #bbf7d0;
+          background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(15, 23, 42, 0.22));
+          border-top: 1px solid rgba(148, 163, 184, 0.14);
+          border-bottom: 1px solid rgba(16, 185, 129, 0.12);
+          box-shadow: 0 10px 22px rgba(2, 6, 23, 0.16);
+          font-weight: 700;
+        }
+        .profile-dropdown .logout-btn:hover {
+          background: linear-gradient(135deg, rgba(16, 185, 129, 0.18), rgba(59, 130, 246, 0.1));
+          color: #ecfdf5;
         }
 
         /* Hero */
@@ -1141,29 +1233,32 @@ export default function Home() {
         }
 
         [data-theme="light"] body {
-          background: linear-gradient(180deg, #eaf1ff 0%, #e6efff 46%, #edf4ff 100%);
+          background: linear-gradient(180deg, #dde9ff 0%, #d8e6ff 42%, #e6efff 100%);
           color: #0f172a;
         }
 
         [data-theme="light"] .bg-canvas {
-          opacity: 0.64;
-          filter: contrast(1.14) saturate(1.07);
+          opacity: 0.9;
+          filter: contrast(1.38) saturate(1.26) brightness(0.93);
         }
 
         [data-theme="light"] .overlay {
           background:
-            radial-gradient(circle at 20% 20%, rgba(45, 212, 191, 0.1) 0%, transparent 58%),
-            radial-gradient(circle at 80% 75%, rgba(59, 130, 246, 0.1) 0%, transparent 58%),
-            linear-gradient(180deg, rgba(234, 241, 255, 0) 0%, rgba(234, 241, 255, 0.42) 100%);
+            radial-gradient(circle at 18% 22%, rgba(15, 118, 110, 0.26) 0%, transparent 54%),
+            radial-gradient(circle at 82% 72%, rgba(29, 78, 216, 0.26) 0%, transparent 54%),
+            linear-gradient(180deg, rgba(214, 228, 255, 0.1) 0%, rgba(183, 208, 248, 0.64) 100%);
         }
 
         [data-theme="light"] nav.scrolled {
-          background: rgba(255, 255, 255, 0.95);
-          border-bottom: 1px solid rgba(15, 23, 42, 0.12);
+          background: linear-gradient(135deg, #0f5132, #14532d);
+          border-bottom: 1px solid rgba(236, 253, 245, 0.2);
+          box-shadow: 0 12px 28px rgba(15, 83, 45, 0.26);
         }
 
         [data-theme="light"] nav {
-          background: rgba(255, 255, 255, 0.55);
+          background: linear-gradient(135deg, #0f5132, #14532d);
+          border-bottom: 1px solid rgba(236, 253, 245, 0.14);
+          box-shadow: 0 10px 24px rgba(15, 83, 45, 0.2);
         }
 
         [data-theme="light"] .nav-mobile-drawer {
@@ -1195,22 +1290,42 @@ export default function Home() {
         [data-theme="light"] .step-desc,
         [data-theme="light"] .glow-card-sub,
         [data-theme="light"] .cta-sub,
-        [data-theme="light"] .footer-copy,
-        [data-theme="light"] .nav-link {
+        [data-theme="light"] .footer-copy {
           color: #334155;
         }
 
         [data-theme="light"] .nav-link:hover {
-          color: #0f172a;
-          background: rgba(37, 99, 235, 0.1);
-          border-color: rgba(37, 99, 235, 0.2);
+          color: #f8fff9;
+          background: rgba(34, 197, 94, 0.12);
+          border-color: rgba(34, 197, 94, 0.24);
         }
 
         [data-theme="light"] .nav-link,
         [data-theme="light"] .nav-link:visited,
         [data-theme="light"] .nav-link:active {
-          color: #334155;
-          background: rgba(255, 255, 255, 0.75);
+          color: #f8fff9;
+          background: rgba(255, 255, 255, 0.13);
+          border-color: rgba(236, 253, 245, 0.26);
+        }
+
+        [data-theme="light"] .nav-link.active-link {
+          background: linear-gradient(135deg, #15803d, #22c55e);
+          color: #f8fff9;
+          box-shadow: 0 8px 18px rgba(22, 163, 74, 0.32);
+        }
+
+        [data-theme="light"] .hero-title {
+          text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55), 0 10px 20px rgba(30, 64, 175, 0.08);
+        }
+
+        [data-theme="light"] .hero-title .gradient-text {
+          background: linear-gradient(135deg, #0284c7 0%, #16a34a 48%, #6d28d9 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+          color: transparent;
+          -webkit-text-stroke: 0.6px rgba(15, 23, 42, 0.36);
+          text-shadow: 0 1px 0 rgba(255, 255, 255, 0.22), 0 1px 8px rgba(15, 23, 42, 0.08);
         }
 
         [data-theme="light"] .home-signin-btn:visited {
@@ -1241,16 +1356,85 @@ export default function Home() {
         [data-theme="light"] .faq-item,
         [data-theme="light"] .milestone-item,
         [data-theme="light"] .milestone-end {
-          background: rgba(243, 249, 255, 0.88);
-          border: 1px solid rgba(100, 116, 139, 0.28);
-          box-shadow: 0 14px 30px rgba(15, 23, 42, 0.1);
+          background: rgba(236, 244, 255, 0.94);
+          border: 1px solid rgba(71, 85, 105, 0.34);
+          box-shadow: 0 16px 34px rgba(15, 23, 42, 0.14), 0 1px 0 rgba(255,255,255,0.55) inset;
+        }
+
+        [data-theme="light"] .profile-dropdown {
+          background:
+            linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 247, 252, 0.9)),
+            rgba(255, 255, 255, 0.94);
+          border-color: rgba(148, 163, 184, 0.22);
+          box-shadow:
+            0 24px 50px rgba(15, 23, 42, 0.16),
+            0 1px 0 rgba(255, 255, 255, 0.7) inset,
+            0 0 0 1px rgba(16, 185, 129, 0.07);
+        }
+
+        [data-theme="light"] .profile-dropdown::before {
+          background:
+            radial-gradient(circle at top right, rgba(34, 197, 94, 0.15), transparent 34%),
+            radial-gradient(circle at bottom left, rgba(59, 130, 246, 0.1), transparent 30%);
+        }
+
+        [data-theme="light"] .profile-dropdown-header {
+          background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(59, 130, 246, 0.06));
+          border-color: rgba(148, 163, 184, 0.14);
+        }
+
+        [data-theme="light"] .profile-dropdown-name {
+          color: #0f172a;
+        }
+
+        [data-theme="light"] .profile-dropdown-email {
+          color: #475569;
+        }
+
+        [data-theme="light"] .profile-dropdown a,
+        [data-theme="light"] .profile-dropdown button {
+          color: #0f172a;
+        }
+
+        [data-theme="light"] .profile-dropdown-icon {
+          background: linear-gradient(135deg, rgba(16, 185, 129, 0.14), rgba(59, 130, 246, 0.08));
+          color: #0f172a;
+        }
+
+        [data-theme="light"] .profile-dropdown a:hover,
+        [data-theme="light"] .profile-dropdown button:hover {
+          background: rgba(16, 185, 129, 0.1);
+          color: #0f172a;
+        }
+
+        [data-theme="light"] .profile-dropdown .logout-btn {
+          background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(255, 255, 255, 0.88));
+          color: #047857;
+          border-top-color: rgba(148, 163, 184, 0.16);
+        }
+
+        [data-theme="light"] .profile-dropdown .logout-btn:hover {
+          background: linear-gradient(135deg, rgba(16, 185, 129, 0.14), rgba(59, 130, 246, 0.08));
+          color: #065f46;
+        }
+
+        [data-theme="light"] .profile-dropdown .logout-btn {
+          color: #047857;
+        }
+
+        [data-theme="light"] .feat-card:hover,
+        [data-theme="light"] .read-card:hover,
+        [data-theme="light"] .faq-item:hover {
+          border-color: rgba(37, 99, 235, 0.44);
+          box-shadow: 0 20px 36px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(255,255,255,0.6) inset;
+          transform: translateY(-5px);
         }
 
         [data-theme="light"] .glow-card,
         [data-theme="light"] .cta-block {
-          background: linear-gradient(135deg, rgba(241, 249, 255, 0.9), rgba(227, 241, 255, 0.92));
-          border: 1px solid rgba(59, 130, 246, 0.3);
-          box-shadow: 0 18px 32px rgba(15, 23, 42, 0.1);
+          background: linear-gradient(135deg, rgba(232, 243, 255, 0.95), rgba(214, 232, 255, 0.96));
+          border: 1px solid rgba(37, 99, 235, 0.4);
+          box-shadow: 0 20px 36px rgba(15, 23, 42, 0.16);
         }
 
         [data-theme="light"] .mini-stat {
@@ -1267,9 +1451,9 @@ export default function Home() {
         [data-theme="light"] .hero-tag,
         [data-theme="light"] .section-label,
         [data-theme="light"] .cta-badge {
-          color: #0f766e;
-          background: rgba(45, 212, 191, 0.12);
-          border-color: rgba(45, 212, 191, 0.32);
+          color: #115e59;
+          background: rgba(20, 184, 166, 0.16);
+          border-color: rgba(20, 184, 166, 0.4);
         }
 
         [data-theme="light"] .faq-a,
@@ -1318,7 +1502,7 @@ export default function Home() {
           .nav-link { padding: 0 0.85rem; font-size: 0.85rem; }
         }
         @media (max-width: 860px) {
-          .nav-inner { padding: 1rem 1.2rem; }
+          .nav-inner { padding: 1.12rem 1.2rem; }
           .nav-center { display: none; }
           .nav-hamburger { display: flex; }
           .nav-right .home-signin-btn,
@@ -1363,25 +1547,49 @@ export default function Home() {
               {/* Right – desktop */}
               <div className="nav-right">
                 {isAuthenticated ? (
-                  <div className="profile-wrapper" ref={profileMenuRef}>
-                    <div className="profile-avatar" onClick={() => setProfileOpen((v) => !v)}>
-                      {user?.profilePicture ? <img src={user.profilePicture} alt={user.name} style={{width:"100%",height:"100%",borderRadius:"50%",objectFit:"cover"}} /> : (user?.name?.[0] || "U")}
-                    </div>
-                    {profileOpen && (
-                      <div className="profile-dropdown">
-                        <div className="profile-dropdown-header">
-                          <div className="profile-dropdown-name">{user?.name || "User"}</div>
-                          <div className="profile-dropdown-email">{user?.email || ""}</div>
-                        </div>
-                        <Link to="/dashboard" onClick={() => setProfileOpen(false)}>🏠 Dashboard</Link>
-                        <Link to="/groups" onClick={() => setProfileOpen(false)}>👥 My Groups</Link>
-                        <Link to="/notes" onClick={() => setProfileOpen(false)}>📝 My Notes</Link>
-                        <Link to="/notifications" onClick={() => setProfileOpen(false)}>🔔 Notifications</Link>
-                        <Link to="/profile" onClick={() => setProfileOpen(false)}>⚙️ Profile Settings</Link>
-                        <button className="logout-btn" onClick={() => { dispatch(logout()); setProfileOpen(false); navigate("/"); }}>Sign Out</button>
+                  isStudent ? (
+                    <div className="profile-wrapper" ref={profileMenuRef}>
+                      <div className="profile-avatar" onClick={() => setProfileOpen((v) => !v)}>
+                        {user?.profilePicture ? <img src={user.profilePicture} alt={user.name} style={{width:"100%",height:"100%",borderRadius:"50%",objectFit:"cover"}} /> : (user?.name?.[0] || "U")}
                       </div>
-                    )}
-                  </div>
+                      {profileOpen && (
+                        <div className="profile-dropdown">
+                          <div className="profile-dropdown-header">
+                            <div className="profile-dropdown-name">{user?.name || "User"}</div>
+                            <div className="profile-dropdown-email">{user?.email || ""}</div>
+                          </div>
+                          <Link to="/dashboard" onClick={() => setProfileOpen(false)}>
+                            <span className="profile-dropdown-icon"><LayoutDashboard size={14} /></span>
+                            Dashboard
+                          </Link>
+                          <Link to="/groups" onClick={() => setProfileOpen(false)}>
+                            <span className="profile-dropdown-icon"><Users size={14} /></span>
+                            My Groups
+                          </Link>
+                          <Link to="/notes" onClick={() => setProfileOpen(false)}>
+                            <span className="profile-dropdown-icon"><BookOpen size={14} /></span>
+                            My Notes
+                          </Link>
+                          <Link to="/notifications" onClick={() => setProfileOpen(false)}>
+                            <span className="profile-dropdown-icon"><Bell size={14} /></span>
+                            Notifications
+                          </Link>
+                          <Link to="/profile" onClick={() => setProfileOpen(false)}>
+                            <span className="profile-dropdown-icon"><Settings size={14} /></span>
+                            Profile Settings
+                          </Link>
+                          <button className="logout-btn" onClick={() => { dispatch(logout()); setProfileOpen(false); navigate("/"); }}>
+                            <span className="profile-dropdown-icon"><LogOut size={14} /></span>
+                            Sign Out
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <Link to={homeAvatarTarget} className="profile-avatar" title={isAdmin ? "Go to Admin Dashboard" : "Go to Dashboard"} onClick={() => setProfileOpen(false)}>
+                      {user?.profilePicture ? <img src={user.profilePicture} alt={user.name} style={{width:"100%",height:"100%",borderRadius:"50%",objectFit:"cover"}} /> : (user?.name?.[0] || "U")}
+                    </Link>
+                  )
                 ) : (
                   <>
                     <Link to="/login" className="home-signin-btn">Sign In</Link>
@@ -1415,8 +1623,8 @@ export default function Home() {
               <span className="drawer-icon">🎓</span> Tutors
             </Link>
             {isAuthenticated && (
-              <Link className="nav-drawer-link" to="/dashboard" onClick={() => setMobileOpen(false)}>
-                <span className="drawer-icon">🏠</span> Dashboard
+              <Link className="nav-drawer-link" to={homeAvatarTarget} onClick={() => setMobileOpen(false)}>
+                <span className="drawer-icon">🏠</span> {isAdmin ? "Admin Dashboard" : "Dashboard"}
               </Link>
             )}
             {isAuthenticated && (

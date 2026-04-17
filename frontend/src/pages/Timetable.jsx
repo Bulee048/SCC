@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
+
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import { logout } from "../features/auth/authSlice";
+import { useTheme } from "../context/ThemeContext";
 import {
   Calendar,
+  List,
   Brain,
   Plus,
   Sparkles,
@@ -12,6 +16,7 @@ import {
   RefreshCw,
   Trash2,
   Home as HomeIcon,
+  GraduationCap,
   LayoutDashboard,
   BookMarked,
   Video,
@@ -19,8 +24,14 @@ import {
   LogOut,
   Lightbulb,
   ArrowLeft,
-  ChevronRight
+  ChevronRight,
+  CheckCircle2,
+  Unplug,
+  Upload,
+  FileText,
+  X
 } from "lucide-react";
+import { getAccessToken } from "../utils/authStorage.js";
 import {
   createRawTimetable,
   generateOptimizedTimetable,
@@ -31,13 +42,38 @@ import {
   aiTimetableChat,
   importTimetableFromFile,
   deleteUserTimetable,
-  clearOptimizedSchedule
+  clearOptimizedSchedule,
+  syncGoogleCalendar
 } from "../services/timetableService";
 import LoadingSpinner from "../components/LoadingSpinner";
 import EmptyState from "../components/EmptyState";
-import WeekTimetableCalendar from "../components/WeekTimetableCalendar";
+import StudyPlanScheduleList from "../components/StudyPlanScheduleList";
 import NotificationBell from "../components/NotificationBell";
 import { confirmAction } from "../utils/toast";
+
+/** Optional hint from POST /api/timetable or /generate after auto-sync */
+function googleAutoSyncSuffix(sync) {
+  if (!sync || sync.ok == null) return "";
+  if (sync.ok) {
+    const { created = 0, failureCount = 0 } = sync;
+    if (failureCount > 0) {
+      return ` Google Calendar: ${created} event(s) created, ${failureCount} error(s).`;
+    }
+    return created > 0 ? ` Google Calendar: ${created} event(s) updated.` : "";
+  }
+  return " Google Calendar sync failed (reconnect on the Sync tab).";
+}
+
+function aiCalendarSyncSuffix(calendarSyncResult) {
+  if (!calendarSyncResult?.attempted) return "";
+  if (calendarSyncResult.error) {
+    return " Google Calendar reported an error (plan is still saved in SCC).";
+  }
+  const n = calendarSyncResult.successCount ?? 0;
+  const f = calendarSyncResult.failureCount ?? 0;
+  if (f > 0) return ` Google Calendar: ${n} ok, ${f} failed.`;
+  return n > 0 ? ` Google Calendar: ${n} event(s) synced.` : "";
+}
 import "../styles/Timetable.css";
 import "../styles/TimetableEditor.css";
 import "../styles/TimetablePageUiverse.css";
@@ -125,6 +161,7 @@ const Timetable = () => {
   const dispatch = useDispatch();
   const { user, isAuthenticated } = useSelector((state) => state.auth);
   const navigate = useNavigate();
+  const { theme } = useTheme();
 
   const toDateTimeLocalValue = (value) => {
     if (!value) return "";
@@ -154,6 +191,7 @@ const Timetable = () => {
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [syncingGoogleNow, setSyncingGoogleNow] = useState(false);
   const [googleEventsLoading, setGoogleEventsLoading] = useState(false);
   const [googleStatus, setGoogleStatus] = useState({ connected: false, lastSyncedAt: null });
   const [googleEvents, setGoogleEvents] = useState([]);
@@ -161,6 +199,7 @@ const Timetable = () => {
   const [hasSavedTimetableOnServer, setHasSavedTimetableOnServer] = useState(false);
   const [calendarMountKey, setCalendarMountKey] = useState(0);
   const timetableFetchGenRef = useRef(0);
+  const importFileInputRef = useRef(null);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -172,6 +211,7 @@ const Timetable = () => {
   const navLinks = [
     { icon: <HomeIcon size={18} strokeWidth={2.3} />, label: "Home", path: "/" },
     { icon: <LayoutDashboard size={18} strokeWidth={2.3} />, label: "Dashboard", path: "/dashboard" },
+    { icon: <GraduationCap size={18} strokeWidth={2.3} />, label: "Exam Mode", path: "/exam-mode" },
     { icon: <Brain size={18} strokeWidth={2.3} />, label: "Timetable", path: "/timetable", active: true },
     { icon: <BookMarked size={18} strokeWidth={2.3} />, label: "Notes", path: "/notes" },
     { icon: <Video size={18} strokeWidth={2.3} />, label: "Kuppi", path: "/kuppi" },
@@ -223,13 +263,18 @@ const Timetable = () => {
         setGoogleStatus(status);
         if (status.connected) {
           setGoogleEventsLoading(true);
-          const { events } = await getGoogleCalendarEvents({ maxResults: 15 });
+          const { events } = await getGoogleCalendarEvents({
+            maxResults: 50,
+            pastDays: 180,
+            futureDays: 180
+          });
           setGoogleEvents(events || []);
         } else {
           setGoogleEvents([]);
         }
-      } catch {
-        // ignore
+      } catch (err) {
+        console.error("Google Calendar list failed:", err?.response?.data || err);
+        setGoogleEvents([]);
       } finally {
         setGoogleEventsLoading(false);
       }
@@ -243,7 +288,7 @@ const Timetable = () => {
     setError("");
     setSuccess("");
     try {
-      const accessToken = sessionStorage.getItem("accessToken");
+      const accessToken = getAccessToken();
       if (!accessToken) {
         setError("Please login again to connect Google Calendar.");
         navigate("/login");
@@ -255,6 +300,45 @@ const Timetable = () => {
     } catch (err) {
       setError(err.message || "Failed to start Google connection");
       setGoogleLoading(false);
+    }
+  };
+
+  const handleSyncGoogleNow = async () => {
+    setError("");
+    setSuccess("");
+    if (!googleStatus.connected) {
+      setError("Connect Google Calendar first (Establish Link).");
+      return;
+    }
+    try {
+      setSyncingGoogleNow(true);
+      const data = await syncGoogleCalendar({});
+      const created = data?.eventsCreated ?? 0;
+      const failures = data?.failureCount ?? 0;
+      setSuccess(
+        failures > 0
+          ? `Google Calendar: ${created} event(s) written; ${failures} failed.`
+          : `Google Calendar: ${created} event(s) synced from your current plan.`
+      );
+      const status = await getGoogleCalendarStatus();
+      setGoogleStatus(status);
+      if (status.connected) {
+        setGoogleEventsLoading(true);
+        try {
+          const { events } = await getGoogleCalendarEvents({
+            maxResults: 50,
+            pastDays: 180,
+            futureDays: 180
+          });
+          setGoogleEvents(events || []);
+        } finally {
+          setGoogleEventsLoading(false);
+        }
+      }
+    } catch (err) {
+      setError(err.message || "Could not sync to Google Calendar");
+    } finally {
+      setSyncingGoogleNow(false);
     }
   };
 
@@ -285,13 +369,23 @@ const Timetable = () => {
       const normalizedSchedule = nextSchedule
         .filter((e) => e.title && e.start && e.end)
         .map((e) => ({ ...e, start: new Date(e.start).toISOString(), end: new Date(e.end).toISOString() }));
-      const { timetable, conflicts: foundConflicts = [], hasConflicts } =
-        await createRawTimetable(normalizedSchedule, { difficultyLevels, preferredStudyHours });
+      const {
+        timetable,
+        conflicts: foundConflicts = [],
+        hasConflicts,
+        googleCalendarSync
+      } = await createRawTimetable(normalizedSchedule, {
+        difficultyLevels,
+        preferredStudyHours
+      });
       setUniversitySchedule(timetable.universitySchedule || []);
       setOptimizedSchedule(timetable.optimizedSchedule || []);
       setConflicts(foundConflicts);
       setHasSavedTimetableOnServer(true);
-      setSuccess(hasConflicts ? "Row removed. Some overlaps remain." : "Row removed and timetable updated.");
+      const base = hasConflicts
+        ? "Row removed. Some overlaps remain."
+        : "Row removed and timetable updated.";
+      setSuccess(base + googleAutoSyncSuffix(googleCalendarSync));
     } catch (err) {
       setError(err.message || "Failed to persist row removal");
       if (user?._id) {
@@ -321,7 +415,7 @@ const Timetable = () => {
 
   const handleDeleteEntireTimetable = async () => {
     const confirmed = await confirmAction(
-      "Remove your SCC timetable from this app? This deletes university + AI data in Smart Campus Companion. If Google is connected with the latest permissions, SCC will also try to delete the events it previously synced to your Google Calendar (not your other personal events).",
+      "Delete your university timetable from SCC? This removes all saved classes and the AI plan here. If Google Calendar is connected, SCC automatically deletes the timetable events it created there (events tagged by this app—not your whole calendar).",
       { confirmText: "Delete SCC timetable", cancelText: "Cancel" }
     );
     if (!confirmed) return;
@@ -418,21 +512,28 @@ const Timetable = () => {
         setError("Add at least one complete row (title, start, end) before saving.");
         return;
       }
-      const { timetable, conflicts: foundConflicts = [], hasConflicts } =
-        await createRawTimetable(normalizedSchedule, { difficultyLevels, preferredStudyHours });
+      const {
+        timetable,
+        conflicts: foundConflicts = [],
+        hasConflicts,
+        googleCalendarSync
+      } = await createRawTimetable(normalizedSchedule, {
+        difficultyLevels,
+        preferredStudyHours
+      });
       setUniversitySchedule(timetable.universitySchedule || []);
       setOptimizedSchedule(timetable.optimizedSchedule || []);
       setConflicts(foundConflicts);
       setHasSavedTimetableOnServer(true);
-      if (isUpdate) {
-        setSuccess(hasConflicts
-          ? "Timetable updated and optimized plan regenerated. Some overlaps need review."
-          : "Timetable updated and optimized plan generated.");
-      } else {
-        setSuccess(hasConflicts
-          ? "Timetable saved and optimized plan generated. Some overlaps need review."
-          : "Timetable saved and optimized plan generated.");
-      }
+      const baseUpdate = hasConflicts
+        ? "Timetable updated and optimized plan regenerated. Some overlaps need review."
+        : "Timetable updated and optimized plan generated.";
+      const baseNew = hasConflicts
+        ? "Timetable saved and optimized plan generated. Some overlaps need review."
+        : "Timetable saved and optimized plan generated.";
+      setSuccess(
+        (isUpdate ? baseUpdate : baseNew) + googleAutoSyncSuffix(googleCalendarSync)
+      );
     } catch (err) {
       setError(err.message || "Failed to save timetable");
     } finally {
@@ -446,14 +547,19 @@ const Timetable = () => {
     setConflicts([]);
     try {
       setGenerating(true);
-      const { timetable, conflicts: foundConflicts = [], hasConflicts } =
-        await generateOptimizedTimetable({ difficultyLevels, preferredStudyHours });
+      const {
+        timetable,
+        conflicts: foundConflicts = [],
+        hasConflicts,
+        googleCalendarSync
+      } = await generateOptimizedTimetable({ difficultyLevels, preferredStudyHours });
       setOptimizedSchedule(timetable.optimizedSchedule || []);
       setConflicts(foundConflicts);
       setHasSavedTimetableOnServer(true);
-      setSuccess(hasConflicts
+      const base = hasConflicts
         ? "Optimized timetable generated with some overlapping events to review."
-        : "Optimized timetable generated.");
+        : "Optimized timetable generated.";
+      setSuccess(base + googleAutoSyncSuffix(googleCalendarSync));
     } catch (err) {
       setError(err.message || "Failed to generate optimized timetable");
     } finally {
@@ -486,17 +592,24 @@ const Timetable = () => {
         "Generate a balanced study/work plan in my free time. Prioritize hard subjects first, avoid overload per day, and respect personal commitments if mentioned.";
 
       setAiLoading(true);
-      const { timetable, conflicts: foundConflicts = [], hasConflicts } = await aiTimetableChat({
+      const {
+        timetable,
+        conflicts: foundConflicts = [],
+        hasConflicts,
+        calendarSyncResult
+      } = await aiTimetableChat({
         message: effectivePrompt,
-        universitySchedule: normalizedUniversitySchedule.length > 0 ? normalizedUniversitySchedule : undefined
+        universitySchedule:
+          normalizedUniversitySchedule.length > 0 ? normalizedUniversitySchedule : undefined
       });
       setUniversitySchedule(timetable.universitySchedule || []);
       setOptimizedSchedule(timetable.optimizedSchedule || []);
       setConflicts(foundConflicts);
       setHasSavedTimetableOnServer(true);
-      setSuccess(hasConflicts
+      const base = hasConflicts
         ? "AI created an optimized timetable with some overlaps to review."
-        : "AI created an optimized timetable for you.");
+        : "AI created an optimized timetable for you.";
+      setSuccess(base + aiCalendarSyncSuffix(calendarSyncResult));
     } catch (err) {
       setError(err.message || "Failed to generate timetable from AI chat");
     } finally {
@@ -514,15 +627,20 @@ const Timetable = () => {
     }
     try {
       setImporting(true);
-      const { timetable, conflicts: foundConflicts = [], hasConflicts } =
-        await importTimetableFromFile({ file: importFile, prompt: aiPrompt });
+      const {
+        timetable,
+        conflicts: foundConflicts = [],
+        hasConflicts,
+        calendarSyncResult
+      } = await importTimetableFromFile({ file: importFile, prompt: aiPrompt });
       setUniversitySchedule(timetable.universitySchedule || []);
       setOptimizedSchedule(timetable.optimizedSchedule || []);
       setConflicts(foundConflicts);
       setHasSavedTimetableOnServer(true);
-      setSuccess(hasConflicts
+      const base = hasConflicts
         ? "Imported timetable + generated working plan (with study time)."
-        : "Imported timetable + generated working plan.");
+        : "Imported timetable + generated working plan.";
+      setSuccess(base + aiCalendarSyncSuffix(calendarSyncResult));
       setImportFile(null);
     } catch (err) {
       setError(err.message || "Failed to import timetable");
@@ -542,6 +660,37 @@ const Timetable = () => {
   );
   const [activeTab, setActiveTab] = useState("planner"); // planner, visualizer, sync
 
+  useEffect(() => {
+    if (!isAuthenticated || !user?._id || activeTab !== "sync") return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const status = await getGoogleCalendarStatus();
+        if (cancelled) return;
+        setGoogleStatus(status);
+        if (status.connected) {
+          setGoogleEventsLoading(true);
+          const { events } = await getGoogleCalendarEvents({
+            maxResults: 50,
+            pastDays: 180,
+            futureDays: 180
+          });
+          if (!cancelled) setGoogleEvents(events || []);
+        } else if (!cancelled) {
+          setGoogleEvents([]);
+        }
+      } catch (e) {
+        console.error("Google Calendar list (sync tab):", e?.response?.data || e);
+        if (!cancelled) setGoogleEvents([]);
+      } finally {
+        if (!cancelled) setGoogleEventsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, user?._id, activeTab]);
+
   if (!user) return <LoadingSpinner text="Loading timetable..." />;
 
   const isPlanner = activeTab === "planner";
@@ -549,12 +698,16 @@ const Timetable = () => {
   const isSync = activeTab === "sync";
 
   return (
-    <div className="tt-root">
+    <div className="tt-root" data-theme={theme}>
       <div className="tt-canvas" />
 
       <main className="tt-main">
         {/* TOP BAR / BREADCRUMBS */}
-        <div className="tt-topbar">
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="tt-topbar"
+        >
           <div className="tt-topbar__left">
             <button className="tt-back-btn" onClick={() => navigate("/dashboard")} title="Go Back">
               <ArrowLeft size={18} />
@@ -568,42 +721,68 @@ const Timetable = () => {
 
           <div className="tt-status-pill">
             <div className="tt-status-dot" />
-            <span>AI ENGINE ONLINE</span>
+            <span>University Timetable System</span>
           </div>
-        </div>
+        </motion.div>
 
         {/* HERO SECTION */}
-        <section className="tt-hero">
+        <motion.section 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="tt-hero"
+        >
           <div className="tt-hero__content">
-            <span className="tt-hero__tag">Academic Operations</span>
-            <h1 className="tt-hero__title">Smart Strategy Matrix</h1>
-            <p className="tt-hero__desc">
+            <motion.span 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.8 }}
+              transition={{ delay: 0.3 }}
+              className="tt-hero__tag"
+            >
+              Academic Operations
+            </motion.span>
+            <motion.h1 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="tt-hero__title"
+            >
+              Smart Strategy Matrix
+            </motion.h1>
+            <motion.p 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="tt-hero__desc"
+            >
               Orchestrate your academic trajectory with our <strong>Neural Strategy Engine</strong>. 
               Input your constraints, calibrate subject difficulty, and deploy a high-efficiency 
               study plan synchronized across your ecosystem.
-            </p>
+            </motion.p>
           </div>
 
           <div className="tt-stats">
-            <div className="tt-stat">
-              <div className="tt-stat__val">{universitySchedule.length}</div>
-              <div className="tt-stat__lbl">Core Lectures</div>
-            </div>
-            <div className="tt-stat">
-              <div className="tt-stat__val">
-                {optimizedSchedule.filter(e => {
+            {[
+              { val: universitySchedule.length, lbl: "Core Lectures" },
+              { val: optimizedSchedule.filter(e => {
                   const t = String(e?.type || "").toLowerCase();
                   return t === "study" || String(e?.title || "").toLowerCase().includes("study");
-                }).length}
-              </div>
-              <div className="tt-stat__lbl">Study Blocks</div>
-            </div>
-            <div className="tt-stat">
-              <div className="tt-stat__val">{conflicts.length}</div>
-              <div className="tt-stat__lbl">Conflicts</div>
-            </div>
+                }).length, lbl: "Study Blocks" },
+              { val: conflicts.length, lbl: "Conflicts" }
+            ].map((stat, idx) => (
+              <motion.div 
+                key={stat.lbl}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.6 + (idx * 0.1) }}
+                className="tt-stat"
+              >
+                <div className="tt-stat__val">{stat.val}</div>
+                <div className="tt-stat__lbl">{stat.lbl}</div>
+              </motion.div>
+            ))}
           </div>
-        </section>
+        </motion.section>
 
         {/* ALERTS */}
         {error && (
@@ -635,8 +814,8 @@ const Timetable = () => {
             <span>Strategy Planner</span>
           </button>
           <button className={`tt-tab ${isVisualizer ? "active" : ""}`} onClick={() => setActiveTab("visualizer")}>
-            <Calendar size={18} />
-            <span>Visual Matrix</span>
+            <List size={18} />
+            <span>Schedule list</span>
           </button>
           <button className={`tt-tab ${isSync ? "active" : ""}`} onClick={() => setActiveTab("sync")}>
             <RefreshCw size={18} />
@@ -647,7 +826,6 @@ const Timetable = () => {
         {/* PANEL: PLANNER */}
         {isPlanner && (
           <div className="tt-panel tt-planner-grid">
-            <aside className="tt-planner-sidebar">
               {/* SMART STRATEGY ENGINE CARD */}
               <div className="tt-card" style={{ marginBottom: "2rem" }}>
                 <h3 className="tt-card__title">
@@ -671,14 +849,54 @@ const Timetable = () => {
                 </div>
 
                 <div className="tt-form-group">
-                  <label className="tt-label">OCR Registry (File Upload)</label>
-                  <input
-                    type="file"
-                    accept="image/*,application/pdf"
-                    className="tt-input"
-                    onChange={(e) => setImportFile(e.target.files?.[0] || null)}
-                  />
-                  {importFile && <p className="tt-label" style={{ color: "var(--tt-accent)", marginTop: "0.5rem" }}>File: {importFile.name}</p>}
+                  <label className="tt-label" htmlFor="tt-timetable-import">
+                    Timetable file (optional)
+                  </label>
+                  <div className="tt-file-upload">
+                    <input
+                      ref={importFileInputRef}
+                      id="tt-timetable-import"
+                      type="file"
+                      accept="image/*,application/pdf"
+                      className="tt-file-upload__input"
+                      onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                    />
+                    <div className="tt-file-upload__row">
+                      <button
+                        type="button"
+                        className="tt-file-upload__choose"
+                        onClick={() => importFileInputRef.current?.click()}
+                      >
+                        <Upload size={18} strokeWidth={2.25} aria-hidden />
+                        <span>Choose file</span>
+                      </button>
+                      <span className="tt-file-upload__formats">PNG, JPG, WebP, or PDF</span>
+                    </div>
+                    {importFile ? (
+                      <div className="tt-file-upload__selected">
+                        <FileText size={16} className="tt-file-upload__selected-icon" aria-hidden />
+                        <span className="tt-file-upload__name" title={importFile.name}>
+                          {importFile.name}
+                        </span>
+                        <span className="tt-file-upload__size">
+                          {(importFile.size / 1024).toFixed(1)} KB
+                        </span>
+                        <button
+                          type="button"
+                          className="tt-file-upload__clear"
+                          onClick={() => {
+                            setImportFile(null);
+                            if (importFileInputRef.current) importFileInputRef.current.value = "";
+                          }}
+                          aria-label="Remove selected file"
+                        >
+                          <X size={16} strokeWidth={2.5} />
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="tt-file-upload__empty">No file selected</p>
+                    )}
+                  </div>
                 </div>
 
                 <div style={{ display: "flex", gap: "1rem", marginTop: "2rem" }}>
@@ -690,6 +908,110 @@ const Timetable = () => {
                   >
                     <Sparkles size={16} />
                     {importing ? "Importing..." : aiLoading ? "Generating..." : "Generate Matrix"}
+                  </button>
+                </div>
+              </div>
+
+              {/* UNIVERSITY REGISTRY BOARD */}
+              <div className="tt-card tt-card--full">
+                <div className="tt-card__header">
+                  <div className="tt-card__header-info">
+                    <h3 className="tt-card__title">
+                      <LayoutDashboard size={20} />
+                      University Timetable
+                    </h3>
+                    <p className="tt-card__desc">Calibrate your core lecture data here. Recalculates AI plan on change.</p>
+                  </div>
+                  <div className="tt-card__actions">
+                    <button className="tt-btn tt-btn-outline tt-btn-sm" onClick={handleAddEmptyEvent}>
+                      <Plus size={16} /> Add Block
+                    </button>
+                    <button
+                      className="tt-btn tt-btn-primary tt-btn-sm"
+                      onClick={() => persistUniversityTimetable({ isUpdate: true })}
+                      disabled={saving || universitySchedule.length === 0}
+                    >
+                      <RefreshCw size={16} /> {saving ? "Saving..." : "Update"}
+                    </button>
+                  </div>
+                </div>
+
+                {universitySchedule.length === 0 ? (
+                  <EmptyState title="Registry Empty" description="Add your first subject block to initialize." />
+                ) : (
+                  <div className="tt-editor">
+                    <table className="tt-table">
+                      <thead>
+                        <tr>
+                          <th>Subject Title</th>
+                          <th>ID/Code</th>
+                          <th>Start Time</th>
+                          <th>End Time</th>
+                          <th>Difficulty</th>
+                          <th style={{ width: '80px' }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {universitySchedule.map((event, index) => (
+                          <tr key={index} className="tt-table-row">
+                            <td>
+                              <input
+                                className="tt-input"
+                                value={event.title}
+                                onChange={(e) => handleChangeEventField(index, "title", e.target.value)}
+                                placeholder="e.g. Physics II"
+                              />
+                            </td>
+                            <td>
+                              <input
+                                className="tt-input"
+                                value={event.subjectCode}
+                                onChange={(e) => handleChangeEventField(index, "subjectCode", e.target.value)}
+                                placeholder="PHYS101"
+                              />
+                            </td>
+                            <td>
+                              <input
+                                type="datetime-local"
+                                className="tt-input"
+                                value={toDateTimeLocalValue(event.start)}
+                                onChange={(e) => handleChangeEventField(index, "start", e.target.value)}
+                              />
+                            </td>
+                            <td>
+                              <input
+                                type="datetime-local"
+                                className="tt-input"
+                                value={toDateTimeLocalValue(event.end)}
+                                onChange={(e) => handleChangeEventField(index, "end", e.target.value)}
+                              />
+                            </td>
+                            <td>
+                              <select
+                                className="tt-select"
+                                value={difficultyLevels[event.subjectCode || event.title] || "medium"}
+                                onChange={(e) => handleChangeDifficulty(event.subjectCode || event.title, e.target.value)}
+                              >
+                                <option value="easy">Level: Easy</option>
+                                <option value="medium">Level: Medium</option>
+                                <option value="hard">Level: Hard</option>
+                              </select>
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
+                              <button className="tt-btn tt-btn-danger tt-btn-sm" onClick={() => handleRemoveEvent(index)} title="Remove Block">
+                                <Trash2 size={14} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                <div className="tt-card__footer">
+                  <button className="tt-btn tt-btn-danger" onClick={handleDeleteEntireTimetable} disabled={deletingTimetable}>
+                    <Trash2 size={16} /> Delete Entire Registry
                   </button>
                 </div>
               </div>
@@ -716,127 +1038,23 @@ const Timetable = () => {
                   </div>
                 )}
               </div>
-            </aside>
-
-            <section className="tt-planner-main">
-              {/* UNIVERSITY REGISTRY BOARD */}
-              <div className="tt-card tt-card--full">
-                <div className="tt-card__header">
-                  <div className="tt-card__header-info">
-                    <h3 className="tt-card__title">
-                      <LayoutDashboard size={20} />
-                      University Registry
-                    </h3>
-                    <p className="tt-card__desc">Calibrate your core lecture data here. Recalculates AI plan on change.</p>
-                  </div>
-                  <div className="tt-card__actions">
-                    <button className="tt-btn tt-btn-outline tt-btn-sm" onClick={handleAddEmptyEvent}>
-                      <Plus size={16} /> Add Block
-                    </button>
-                    <button
-                      className="tt-btn tt-btn-primary tt-btn-sm"
-                      onClick={() => persistUniversityTimetable({ isUpdate: true })}
-                      disabled={saving || universitySchedule.length === 0}
-                    >
-                      <RefreshCw size={16} /> {saving ? "Saving..." : "Update"}
-                    </button>
-                  </div>
-                </div>
-
-                {universitySchedule.length === 0 ? (
-                  <EmptyState title="Registry Empty" description="Add your first subject block to initialize." />
-                ) : (
-                  <div className="tt-editor">
-                    <table className="tt-table">
-                      <thead>
-                        <tr>
-                          <th>Title</th>
-                          <th>Code</th>
-                          <th>Start</th>
-                          <th>End</th>
-                          <th>Difficulty</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {universitySchedule.map((event, index) => (
-                          <tr key={index} className="tt-table-row">
-                            <td>
-                              <input
-                                className="tt-input"
-                                value={event.title}
-                                onChange={(e) => handleChangeEventField(index, "title", e.target.value)}
-                                placeholder="Lecture Title"
-                              />
-                            </td>
-                            <td>
-                              <input
-                                className="tt-input"
-                                value={event.subjectCode}
-                                onChange={(e) => handleChangeEventField(index, "subjectCode", e.target.value)}
-                                placeholder="CS201"
-                              />
-                            </td>
-                            <td>
-                              <input
-                                type="datetime-local"
-                                className="tt-input"
-                                value={toDateTimeLocalValue(event.start)}
-                                onChange={(e) => handleChangeEventField(index, "start", e.target.value)}
-                              />
-                            </td>
-                            <td>
-                              <input
-                                type="datetime-local"
-                                className="tt-input"
-                                value={toDateTimeLocalValue(event.end)}
-                                onChange={(e) => handleChangeEventField(index, "end", e.target.value)}
-                              />
-                            </td>
-                            <td>
-                              <select
-                                className="tt-select"
-                                value={difficultyLevels[event.subjectCode || event.title] || "medium"}
-                                onChange={(e) => handleChangeDifficulty(event.subjectCode || event.title, e.target.value)}
-                              >
-                                <option value="easy">Easy</option>
-                                <option value="medium">Medium</option>
-                                <option value="hard">Hard</option>
-                              </select>
-                            </td>
-                            <td>
-                              <button className="tt-btn tt-btn-danger tt-btn-sm" onClick={() => handleRemoveEvent(index)}>
-                                <Trash2 size={14} />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-
-                <div className="tt-card__footer">
-                  <button className="tt-btn tt-btn-danger" onClick={handleDeleteEntireTimetable} disabled={deletingTimetable}>
-                    <Trash2 size={16} /> Delete Entire Registry
-                  </button>
-                </div>
-              </div>
-            </section>
           </div>
         )}
 
         {/* PANEL: VISUALIZER */}
         {isVisualizer && (
           <div className="tt-panel">
-            <div className="tt-card tt-card--calendar">
+            <div className="tt-card tt-card--full">
               <div className="tt-card__header">
                 <div className="tt-card__header-info">
                   <h3 className="tt-card__title tt-card__title--large">
-                    <Calendar size={28} />
-                    Temporal Projection Array
+                    <List size={28} />
+                    Schedule list (SCC)
                   </h3>
-                  <p className="tt-card__desc">Visualizing synchronized lecture and neural study blocks.</p>
+                  <p className="tt-card__desc">
+                    Your classes and AI study blocks in a simple day-by-day list. Google Calendar only updates when you are
+                    connected on the Sync tab and save or run &quot;Push plan to Google&quot;.
+                  </p>
                 </div>
                 {hasTimetable && optimizedSchedule.length > 0 && (
                   <div className="tt-card__actions">
@@ -848,14 +1066,15 @@ const Timetable = () => {
               </div>
 
               {!hasTimetable ? (
-                <EmptyState title="No projections found" description="Initialize your registry to generate vectors." />
+                <EmptyState
+                  title="No timetable to show yet"
+                  description="Add classes on the Planner tab and save. This list shows your university sessions plus generated study blocks."
+                />
               ) : (
-                <WeekTimetableCalendar
+                <StudyPlanScheduleList
                   key={calendarMountKey}
-                  title="Temporal Projection"
+                  title="This week in SCC"
                   events={optimizedSchedule.length > 0 ? optimizedSchedule : universitySchedule}
-                  minHour={6}
-                  maxHour={22}
                 />
               )}
             </div>
@@ -877,19 +1096,52 @@ const Timetable = () => {
                 </div>
                 <h2 className="tt-hero__title" style={{ fontSize: "2.5rem", marginBottom: "1.5rem" }}>Google Ecosystem Sync</h2>
                 <p className="tt-hero__desc" style={{ marginBottom: "2.5rem" }}>
-                  Establish a secure tunnel to your Google Calendar. Neural plans will synchronize automatically 
-                  upon commitment, creating dedicated temporal entries in your external array.
+                  After you connect, saving your timetable or regenerating your plan pushes the optimized schedule
+                  (classes + study blocks) to your primary Google Calendar. You can also push manually below.
                 </p>
                 
-                <div style={{ display: "flex", gap: "1rem", justifyContent: "center" }}>
-                  <button className="tt-btn tt-btn-primary" onClick={handleConnectGoogle} disabled={googleLoading}>
-                    {googleStatus.connected ? "Reconnect Ecosystem" : "Establish Link"}
-                  </button>
-                  <div className={`tt-status-pill ${googleStatus.connected ? "success" : "warning"}`} style={{ padding: "0 1.5rem" }}>
-                    <div className="tt-status-dot" style={{ background: googleStatus.connected ? "var(--tt-success)" : "var(--tt-warning)" }} />
-                    <span style={{ color: googleStatus.connected ? "var(--tt-success)" : "var(--tt-warning)" }}>
-                      {googleStatus.connected ? "LINK ESTABLISHED" : "LINK OFFLINE"}
-                    </span>
+                <div className="tt-google-actions">
+                  <div className="tt-google-actions__btns">
+                    <button className="tt-btn tt-btn-primary" onClick={handleConnectGoogle} disabled={googleLoading}>
+                      {googleStatus.connected ? "Reconnect Google" : "Connect Google Calendar"}
+                    </button>
+                    <button
+                      type="button"
+                      className="tt-btn tt-btn-outline"
+                      onClick={handleSyncGoogleNow}
+                      disabled={syncingGoogleNow || !googleStatus.connected}
+                      title={googleStatus.connected ? "Send current SCC plan to Google Calendar" : "Connect Google first"}
+                    >
+                      {syncingGoogleNow ? "Syncing…" : "Push plan to Google"}
+                    </button>
+                  </div>
+                  <div
+                    className={`tt-google-connection ${googleStatus.connected ? "tt-google-connection--live" : "tt-google-connection--off"}`}
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <div className="tt-google-connection__icon" aria-hidden>
+                      {googleStatus.connected ? (
+                        <CheckCircle2 size={22} strokeWidth={2.25} />
+                      ) : (
+                        <Unplug size={22} strokeWidth={2.25} />
+                      )}
+                    </div>
+                    <div className="tt-google-connection__body">
+                      <span className="tt-google-connection__label">Connection</span>
+                      <span className="tt-google-connection__state">
+                        {googleStatus.connected ? "Google Calendar is linked" : "Google Calendar not linked"}
+                      </span>
+                      {googleStatus.connected && googleStatus.lastSyncedAt && (
+                        <span className="tt-google-connection__meta">
+                          Last pushed{" "}
+                          {new Date(googleStatus.lastSyncedAt).toLocaleString(undefined, {
+                            dateStyle: "medium",
+                            timeStyle: "short"
+                          })}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -913,7 +1165,10 @@ const Timetable = () => {
                     {googleEventsLoading ? (
                       <p className="tt-label">SCANNING EXTERNAL ARRAY...</p>
                     ) : googleEvents.length === 0 ? (
-                      <EmptyState title="Array Clear" description="No external events detected in this frequency." />
+                      <EmptyState
+                        title="No Google events in this range"
+                        description="Your primary calendar has no events in the last ~6 months or next ~6 months, or SCC has not pushed yet. Click “Push plan to Google”, refresh this page, and check calendar.google.com. The embedded calendar may use UTC while your account uses local time."
+                      />
                     ) : (
                       googleEvents.map((e) => (
                         <div key={e.id} className="tt-rec" style={{ textAlign: "left" }}>

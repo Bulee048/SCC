@@ -1,5 +1,8 @@
 import User from "../models/User.js";
 import { generateAccessToken, generateRefreshToken, verifyToken } from "../utils/jwt.js";
+import crypto from "crypto";
+import { google } from "googleapis";
+import { getGoogleOAuthClient, getGoogleOAuthScopes, getClientAppUrl } from "../config/googleOAuth.js";
 
 /**
  * Register a new user
@@ -24,12 +27,14 @@ export const register = async (req, res) => {
       linkedin
     } = req.body;
 
+    const email = String(rawEmail || "").trim().toLowerCase();
+
     // Check if user already exists with email
     const existingEmail = await User.findOne({ email });
     if (existingEmail) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "User with this email already exists" 
+        message: "User with this email already exists"
       });
     }
 
@@ -37,9 +42,9 @@ export const register = async (req, res) => {
     if (phone) {
       const existingPhone = await User.findOne({ phone });
       if (existingPhone) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           success: false,
-          message: "Phone number already registered to another account." 
+          message: "Phone number already registered to another account."
         });
       }
     }
@@ -48,9 +53,9 @@ export const register = async (req, res) => {
     if (studentId) {
       const existingStudent = await User.findOne({ studentId });
       if (existingStudent) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           success: false,
-          message: "Student ID already registered" 
+          message: "Student ID already registered"
         });
       }
     }
@@ -100,21 +105,172 @@ export const register = async (req, res) => {
     });
   } catch (error) {
     console.error("Register error:", error);
-    
+
+    // Duplicate key (MongoDB E11000) — often stale unique index on `name` or real duplicate field
+    if (error.code === 11000) {
+      const key = error.keyPattern || {};
+      if (key.email) {
+        return res.status(400).json({
+          success: false,
+          message: "User with this email already exists"
+        });
+      }
+      if (key.name) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "This display name is already taken. Try a different name, or restart the server once so the database indexes can update."
+        });
+      }
+      if (key.phone) {
+        return res.status(400).json({
+          success: false,
+          message: "Phone number already registered to another account."
+        });
+      }
+      if (key.studentId) {
+        return res.status(400).json({
+          success: false,
+          message: "Student ID already registered"
+        });
+      }
+      return res.status(400).json({
+        success: false,
+        message: "An account with these details already exists."
+      });
+    }
+
     // Handle validation errors
     if (error.name === "ValidationError") {
       const messages = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
         message: messages.join(", ")
       });
     }
-    
-    res.status(500).json({ 
+
+    res.status(500).json({
       success: false,
       message: "Error registering user",
-      error: error.message 
+      error: error.message
     });
+  }
+};
+
+/**
+ * Start Google OAuth login/register flow
+ * GET /api/auth/google/start
+ */
+export const startGoogleAuth = async (req, res) => {
+  try {
+    const mode = req.query.mode === "register" ? "register" : "login";
+    const oauthClient = getGoogleOAuthClient(req);
+    const state = Buffer.from(JSON.stringify({ mode }), "utf8").toString("base64url");
+
+    const url = oauthClient.generateAuthUrl({
+      access_type: "online",
+      prompt: "select_account",
+      scope: getGoogleOAuthScopes(),
+      state,
+      include_granted_scopes: true,
+    });
+
+    return res.redirect(url);
+  } catch (error) {
+    console.error("Google auth start error:", error.message);
+    const clientUrl = getClientAppUrl();
+    return res.redirect(`${clientUrl}/auth/google/callback#google_error=start_failed`);
+  }
+};
+
+/**
+ * Google OAuth callback
+ * GET /api/auth/google/callback
+ */
+export const handleGoogleAuthCallback = async (req, res) => {
+  try {
+    const { code, state } = req.query;
+    const clientUrl = getClientAppUrl();
+
+    if (!code) {
+      return res.redirect(`${clientUrl}/auth/google/callback#google_error=missing_code`);
+    }
+
+    const oauthClient = getGoogleOAuthClient(req);
+    const { tokens } = await oauthClient.getToken(code);
+
+    if (!tokens?.access_token) {
+      return res.redirect(`${clientUrl}/auth/google/callback#google_error=no_access_token`);
+    }
+
+    oauthClient.setCredentials(tokens);
+
+    const oauth2 = google.oauth2({ version: "v2", auth: oauthClient });
+    const { data: profile } = await oauth2.userinfo.get();
+
+    const googleId = profile?.id || "";
+    const email = String(profile?.email || "").trim().toLowerCase();
+    const name = String(profile?.name || profile?.given_name || "Google User").trim();
+    const avatar = profile?.picture || "";
+    const mode = (() => {
+      try {
+        if (!state) return "login";
+        const decoded = JSON.parse(Buffer.from(String(state), "base64url").toString("utf8"));
+        return decoded?.mode === "register" ? "register" : "login";
+      } catch {
+        return "login";
+      }
+    })();
+
+    if (!email) {
+      return res.redirect(`${clientUrl}/auth/google/callback#google_error=missing_email`);
+    }
+
+    let user = await User.findOne({ $or: [{ googleId }, { email }] });
+    const isNewUser = !user;
+
+    if (!user) {
+      user = new User({
+        name,
+        email,
+        password: crypto.randomBytes(32).toString("hex"),
+        role: "student",
+        profilePicture: avatar,
+        isVerified: Boolean(profile?.verified_email),
+        authProvider: "google",
+        googleId,
+        googleEmail: email,
+      });
+    } else {
+      if (!user.googleId) user.googleId = googleId;
+      if (!user.googleEmail) user.googleEmail = email;
+      if (!user.profilePicture && avatar) user.profilePicture = avatar;
+      if (!user.isVerified && profile?.verified_email) user.isVerified = true;
+      if (!user.authProvider || user.authProvider === "local") user.authProvider = "google";
+      if (!user.name && name) user.name = name;
+    }
+
+    await user.save();
+
+    const accessToken = generateAccessToken(user._id);
+    const refreshToken = generateRefreshToken(user._id);
+
+    user.refreshTokens.push({ token: refreshToken });
+    await user.save();
+
+    const userResponse = user.toJSON();
+    const payload = new URLSearchParams({
+      accessToken,
+      refreshToken,
+      user: JSON.stringify(userResponse),
+      mode,
+      googleNewUser: isNewUser ? "1" : "0"
+    });
+
+    return res.redirect(`${clientUrl}/auth/google/callback#${payload.toString()}`);
+  } catch (error) {
+    console.error("Google auth callback error:", error?.response?.data || error.message);
+    return res.redirect(`${getClientAppUrl()}/auth/google/callback#google_error=callback_failed`);
   }
 };
 
@@ -134,9 +290,9 @@ export const login = async (req, res) => {
     const user = await User.findOne({ email }).select("+password");
 
     if (!user) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         success: false,
-        message: "Invalid email or password" 
+        message: "Invalid email or password"
       });
     }
 
@@ -144,9 +300,9 @@ export const login = async (req, res) => {
     const isPasswordValid = await user.comparePassword(password);
 
     if (!isPasswordValid) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         success: false,
-        message: "Invalid email or password" 
+        message: "Invalid email or password"
       });
     }
 
@@ -169,10 +325,10 @@ export const login = async (req, res) => {
     });
   } catch (error) {
     console.error("Login error:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       message: "Error logging in",
-      error: error.message 
+      error: error.message
     });
   }
 };
@@ -186,9 +342,9 @@ export const refreshAccessToken = async (req, res) => {
     const { refreshToken } = req.body;
 
     if (!refreshToken) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "Refresh token is required" 
+        message: "Refresh token is required"
       });
     }
 
@@ -199,9 +355,9 @@ export const refreshAccessToken = async (req, res) => {
     const user = await User.findById(decoded.userId);
 
     if (!user) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         success: false,
-        message: "User not found" 
+        message: "User not found"
       });
     }
 
@@ -209,9 +365,9 @@ export const refreshAccessToken = async (req, res) => {
     const tokenExists = user.refreshTokens.some(rt => rt.token === refreshToken);
 
     if (!tokenExists) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         success: false,
-        message: "Invalid refresh token" 
+        message: "Invalid refresh token"
       });
     }
 
@@ -227,10 +383,10 @@ export const refreshAccessToken = async (req, res) => {
     });
   } catch (error) {
     console.error("Refresh token error:", error);
-    res.status(401).json({ 
+    res.status(401).json({
       success: false,
       message: "Invalid or expired refresh token",
-      error: error.message 
+      error: error.message
     });
   }
 };
@@ -256,10 +412,10 @@ export const logout = async (req, res) => {
     });
   } catch (error) {
     console.error("Logout error:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       message: "Error logging out",
-      error: error.message 
+      error: error.message
     });
   }
 };
@@ -278,10 +434,10 @@ export const getMe = async (req, res) => {
     });
   } catch (error) {
     console.error("Get me error:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       message: "Error fetching user profile",
-      error: error.message 
+      error: error.message
     });
   }
 };
@@ -345,20 +501,20 @@ export const updateProfile = async (req, res) => {
     });
   } catch (error) {
     console.error("Update profile error:", error);
-    
+
     // Handle validation errors
     if (error.name === "ValidationError") {
       const messages = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
         message: messages.join(", ")
       });
     }
-    
-    res.status(500).json({ 
+
+    res.status(500).json({
       success: false,
       message: "Error updating profile",
-      error: error.message 
+      error: error.message
     });
   }
 };
